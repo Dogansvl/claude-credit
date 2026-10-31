@@ -21,7 +21,9 @@ code de sortie 3 = interrompu, relancer la même commande) :
   python tools/render_title.py render [--frames 1-150] [--time-limit 300] [--pass fog|bg|text]
   python tools/render_title.py post   [--frames 1-150] [--time-limit 300]
   python tools/render_title.py encode | meta | cover | contact
-  python tools/render_title.py all                          # tout, d'un bloc (long : ~1 h 30 sur 3 threads)
+  python tools/render_title.py all                          # tout, d'un bloc (long : ~1 h sur 3 threads chargés)
+Dépendances (uniquement pour re-rendre le titre, déjà fourni dans assets/title) : Blender >= 4.0, fonttools,
+OpenEXR, pyoidn, opencv-python, numpy.
 Essais rapides : render --scale 13 --samples 16 --work DIR, puis post --lookdev --work DIR, contact --work DIR.
 """
 from __future__ import annotations
@@ -683,8 +685,8 @@ def main(argv=None) -> int:
     ap.add_argument("--frames", default=f"1-{N_FRAMES}")
     ap.add_argument("--time-limit", type=float, default=0,
                     help="s ; arrête proprement après ce délai (reprendre ensuite)")
-    ap.add_argument("--threads", type=int, default=3)
-    ap.add_argument("--scale", type=int, default=None, help="render : surcharge du % de résolution (essais)")
+    ap.add_argument("--threads", type=int, default=0, help="threads Blender (0 = tous ; 3 sur une machine partagée)")
+    ap.add_argument("--scale", type=int, default=None, help="render : surcharge du %% de résolution (essais)")
     ap.add_argument("--samples", type=int, default=None, help="render : surcharge des échantillons (essais)")
     ap.add_argument("--work", default=None, help="WORK_DIR (défaut : config.WORK_DIR)")
     ap.add_argument("--force", action="store_true")
