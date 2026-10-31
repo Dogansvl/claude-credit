@@ -1,0 +1,15 @@
+numpy>=1.26
+scipy>=1.11
+soundfile>=0.12
+pyloudnorm>=0.1.1
+opencv-python-headless>=4.9
+pillow>=10.0
+mediapipe>=0.10.14
+onnxruntime>=1.17
+rembg>=2.0.50
+piper-tts>=1.2
+sherpa-onnx>=1.10
+edge-tts>=6.1
+fonttools>=4.40
+# Optionnel (meilleure transcription si dispo, ex. sous Windows avec accès Hugging Face) :
+# faster-whisper>=1.0

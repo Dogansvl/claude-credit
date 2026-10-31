@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.onnx
+*.tflite
+*.task
+/work/
+/fixtures/
+*.blend1
