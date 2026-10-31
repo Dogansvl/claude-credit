@@ -674,7 +674,9 @@ def meta(args) -> dict:
     end = stats[frames[-1]]
     leg = {f: stats[f]["legib"] for f in frames}
     plateau = float(np.median([leg[f] for f in frames if (f - 1) / FPS >= SUB_T0]))
-    thr = max(0.05, 0.5 * plateau)
+    # seuil borné : la lisibilité du plateau final dépend de l'étalonnage du titre (TEXT_LOOK), pas l'instant où
+    # il émerge de l'éblouissement (le relever déplacerait le reveal sans que l'image ait changé)
+    thr = max(0.05, min(0.5 * plateau, 0.06))
     reveal = None
     for f in frames:   # lisible = lisibilité ≥ seuil et qui le reste (6 images suivantes ≥ 80 % du seuil)
         nxt = [leg[k] for k in frames if f <= k < f + 6]
@@ -692,7 +694,7 @@ def meta(args) -> dict:
         "frames": N_FRAMES,
         "size": [W, H],
         "text_box_note": "union des boîtes du titre (px, x0,y0,x1,y1) de t=2,6 s à la fin (travelling avant)",
-        "reveal_note": f"premier instant où la lisibilité mesurée dépasse {thr:.3f} (50 % du plateau final)",
+        "reveal_note": f"premier instant où la lisibilité mesurée dépasse {thr:.3f} (titre sorti de l'éblouissement)",
         "text_box_start": stats[frames[0]]["box"],
         "text_box_end": end["box"],
         # centre optique du titre (≈ 480 px : il est décalé à gauche pour la zone sûre TikTok) ; gfx.draw_title_sub

@@ -177,6 +177,71 @@ def preview_faces(out: Path, td: Path) -> None:
                                             [label(z(o1), "zoom x2 black_eyes")]], 1080))
 
 
+def _relight(img: np.ndarray, kind: str) -> np.ndarray:
+    """Éclairages difficiles : habitacle rouge sombre, accueil bleu, quasi-noir bruité (capteur de nuit)."""
+    rng = np.random.default_rng(5)
+    x = np.clip(img, 0, 1) ** 1.25
+    if kind == "rouge":
+        x = x * np.float32([0.95, 0.20, 0.17]) * 0.62 + np.float32([0.012, 0.0, 0.0])
+    elif kind == "bleu":
+        x = x * np.float32([0.30, 0.52, 1.0]) * 0.7
+    else:   # nuit : −3,5 diaph + bruit
+        x = x * 0.11
+    x = x + rng.standard_normal(x.shape).astype(np.float32) * 0.012
+    return np.clip(x, 0, 1).astype(np.float32)
+
+
+def preview_lowlight(out: Path, td: Path) -> None:
+    """VFX visages sur visages sombres / rouges / bleus, puis étalonnage du film (night_red, blue, cold+expo) et
+    finition : contrôle à 100 % des bords, halos, effet « masque ». Plus le repli sans maillage (boîte seule)."""
+    import sys as _sys
+    _sys.path.insert(0, str(ROOT))
+    from pipeline import gfx
+    print("[lowlight] visages sombres / rouges / bleus")
+    rows = []
+    for name in ("portrait.jpg", "business-person.png"):
+        base = testdata_canvas(td, name)
+        f = max(fx.FaceTrack.from_image(base, use_cache=False).at(0), key=lambda q: q.size)
+        for kind, pre in (("rouge", "night_red"), ("bleu", "blue"), ("nuit", "cold")):
+            img = _relight(base, kind)
+            g = gfx.exposure_gain([img])
+            fin = lambda im: gfx.film_finish(gfx.grade(im, pre, auto_exposure=g), 4)  # noqa: E731
+            cells = [label(face_crop(fin(img), f), f"{kind} {pre} g={g:.1f}")]
+            for nm, fn in (("black_eyes", lambda: fx.black_eyes(img, f, 1.0)),
+                           ("smile", lambda: fx.stretch_smile(img, f, 1.0)),
+                           ("demon", lambda: fx.demon_face(img, f, 1.0, 0.3)),
+                           ("melt t=2", lambda: fx.melt(img, f, 1.0, 2.0))):
+                cells.append(label(face_crop(fin(fn()), f), nm))
+            rows.append(cells)
+    save_jpg(out / "faces_lowlight.jpg", grid(rows, 300))
+    # repli sans maillage : boîte « détecteur » seule, visage flou de bougé (screamer collé à l'objectif)
+    print("[lowlight] repli depuis une boîte (maillage indisponible)")
+    cells = []
+    for name in ("portrait.jpg", "business-person.png", "lena.jpg"):
+        im = cv2.cvtColor(cv2.imread(str(td / name)), cv2.COLOR_BGR2RGB).astype(np.float32) / 255
+        sc = 1920 / im.shape[0] * 1.15                                       # visage en gros plan
+        big = cv2.resize(im, None, fx=sc, fy=sc, interpolation=cv2.INTER_CUBIC)
+        ox, oy = max(0, (big.shape[1] - 1080) // 2), 0
+        base = np.zeros((1920, 1080, 3), np.float32)
+        crop_ = big[oy:oy + 1920, ox:ox + 1080]
+        base[:crop_.shape[0], :crop_.shape[1]] = crop_
+        f = max(fx.FaceTrack.from_image(base, use_cache=False).at(0), key=lambda q: q.size)
+        x0, y0, x1, y1 = f.bbox
+        bw = x1 - x0
+        box = (x0 + 0.04 * bw, y0 + 0.13 * (y1 - y0), x1 - 0.04 * bw, y1)     # boîte type BlazeFace
+        k = np.zeros((31, 31), np.float32)
+        k[15, :] = 1.0 / 31                                                  # flou de bougé horizontal
+        blurred = cv2.filter2D(base, -1, k)
+        a = timed("demon_face_from_box", fx.demon_face_from_box, blurred, box, 1.0, 0.3)
+        b = fx.demon_face(blurred, f, 1.0, 0.3)
+        vis = blurred.copy()
+        cv2.rectangle(vis, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (1, 1, 0), 3)
+        fin = lambda im: gfx.film_finish(gfx.grade(im, "bleach"), 9)  # noqa: E731
+        cells += [label(face_crop(vis, f), f"{name} flou + boite"), label(face_crop(fin(a), f), "demon_from_box"),
+                  label(face_crop(fin(b), f), "demon (maillage)")]
+    save_jpg(out / "faces_from_box.jpg", grid([cells[:6], cells[6:]], 300))
+
+
 def preview_track(out: Path) -> None:
     print("[track] FaceTrack.compute sur une vidéo + effets dans le temps")
     clip, t0, t1 = "IMG_8357", 4.0, 7.0
@@ -302,7 +367,7 @@ def preview_parallax(out: Path, td: Path, sil_meta: dict | None) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--what", default="all", choices=["all", "faces", "track", "silhouette", "parallax"])
+    ap.add_argument("--what", default="all", choices=["all", "faces", "lowlight", "track", "silhouette", "parallax"])
     ap.add_argument("--out", default=str(config.WORK_DIR / "fx_previews"))
     ap.add_argument("--testdata", default=str(config.WORK_DIR / "testdata"))
     ap.add_argument("--force", action="store_true", help="refaire l'extraction de la silhouette (sinon cache)")
@@ -314,6 +379,8 @@ def main() -> None:
     sil_meta = None
     if args.what in ("all", "faces"):
         preview_faces(out, td)
+    if args.what in ("all", "lowlight"):
+        preview_lowlight(out, td)
     if args.what in ("all", "track"):
         preview_track(out)
     if args.what in ("all", "silhouette"):

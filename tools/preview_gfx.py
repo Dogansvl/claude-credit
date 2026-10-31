@@ -3,7 +3,8 @@
 Usage :
   python tools/preview_gfx.py                      # toutes les planches, images 1080x1920
   python tools/preview_gfx.py --only cards,hud     # sélection (cards, names, timecode, subs, hud, circles,
-                                                   #   grades, finish, composite, fx, check, perf)
+                                                   #   grades, finish, composite, fx, night, titlesub,
+                                                   #   check, perf)
   python tools/preview_gfx.py --res 540            # tout en 540x960 (résolution de la préversion)
 Sources : images de test (--testdata, défaut WORK_DIR/testdata) et une image d'un rush ou proxy (--rush ;
 défaut : proxy IMG_8346 s'il existe, sinon rush IMG_8346 de RUSH_DIR). Avec les faux rushs, ces planches ne
@@ -245,14 +246,16 @@ def sheet_subs(ctx) -> None:
     items = [(a, "Je crois qu'il y a un gars là.", "dialogue"), (c, "Tu sais quand il vient ?", "dialogue"),
              (b, "Le 30 octobre 2026, quatre amis\nont pris la route pour un escape game.", "narrator"),
              (b, "Les organisateurs jurent que cette pièce ne fait pas partie du jeu.", "narrator"),
-             (b, "Identification terminée.", "entity"), (a, "C'est qui lui ?", "entity")]
+             (b, "Identification terminée.", "entity"), (a, "C'est qui lui ?", "entity"),
+             (ctx["bright"], "Il ne se souvient pas d'avoir joué.", "narrator"),
+             (ctx["bright"], "C'est quoi ça ?", "dialogue"), (ctx["bright"], "Gabriel…", "entity")]
     tiles = [(gfx.draw_subtitle(img, txt, k), f"{k}") for img, txt, k in items]
     for img, cap in tiles:  # repères de la zone sûre (contrôle) : traits jaunes
         x0, y0, x1, y1 = gfx.safe_zone(W, H)
         img[y1:y1 + 2] = (1, 1, 0)
         img[:, x0:x0 + 1] = (1, 1, 0)
         img[:, x1:x1 + 1] = (1, 1, 0)
-    save_rgb(ctx["out"] / "04_soustitres.png", sheet(tiles, 6, 300))
+    save_rgb(ctx["out"] / "04_soustitres.png", sheet(tiles, 5, 300))
     rows = [crop(t[0], 0, int(0.68 * H), W, int(0.13 * H)) for t in tiles]
     save_rgb(ctx["out"] / "04b_soustitres_crop100.png", np.concatenate(rows, 0))
 
@@ -343,6 +346,78 @@ def sheet_grades(ctx) -> None:
                 mix = kw.pop("mix", 0.0)
                 tiles.append((gfx.grade(img, pre, mix, **kw), cap))
         save_rgb(ctx["out"] / f"08_etalonnages_{key}.png", sheet(tiles, 6, 260))
+
+
+def simulate_night(img: np.ndarray, k: float = 0.08, seed: int = 0, srgb_scale: bool = False) -> np.ndarray:
+    """Image de nuit iPhone simulée : exposition × k (en linéaire, ou directement en sRGB si srgb_scale),
+    bruit de capteur (photonique + lecture, chromatique basse fréquence), quantification 8 bits."""
+    rng = np.random.default_rng(seed)
+    x = np.clip(img, 0, 1).astype(np.float32)
+    if srgb_scale:
+        lin = np.where(x * k <= 0.04045, x * k / 12.92, ((x * k + 0.055) / 1.055) ** 2.4)
+    else:
+        lin = np.where(x <= 0.04045, x / 12.92, ((x + 0.055) / 1.055) ** 2.4) * k
+    H, W = x.shape[:2]
+    shot = rng.standard_normal(lin.shape).astype(np.float32) * np.sqrt(np.maximum(lin, 0) * 0.0009)
+    read = rng.standard_normal(lin.shape).astype(np.float32) * 0.0012
+    cn = cv2.resize(rng.standard_normal((H // 6, W // 6, 3)).astype(np.float32), (W, H),
+                    interpolation=cv2.INTER_CUBIC) * 0.0016          # bruit chromatique en taches
+    lin = np.clip(lin + shot + read + cn, 0, 1)
+    srgb = np.where(lin <= 0.0031308, lin * 12.92, 1.055 * np.power(lin, 1 / 2.4) - 0.055)
+    srgb = cv2.GaussianBlur(srgb.astype(np.float32), (0, 0), 0.6)   # lissage du codec
+    return np.round(np.clip(srgb, 0, 1) * 255).astype(np.float32) / 255.0
+
+
+def sheet_night(ctx) -> None:
+    """Plans de nuit simulés (×0,08 linéaire et ×0,08 sRGB + bruit) : étalonnage SANS puis AVEC la normalisation
+    d'exposition (gain du plan = gfx.exposure_gain) ; mesure de la luminance médiane / 90e centile."""
+    W, H = ctx["W"], ctx["H"]
+    srcs = [("rush", ctx["rush"]), ("portrait", ctx["portrait"]), ("photo", ctx["photo"]), ("group", ctx["group"])]
+    rows, stats = [], {}
+    for name, img in srcs:
+        for mode, kw in (("lin x0,08", dict(k=0.08)), ("sRGB x0,08", dict(k=0.08, srgb_scale=True))):
+            dark = simulate_night(img, seed=len(stats), **kw)
+            g = gfx.exposure_gain([dark])
+            pre = "night_red" if name == "portrait" else "cold"
+            off = gfx.film_finish(gfx.grade(dark, pre, auto_exposure=False), 3)
+            on = gfx.film_finish(gfx.grade(dark, pre, auto_exposure=g), 3)
+            lum = lambda a: cv2.transform(a, np.array([[0.2126, 0.7152, 0.0722]], np.float32))
+            st = {k: [round(float(np.percentile(lum(a), q)), 3) for q in (50, 90)]
+                  for k, a in (("source", dark), ("sans", off), ("avec", on))}
+            st["gain"] = g
+            stats[f"{name} {mode}"] = st
+            rows += [(dark, f"{name} {mode}"), (off, f"{pre} sans AE"), (on, f"{pre} AE g={g:.2f}")]
+    save_rgb(ctx["out"] / "08n_nuit_exposition.png", sheet(rows, 6, 240))
+    # crop 100 % (bruit chromatique, noirs)
+    dark = simulate_night(ctx["portrait"], 0.08, seed=9)
+    g = gfx.exposure_gain([dark])
+    save_rgb(ctx["out"] / "08n_nuit_crop100.png", np.concatenate([
+        crop(gfx.film_finish(gfx.grade(dark, "cold", auto_exposure=False), 3), int(0.25 * W), int(0.2 * H),
+             int(0.5 * W), int(0.3 * H)),
+        crop(gfx.film_finish(gfx.grade(dark, "cold", auto_exposure=g), 3), int(0.25 * W), int(0.2 * H),
+             int(0.5 * W), int(0.3 * H))], 1))
+    (ctx["out"] / "08n_nuit_stats.json").write_text(json.dumps(stats, indent=1, ensure_ascii=False))
+    for k, v in stats.items():
+        print(f"  {k:24s} gain {v['gain']:.2f}  médiane/p90 source {v['source']}  sans {v['sans']}  avec {v['avec']}")
+
+
+def sheet_titlesub(ctx) -> None:
+    """Ligne « INSPIRÉ DE FAITS RÉELS — 30.10.2026 » sur de vraies images du titre 3D (assets/title)."""
+    seq = config.TITLE_DIR / "title_seq.mp4"
+    if not seq.exists():
+        print("  (title_seq.mp4 absent)")
+        return
+    tiles = []
+    for t in (3.0, 3.6, 4.2, 4.9):
+        fr = rush_frame(seq, t, ctx["out"], ctx["W"], ctx["H"])
+        if fr is None:
+            continue
+        img = gfx.film_finish(fr, int(t * 30))
+        tiles.append((gfx.draw_title_sub(img, "INSPIRÉ DE FAITS RÉELS — 30.10.2026", t - 2.6, 2.4), f"titre t={t}"))
+    if tiles:
+        save_rgb(ctx["out"] / "13_titre_ligne.png", sheet(tiles, 4, 380))
+        W, H = ctx["W"], ctx["H"]
+        save_rgb(ctx["out"] / "13b_titre_ligne_crop100.png", crop(tiles[-1][0], 0, int(0.30 * H), W, int(0.28 * H)))
 
 
 def sheet_finish(ctx) -> None:
@@ -515,7 +590,8 @@ def perf(ctx) -> None:
 
 SHEETS = {"cards": sheet_cards, "names": sheet_names, "timecode": sheet_timecode, "subs": sheet_subs,
           "hud": sheet_hud, "circles": sheet_circles, "grades": sheet_grades, "finish": sheet_finish,
-          "composite": sheet_composite, "fx": sheet_fx, "check": check, "perf": perf}
+          "composite": sheet_composite, "fx": sheet_fx, "night": sheet_night, "titlesub": sheet_titlesub,
+          "check": check, "perf": perf}
 
 
 def main() -> None:
@@ -558,6 +634,7 @@ def main() -> None:
     fr = rush_frame(rush, args.rush_t, out, W, H)
     ctx["rush"] = fr if fr is not None else ctx["portrait"]
     ctx["group"] = group_plate(td, W, H)
+    ctx["bright"] = cover(load_rgb(td / "business-person.png"), W, H, (0.5, 0.75))   # fond blanc
     ctx["group_faces"] = detect_faces(ctx["group"]) if any(k in args.only for k in ("hud", "composite")) or not args.only else []
     if photo_path is not None and photo_path.exists():
         ph = cv2.imread(str(photo_path), cv2.IMREAD_COLOR)  # (cv2 applique l'orientation EXIF)

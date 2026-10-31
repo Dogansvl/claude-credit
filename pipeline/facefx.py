@@ -35,7 +35,8 @@ except ModuleNotFoundError:  # exécution directe
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     import config  # noqa: E402
 
-VERSION = "facefx-5"
+VERSION = "facefx-5"        # suivi (clé des caches de pistes) : inchangé
+FX_VERSION = "facefx-fx-6"   # effets (relecture phase 2 : yeux plissés, repli depuis une boîte)
 FFMPEG = os.environ.get("ESCAPE_FFMPEG", "ffmpeg")
 FFPROBE = os.environ.get("ESCAPE_FFPROBE", "ffprobe")
 
@@ -997,11 +998,21 @@ def _black_eyes_one(out: np.ndarray, face: Face, amount: float, veins: float = 1
         u = _proj(xs, ys, e["c"], e["ax"]) / ew      # le long de l'œil (vers la tempe)
         v = _proj(xs, ys, e["c"], e["ay"]) / ew      # vers le bas
         # ouverture de l'œil, légèrement dilatée (couvre la ligne des cils), bord adouci
-        small = float(_smoothstep(22.0, 8.0, ew))          # petits yeux (plans larges) : plus lisible
-        dil = max(0.45, 0.045 * ew) + 0.6 * small
+        small = float(_smoothstep(24.0, 8.0, ew))          # petits yeux (plans larges) : plus lisible
+        dil = max(0.45, 0.05 * ew) + 1.0 * small
         fea = max(0.6, 0.07 * ew)
-        socket = socket + 0.2 * small
+        socket = socket + 0.25 * small
         m_eye = _soft_poly(e["poly"], roi, dil, fea, ss)
+        # œil plissé (sourire) ou paupières mal suivies : les points se referment alors que l'iris reste
+        # visible -> amande minimale centrée sur l'œil, haute d'au moins ~0,30·ew (0,38 pour les petits yeux),
+        # qui couvre toute l'ouverture réelle
+        pv = _proj(e["poly"][:, 0], e["poly"][:, 1], e["c"], e["ay"]) / ew
+        opening = float(pv.max() - pv.min())
+        half_h = max(0.5 * opening * 1.15, 0.15 + 0.04 * small)
+        vc = float(np.median(pv))
+        alm = _smoothstep(1.0, 0.82, np.sqrt((u / 0.51) ** 2 + ((v - vc) / half_h) ** 2))
+        alm *= max(small, float(_smoothstep(0.36, 0.24, opening)))     # seulement si l'œil est plissé
+        m_eye = np.maximum(m_eye, alm.astype(np.float32))
         # remplissage radial depuis la pupille : l'encre se répand avec amount
         ri = np.sqrt((xs[None, :] - e["iris"][0]) ** 2 + (ys[:, None] - e["iris"][1]) ** 2) / (0.55 * ew)
         R = a * 1.45 - 0.08
@@ -1405,11 +1416,16 @@ def demon_face(img, face, amount: float = 1.0, t: float = 0.0):
         fm = _upsample(_smoothstep(1.30, 0.70, rho) * oval, roi)
         ring = _upsample((_smoothstep(0.55, 0.95, rho) * _smoothstep(1.35, 0.95, rho)) * 0.20 * oval, roi)
         lum = _lum(reg)[..., None]
-        sick = (0.80 * lum + 0.20 * reg) * np.float32([0.90, 0.97, 0.90])
         mu = float(lum.mean())
+        # éclairage coloré (habitacle rouge, accueil bleu) : désaturer le visage le rendrait plus sombre que la
+        # scène (« masque ») -> on garde la teinte de la lumière et on ne fait que la verdir/durcir un peu
+        colorful = float(np.mean(np.abs(reg - lum)) / max(mu, 1e-3))
+        keep = float(_smoothstep(0.22, 0.55, colorful))
+        d = 0.80 * (1.0 - 0.75 * keep)
+        sick = (d * lum + (1.0 - d) * reg) * np.float32([0.90, 0.97, 0.90])
         sick = np.clip((sick - 0.5 * mu) * 1.12 + 0.5 * mu, 0, 1)
         k = (fm * min(a, 1.0) * 0.7)[..., None]
-        reg[:] = (reg * (1 - k) + sick * k) * (1 - (ring * min(a, 1.0))[..., None])
+        reg[:] = (reg * (1 - k) + sick * k) * (1 - (ring * min(a, 1.0) * (1.0 - 0.5 * keep))[..., None])
         # 2) déformation : bouche étirée + mâchoire qui tombe + léger melt (un seul rééchantillonnage)
         mfx, mfy, (src, disp) = _mouth_field(g, roi, a * 0.75, open_v=0.42)
         lfx, lfy, _ = _melt_field(g, roi, 0.28 * a, t, step)
@@ -1445,6 +1461,110 @@ def demon_face(img, face, amount: float = 1.0, t: float = 0.0):
         fit = Face(g.lm, f.score, f.track_id, f.frame_size)
         _black_eyes_one(out, fit, 1.0 * min(a / 0.8, 1.0) if a < 0.8 else 1.0, veins=1.35, socket=0.55)
     return np.clip(out, 0, 1)
+
+
+# ---------------------------------------------------------------------------
+# Repli sans maillage : visage synthétique depuis une boîte (screamer collé à l'objectif, flou de bougé)
+# ---------------------------------------------------------------------------
+# Gabarit moyen des 478 points (visages de face), en coordonnées normalisées par la boîte d'un détecteur de
+# visage type BlazeFace (analysis/<clip>.faces.json) : x, y ∈ [0, 1] dans la boîte (front au-dessus : y < 0).
+_TPL_B64 = (
+    "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")
+_TPL_CACHE: list = []
+
+
+def _template() -> np.ndarray:
+    if not _TPL_CACHE:
+        import base64
+        import zlib
+        raw = zlib.decompress(base64.b64decode(_TPL_B64))
+        _TPL_CACHE.append(np.frombuffer(raw, np.float16).astype(np.float32).reshape(478, 2))
+    return _TPL_CACHE[0]
+
+
+_EYE_IDX = [sorted(set(LEFT_EYE + LEFT_IRIS + LEFT_UPPER_LID + LEFT_LOWER_LID)),
+            sorted(set(RIGHT_EYE + RIGHT_IRIS + RIGHT_UPPER_LID + RIGHT_LOWER_LID))]
+_MOUTH_IDX = sorted(set(LIPS_OUTER + LIPS_INNER))
+
+
+def face_from_box(img, bbox, refine: bool = True, box_kind: str = "detector") -> Face | None:
+    """Visage synthétique (478 points) posé dans une boîte de visage, quand le maillage MediaPipe échoue.
+    bbox : (x0, y0, x1, y1) px dans `img` ; box_kind="detector" (boîte BlazeFace : sourcils -> menton) ou
+    "landmarks" (boîte des points : front -> menton, oreille -> oreille). refine : recale chaque œil sur le
+    creux sombre le plus proche (orbites) et la bouche sur la zone sombre de la bouche (cri), ±7 % de la boîte."""
+    if bbox is None:
+        return None
+    x0, y0, x1, y1 = (float(v) for v in bbox)
+    bw, bh = x1 - x0, y1 - y0
+    if bw < 6 or bh < 6:
+        return None
+    tpl = _template()
+    if box_kind == "landmarks":   # ramène la boîte des points à une boîte de détecteur
+        tmin, tmax = tpl.min(0), tpl.max(0)
+        sx, sy = bw / (tmax[0] - tmin[0]), bh / (tmax[1] - tmin[1])
+        lm = (tpl - tmin) * [sx, sy] + [x0, y0]
+    else:
+        lm = tpl * [bw, bh] + [x0, y0]
+    lm = lm.astype(np.float32)
+    if refine:
+        a = _as_float(img)
+        H, W = a.shape[:2]
+        L = _lum(a)
+        sig = max(1.0, 0.035 * bw)
+        lim = 0.07 * bw
+        groups = [(_EYE_IDX[0], 0.10, 1.0), (_EYE_IDX[1], 0.10, 1.0), (_MOUTH_IDX, 0.12, 0.6)]
+        for idx, win, wprior in groups:
+            c = lm[idx].mean(0)
+            r = win * bw
+            rx0, ry0 = int(max(0, c[0] - r)), int(max(0, c[1] - r))
+            rx1, ry1 = int(min(W, c[0] + r + 1)), int(min(H, c[1] + r + 1))
+            if rx1 - rx0 < 4 or ry1 - ry0 < 4:
+                continue
+            sub = cv2.GaussianBlur(L[ry0:ry1, rx0:rx1], (0, 0), sig)
+            yy, xx = np.mgrid[ry0:ry1, rx0:rx1].astype(np.float32)
+            d2 = ((xx - c[0]) ** 2 + (yy - c[1]) ** 2) / (lim * lim)
+            spread = float(np.percentile(sub, 90) - np.percentile(sub, 10)) + 1e-3
+            score = (sub - sub.min()) / spread + wprior * d2
+            k = int(np.argmin(score))
+            py, px = np.unravel_index(k, sub.shape)
+            off = np.array([xx[py, px] - c[0], yy[py, px] - c[1]], np.float32)
+            n = float(np.linalg.norm(off))
+            if n > lim:
+                off *= lim / n
+            if spread > 0.03:                 # creux réellement visible, sinon on garde le gabarit
+                lm[idx] += off
+    return Face(lm, 0.3, -2, (int(np.asarray(img).shape[1]), int(np.asarray(img).shape[0])))
+
+
+def black_eyes_from_box(img, bbox, amount: float = 1.0):
+    """Repli de black_eyes à partir d'une simple boîte de visage (maillage indisponible)."""
+    f = face_from_box(img, bbox)
+    return _as_float(img) if f is None else black_eyes(img, f, amount)
+
+
+def stretch_smile_from_box(img, bbox, amount: float = 1.0):
+    """Repli de stretch_smile à partir d'une simple boîte de visage."""
+    f = face_from_box(img, bbox)
+    return _as_float(img) if f is None else stretch_smile(img, f, amount)
+
+
+def widen_eyes_from_box(img, bbox, amount: float = 1.0):
+    """Repli de widen_eyes à partir d'une simple boîte de visage."""
+    f = face_from_box(img, bbox)
+    return _as_float(img) if f is None else widen_eyes(img, f, amount)
+
+
+def melt_from_box(img, bbox, amount: float = 1.0, t: float = 0.0):
+    """Repli de melt à partir d'une simple boîte de visage."""
+    f = face_from_box(img, bbox)
+    return _as_float(img) if f is None else melt(img, f, amount, t)
+
+
+def demon_face_from_box(img, bbox, amount: float = 1.0, t: float = 0.0):
+    """Repli de demon_face (yeux noirs + bouche étirée/ouverte, peau malade) à partir d'une boîte de visage :
+    positions anthropométriques moyennes recalées sur les creux sombres (orbites, bouche)."""
+    f = face_from_box(img, bbox)
+    return _as_float(img) if f is None else demon_face(img, f, amount, t)
 
 
 # ---------------------------------------------------------------------------
@@ -1639,4 +1759,6 @@ def portrait_eyes(img, faces, t: float, amount: float = 1.0):
 
 
 __all__ = ["Face", "FaceTrack", "black_eyes", "stretch_smile", "melt", "widen_eyes", "demon_face",
+           "face_from_box", "black_eyes_from_box", "demon_face_from_box", "stretch_smile_from_box",
+           "widen_eyes_from_box", "melt_from_box",
            "head_tic", "head_tic_hold", "portrait_eyes", "read_frames", "probe_size", "detect_faces_image"]

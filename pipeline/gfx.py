@@ -49,7 +49,7 @@ SUB_BASELINE = 0.765             # dernière ligne de base des sous-titres (frac
 OFF_WHITE = np.array([0.925, 0.905, 0.862], np.float32)    # cartons, prénoms
 SUB_WHITE = np.array([0.965, 0.958, 0.940], np.float32)    # répliques
 NARR_WHITE = np.array([0.905, 0.878, 0.818], np.float32)   # narrateur (blanc cassé chaud)
-ENTITY_RED = np.array([0.745, 0.315, 0.285], np.float32)   # l'entité (rouge désaturé)
+ENTITY_RED = np.array([0.860, 0.270, 0.240], np.float32)   # l'entité (rouge sang, lisible sur noir)
 HUD_WHITE = np.array([0.870, 0.950, 0.972], np.float32)
 HUD_RED = np.array([0.945, 0.140, 0.110], np.float32)
 HUD_RED_FILL = np.array([0.560, 0.035, 0.035], np.float32)
@@ -627,8 +627,8 @@ def draw_name(img, name: str, t: float, sub: str | None = None):
 
 
 # ============================================================================= timecode
-TC_X, TC_BASE1, TC_BASE2 = 74.0, 199.0, 230.0
-TC_SIZE1, TC_SIZE2 = 34.0, 20.0
+TC_X, TC_BASE1, TC_BASE2 = 74.0, 199.0, 235.0
+TC_SIZE1, TC_SIZE2 = 36.0, 24.0
 
 
 def draw_timecode(img, hhmm: str, date: str, t: float):
@@ -648,7 +648,7 @@ def draw_timecode(img, hhmm: str, date: str, t: float):
     _over(out, _soft(st.a, 2.5 * s, pad), INK_BLACK, tx - pad, ty - pad, 0.55)
     _over(out, _soft(sd.a, 2.5 * s, pad), INK_BLACK, dx - pad, dy - pad, 0.5)
     _over(out, st.a, OFF_WHITE, tx, ty, 0.93)
-    _over(out, sd.a, OFF_WHITE, dx, dy, 0.70)
+    _over(out, sd.a, OFF_WHITE, dx, dy, 0.78)
     on = (t % 1.0) < 0.62
     disc = _disc(6.0 * s, 0.75)
     n = disc.shape[0] // 2
@@ -661,9 +661,9 @@ def draw_timecode(img, hhmm: str, date: str, t: float):
 
 # ============================================================================= sous-titres
 _SUB_STYLES = {
-    "dialogue": dict(family="inter", weight=500, size=44.0, tracking=0.0, color=SUB_WHITE, ss=1),
-    "narrator": dict(family="interitalic", weight=420, size=44.0, tracking=0.0, color=NARR_WHITE, ss=1),
-    "entity": dict(family="cormorantitalic", weight=600, size=56.0, tracking=0.035, color=ENTITY_RED, ss=2),
+    "dialogue": dict(family="inter", weight=540, size=46.0, tracking=0.0, color=SUB_WHITE, ss=1),
+    "narrator": dict(family="interitalic", weight=460, size=46.0, tracking=0.0, color=NARR_WHITE, ss=1),
+    "entity": dict(family="cormorantitalic", weight=650, size=60.0, tracking=0.035, color=ENTITY_RED, ss=2),
 }
 _SUB_KIND_ALIASES = {"narration": "narrator", "narrateur": "narrator", "voice": "narrator", "replique": "dialogue",
                      "réplique": "dialogue", "real": "dialogue", "entite": "entity", "entité": "entity"}
@@ -680,17 +680,23 @@ def _sub_sprite(text: str, kind: str, W: int, H: int):
                      max_w, 2, 0.8)
     pitch = px * (1.24 if kind != "entity" else 1.08)
     spr = _block(lines, st["family"], px, st["weight"], st["tracking"], pitch, "center", st["ss"])
-    pad = int(math.ceil(10 * s)) + 2
+    pad = int(math.ceil(22 * s)) + 2
     a = cv2.copyMakeBorder(np.ascontiguousarray(spr.a), pad, pad, pad, pad, cv2.BORDER_CONSTANT, value=0)
-    r = max(1, int(round(1.6 * s)))
+    r = max(1, int(round(2.0 * s)))
     stroke = cv2.dilate(a, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r + 1, 2 * r + 1)))
     stroke = cv2.GaussianBlur(stroke, (0, 0), 0.6 * s + 0.3)
     shadow = cv2.GaussianBlur(a, (0, 0), 6.0 * s)
     sh = int(round(3 * s))
     shadow = np.roll(shadow, sh, axis=0)
+    # halo sombre diffus (« glow » noir) : assombrit le fond juste autour des lettres -> lisible sur un mur
+    # éclairé, un visage clair ou une photo blanche, sans bandeau visible sur fond sombre
+    halo = cv2.GaussianBlur(cv2.dilate(a, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (int(9 * s) | 1,) * 2)),
+                            (0, 0), 7.0 * s)
+    halo = np.clip(halo * 1.5, 0, 1)
     col = np.zeros(a.shape + (3,), np.float32)
     al = np.zeros(a.shape, np.float32)
-    for m, c, o in ((shadow, INK_BLACK, 0.62), (stroke, INK_BLACK, 0.58), (a, st["color"], 1.0)):
+    for m, c, o in ((halo, INK_BLACK, 0.45), (shadow, INK_BLACK, 0.62), (stroke, INK_BLACK, 0.66),
+                    (a, st["color"], 1.0)):
         mm = m * np.float32(o)
         col = col * (1.0 - mm[..., None]) + np.asarray(c, np.float32) * mm[..., None]
         al = al * (1.0 - mm) + mm
@@ -731,6 +737,8 @@ def draw_subtitle(img, text: str, kind: str = "dialogue", alpha: float = 1.0):
 
 # ============================================================================= HUD de reconnaissance faciale
 HUD_LOCK_S = 0.30
+HUD_LABEL_PX = 30.0     # étiquette (px à 1080 de large) : lisible sur téléphone
+HUD_SUB_PX = 20.0       # sous-étiquette
 _HUD_LM_IDX = None
 
 
@@ -743,12 +751,18 @@ def _hud_landmark_subset(n: int) -> np.ndarray:
     return _HUD_LM_IDX[1]
 
 
+_HUD_STATUS = ("IDENTIFIÉ", "IDENTIFIE", "VERROUILLÉ", "CIBLE", "INCONNU")
+
+
 def _split_label(label: str, family: str, size: float, max_w: float) -> list[str]:
-    if _text_width(label, family, size, 500, 0.06) <= max_w:
-        return [label]
-    parts = [p.strip() for p in label.split("—")]
-    if len(parts) < 2:
-        return [label]
+    """Étiquette HUD en lignes : « SUJET 01 — DOGAN » / « IDENTIFIÉ » (le statut final a toujours sa ligne),
+    puis regroupement glouton des segments séparés par « — » dans max_w (3 lignes si les visages sont serrés)."""
+    parts = [p.strip() for p in label.split("—") if p.strip()]
+    if not parts:
+        return []
+    status = None
+    if len(parts) >= 2 and parts[-1].upper().startswith(_HUD_STATUS):
+        status = parts.pop()
     lines = [parts[0]]
     for p in parts[1:]:
         cand = lines[-1] + " — " + p
@@ -756,6 +770,8 @@ def _split_label(label: str, family: str, size: float, max_w: float) -> list[str
             lines[-1] = cand
         else:
             lines.append(p)
+    if status:
+        lines.append(status)
     return lines
 
 
@@ -812,9 +828,9 @@ def draw_hud_face(img, bbox, t_since_lock: float, label: str, sublabel: str | No
     bx0, by0, bx1, by1 = cx - hw + jx, cy - hh + jy, cx + hw + jx, cy + hh + jy
 
     # --- étiquette (écriture lettre par lettre) -----------------------------------------------
-    lab_size = 19.0 * s
+    lab_size = HUD_LABEL_PX * s
     lab_fam = "plexmono"
-    max_lab_w = max(1.05 * tw, 165 * s)        # étroite : les visages voisins ne se chevauchent pas
+    max_lab_w = max(1.15 * tw, 250 * s)        # étroite : les visages voisins ne se chevauchent pas
     lab_lines = _split_label(label.upper(), lab_fam, lab_size, max_lab_w) if label else []
     total_chars = sum(len(l) for l in lab_lines)
     t_type0 = 0.03 if victim else 0.16
@@ -823,9 +839,9 @@ def draw_hud_face(img, bbox, t_since_lock: float, label: str, sublabel: str | No
     n_typed = min(n_typed, total_chars)
     typing_done_t = t_type0 + total_chars / cps
     sub_txt = _auto_sublabel(label or "", victim) if sublabel is None else sublabel
-    sub_size = 14.5 * s
-    line_h = 25.0 * s
-    padx, pady = 9.0 * s, 6.0 * s
+    sub_size = HUD_SUB_PX * s
+    line_h = 1.30 * lab_size
+    padx, pady = 12.0 * s, 8.0 * s
 
     # --- zone de travail locale (ROI) ---------------------------------------------------------
     full_lab_w = max([_text_width(l, lab_fam, lab_size, 500, 0.06) for l in lab_lines] +
@@ -837,7 +853,7 @@ def draw_hud_face(img, bbox, t_since_lock: float, label: str, sublabel: str | No
     sx0, sy0, sx1, sy1 = safe_zone(W, H)
     below_ok = fy1 + 10 * s + pill_h_full <= min(sy1, H - 2)
     side = label_side
-    if side is None and bw < 0.13 * W:  # petits visages voisins (groupe) : étiquettes paires au-dessus
+    if side is None and bw < 0.24 * W:  # visages voisins (groupe) : étiquettes paires au-dessus
         num = "".join(ch if ch.isdigit() else " " for ch in (label or "")).split()
         side = "above" if num and int(num[0]) % 2 == 0 else None
     if side == "above" and fy0 - 10 * s - pill_h_full >= sy0:
@@ -923,7 +939,7 @@ def draw_hud_face(img, bbox, t_since_lock: float, label: str, sublabel: str | No
         show_sub = bool(sub_txt) and t > typing_done_t + 0.08
         sub_a = _clamp((t - typing_done_t - 0.08) / 0.2) if show_sub else 0.0
         sub_w = _text_width(sub_txt.upper(), lab_fam, sub_size, 400, 0.08) if show_sub else 0.0
-        cur_w = 9.0 * s
+        cur_w = 0.5 * lab_size
         pw = max(max(widths) + cur_w + 4 * s, sub_w) + 2 * padx
         nl = max(1, sum(1 for tl in typed if tl))
         ph = nl * line_h + (line_h * 0.8 if show_sub else 0.0) + 2 * pady
@@ -948,8 +964,8 @@ def draw_hud_face(img, bbox, t_since_lock: float, label: str, sublabel: str | No
             cw = widths[cur_line]
             cxl = px0 + padx + cw + 2 * s
             cyb = py0 + pady + line_h * (cur_line + 0.78)
-            x_a, x_b = int(round(cxl)), int(round(cxl + 8 * s))
-            y_a, y_b = int(round(cyb - 14 * s)), int(round(cyb + 2 * s))
+            x_a, x_b = int(round(cxl)), int(round(cxl + 0.45 * lab_size))
+            y_a, y_b = int(round(cyb - 0.74 * lab_size)), int(round(cyb + 0.1 * lab_size))
             a_txt[max(0, y_a):max(0, y_b), max(0, x_a):max(0, x_b)] = 0.9
         if show_sub:
             sp = _line(sub_txt.upper(), lab_fam, sub_size, 400, 0.08, 1)
@@ -1028,10 +1044,12 @@ def _marker_path(seed: int, frantic: bool) -> _Path:
     q = np.linspace(0.0, 1.0, n, dtype=np.float64)
     th = th0 + direction * 2.0 * math.pi * turns * q
     # ellipse irrégulière : ondulations basses fréquences différentes à chaque boucle
-    amp = 0.05 if frantic else 0.038
+    amp = 0.075 if frantic else 0.038
     r = np.ones(n)
-    for kf in (2, 3):
+    for kf in ((2, 3, 5) if frantic else (2, 3)):
         r += amp / kf ** 0.5 * np.sin(kf * th + rng.uniform(0, 2 * math.pi))
+    if frantic:   # main qui tremble : ondulation rapide de faible amplitude
+        r += 0.018 * np.sin(2 * math.pi * q * rng.uniform(38, 55) + rng.uniform(0, 6.3))
     r += (0.045 if frantic else 0.035) * np.sin(2 * math.pi * turns * q * rng.uniform(0.45, 0.6) + rng.uniform(0, 6.3))
     # dérive du centre et des axes d'une boucle à l'autre
     knots = int(math.ceil(turns)) + 2
@@ -1061,8 +1079,8 @@ def _marker_path(seed: int, frantic: bool) -> _Path:
     ink *= 1.0 - 0.35 * _sstep(0.93, 1.0, u)
     if frantic:  # plus fin et plus pâle là où la main va vite (côtés longs), encre qui sèche
         speed = np.abs(np.sin(th + rng.uniform(0, 6.3)))
-        w *= 0.72 + 0.28 * (1.0 - speed) + 0.08 * np.sin(2 * math.pi * u * rng.uniform(9, 14))
-        ink *= 0.80 + 0.20 * (1.0 - speed)
+        w *= 0.80 + 0.30 * (1.0 - speed) + 0.10 * np.sin(2 * math.pi * u * rng.uniform(9, 14))
+        ink *= 0.90 + 0.10 * (1.0 - speed)
     loop = np.floor((th - th0) * direction / (2 * math.pi) + 1e-9).astype(np.int32)
     rot = float(rng.uniform(-0.22, 0.22))
     return _Path(xy.astype(np.float32), u.astype(np.float32), w.astype(np.float32),
@@ -1110,7 +1128,7 @@ def draw_red_circle(img, center_xy, axes_xy, progress: float, seed: int, frantic
     Y = P.xy[:n, 1] * ay
     pts = np.stack([cx + X * cr - Y * sr, cy + X * sr + Y * cr], 1)
     size_k = math.sqrt(_clamp(((ax + ay) / 2) / (115.0 * s), 0.6, 1.5))
-    base_w = (6.4 if frantic else 8.6) * s * size_k
+    base_w = (9.0 if frantic else 8.6) * s * size_k
     wid = P.w[:n] * base_w
     ink = P.ink[:n]
     loops = P.loop[:n]
@@ -1180,7 +1198,9 @@ def _title_meta() -> dict:
 
 def draw_title_sub(img, text: str, t: float, dur: float):
     """Ligne sous le titre 3D (« INSPIRÉ DE FAITS RÉELS — 30.10.2026 ») : serif capitales + date en mono,
-    séparées par un filet ; ancrée sous la boîte du titre (assets/title/title_meta.json, sub_anchor)."""
+    séparées par un filet ; centrée sur l'ancre sub_anchor de assets/title/title_meta.json (utilisée telle
+    quelle : le titre est décalé à gauche pour la zone sûre). Un voile sombre très doux derrière la ligne la
+    garde lisible sur les reflets des feux arrière."""
     out = _f32(img).copy()
     if dur <= 0 or not (0.0 <= t <= dur) or not text.strip():
         return out
@@ -1189,30 +1209,43 @@ def draw_title_sub(img, text: str, t: float, dur: float):
     meta = _title_meta()
     mw, mh = (meta.get("size") or [REF_W, REF_H])[:2]
     anc = meta.get("sub_anchor") or [REF_W / 2, 1015]
-    cx = W / 2.0 if abs(anc[0] * W / mw - W / 2.0) < 0.06 * W else anc[0] * W / mw
+    cx = float(anc[0]) * W / mw
     top = float(anc[1]) * H / mh
     alpha, blur, glow = _reveal(t, dur, 0.9, 0.45, _str_seed(text), 0.8)
     if alpha <= 0.003:
         return out
     parts = [_typo(p.strip(), CARD_FAMILY) for p in text.upper().replace(" - ", " — ").split("—")]
     head, tail = parts[0], " — ".join(parts[1:]) if len(parts) > 1 else ""
-    lines, px = _fit(head, CARD_FAMILY, 36.0 * s, CARD_WEIGHT, 0.32, 0.64 * W)
-    spr = _block(lines, CARD_FAMILY, px, CARD_WEIGHT, 0.32, 1.45 * px)
+    sx0, _, sx1, _ = safe_zone(W, H)
+    max_w = 2.0 * min(cx - sx0, sx1 - cx) - 8 * s           # centrée sur l'ancre ET dans la zone sûre
+    lines, px = _fit(head, CARD_FAMILY, 40.0 * s, CARD_WEIGHT, 0.30, min(0.64 * W, max_w))
+    spr = _block(lines, CARD_FAMILY, px, CARD_WEIGHT, 0.30, 1.45 * px)
     base1 = top + spr.cap
+    last_base = base1 + (len(lines) - 1) * 1.45 * px
+    ry = last_base + 28 * s
+    y_end = ry + 44 * s if tail else last_base
+    # voile sombre elliptique derrière la ligne (lisibilité sur les reflets rouges, sans bandeau visible)
+    yc, hh = (top + y_end) / 2.0, (y_end - top) * 0.5 + 34 * s
+    ww = spr.adv * 0.5 + 70 * s
+    x0_, x1_ = int(max(0, cx - 2.2 * ww)), int(min(W, cx + 2.2 * ww))
+    y0_, y1_ = int(max(0, yc - 2.2 * hh)), int(min(H, yc + 2.2 * hh))
+    if x1_ > x0_ and y1_ > y0_:
+        gx = np.exp(-0.5 * ((np.arange(x0_, x1_, dtype=np.float32) - cx) / ww) ** 4)
+        gy = np.exp(-0.5 * ((np.arange(y0_, y1_, dtype=np.float32) - yc) / hh) ** 2)
+        out[y0_:y1_, x0_:x1_] *= (1.0 - np.float32(0.5 * alpha) * np.outer(gy, gx))[..., None]
     m, X, Y = _warp(spr.a, spr.ox + spr.adv / 2, spr.base, cx, base1, 1.0 + 0.02 * t / dur, blur * s)
     soft = _fast_blur(m, 6.5 * s)
-    _composite(out, X, Y, [(soft, INK_BLACK, 0.5 * alpha, "over"),
+    _composite(out, X, Y, [(soft, INK_BLACK, 0.6 * alpha, "over"),
                            (soft, OFF_WHITE, 0.5 * glow * alpha if glow > 0.01 else 0.0, "add"),
                            (m, OFF_WHITE, alpha, "over")])
-    last_base = base1 + (len(lines) - 1) * 1.45 * px
     if tail:
         a2 = alpha * _clamp((t - 0.25) / 0.6)
         rw = 34 * s * _ease_out_cubic((t - 0.15) / 0.6)
-        ry = last_base + 26 * s
         _hline(out, cx - rw / 2, cx + rw / 2, ry, max(1.0, 1.4 * s), OFF_WHITE, 0.7 * alpha)
-        sp = _line(tail, "plexmono", 22.0 * s, 400, 0.40, 2)
-        m2, X2, Y2 = _warp(sp.a, sp.ox + sp.adv / 2, sp.base, cx, ry + 40 * s, 1.0, blur * s * 0.7)
-        _over(out, m2, OFF_WHITE, X2, Y2, 0.8 * a2)
+        sp = _line(tail, "plexmono", 24.0 * s, 400, 0.40, 2)
+        m2, X2, Y2 = _warp(sp.a, sp.ox + sp.adv / 2, sp.base, cx, ry + 42 * s, 1.0, blur * s * 0.7)
+        _over(out, _fast_blur(m2, 3.0 * s), INK_BLACK, X2, Y2, 0.55 * a2)
+        _over(out, m2, OFF_WHITE, X2, Y2, 0.85 * a2)
     return out
 
 
@@ -1334,7 +1367,7 @@ def _grade_params(preset: str, mix: float, kw: dict) -> dict:
 # (90e centile < 0,02) reste noire. Stable dans le temps : exposure_gain(images) se calcule UNE fois par plan.
 AE_TARGET_MED = 0.15
 AE_TARGET_HI = 0.50
-AE_MAX_GAIN = 4.0
+AE_MAX_GAIN = 5.0
 AE_BLACK_P90 = (0.02, 0.05)    # 90e centile en dessous duquel l'image est considérée noire (pas de relèvement)
 AE_NR_FROM = 1.3               # gain à partir duquel la chrominance est débruitée
 
@@ -1501,59 +1534,68 @@ except Exception:  # pragma: no cover - numba absent : replis cv2
     _nb = None
 
 if _nb is not None:
-    @_nb.njit(cache=True, nogil=True, fastmath=True)
-    def _nb_lut3(x, lut, chroma, nr, out):
+    _F32 = np.float32
+
+    @_nb.njit(cache=True, nogil=True, fastmath=True, boundscheck=False)
+    def _nb_lut3(x, lut, N, chroma, nr, out):
+        """LUT 3D trilinéaire (lut aplatie [((b·N + g)·N + r)·3 + c], nœuds en racine carrée), avec
+        remplacement optionnel de la chrominance par sa version lissée basse résolution (nr > 0)."""
         H, W = x.shape[0], x.shape[1]
-        N = lut.shape[0]
-        s = np.float32(N - 1)
+        s = _F32(N - 1)
+        one, zero = _F32(1.0), _F32(0.0)
+        sN, sNN = N * 3, N * N * 3
         hc, wc = chroma.shape[0], chroma.shape[1]
-        use_nr = nr > 0.0
+        ky, kx = _F32(hc / H), _F32(wc / W)
+        half = _F32(0.5)
+        use_nr = nr > zero
         for i in range(H):
+            cy = (_F32(i) + half) * ky - half
+            y0 = min(max(np.int32(np.floor(cy)), 0), hc - 1)
+            y1 = min(y0 + 1, hc - 1)
+            fy = min(max(cy - _F32(y0), zero), one)
             for j in range(W):
                 r = x[i, j, 0]
                 g = x[i, j, 1]
                 b = x[i, j, 2]
-                if use_nr:   # chrominance remplacée par sa version lissée (basse résolution, bilinéaire)
-                    L = np.float32(0.2126) * r + np.float32(0.7152) * g + np.float32(0.0722) * b
-                    cy = (i + np.float32(0.5)) * hc / H - np.float32(0.5)
-                    cx = (j + np.float32(0.5)) * wc / W - np.float32(0.5)
-                    y0 = int(np.floor(cy))
-                    x0 = int(np.floor(cx))
-                    fy = cy - y0
-                    fx = cx - x0
-                    ya, yb = min(max(y0, 0), hc - 1), min(max(y0 + 1, 0), hc - 1)
-                    xa, xb = min(max(x0, 0), wc - 1), min(max(x0 + 1, 0), wc - 1)
-                    w00 = (1 - fy) * (1 - fx)
-                    w01 = (1 - fy) * fx
-                    w10 = fy * (1 - fx)
-                    w11 = fy * fx
-                    cr = (chroma[ya, xa, 0] * w00 + chroma[ya, xb, 0] * w01 + chroma[yb, xa, 0] * w10
-                          + chroma[yb, xb, 0] * w11)
-                    cg = (chroma[ya, xa, 1] * w00 + chroma[ya, xb, 1] * w01 + chroma[yb, xa, 1] * w10
-                          + chroma[yb, xb, 1] * w11)
-                    cb = (chroma[ya, xa, 2] * w00 + chroma[ya, xb, 2] * w01 + chroma[yb, xa, 2] * w10
-                          + chroma[yb, xb, 2] * w11)
+                if use_nr:   # chrominance lissée (bruit de capteur de nuit), luminance intacte
+                    L = _F32(0.2126) * r + _F32(0.7152) * g + _F32(0.0722) * b
+                    cx = (_F32(j) + half) * kx - half
+                    x0 = min(max(np.int32(np.floor(cx)), 0), wc - 1)
+                    x1 = min(x0 + 1, wc - 1)
+                    fx = min(max(cx - _F32(x0), zero), one)
+                    w00, w01 = (one - fy) * (one - fx), (one - fy) * fx
+                    w10, w11 = fy * (one - fx), fy * fx
+                    cr = (chroma[y0, x0, 0] * w00 + chroma[y0, x1, 0] * w01 + chroma[y1, x0, 0] * w10
+                          + chroma[y1, x1, 0] * w11)
+                    cg = (chroma[y0, x0, 1] * w00 + chroma[y0, x1, 1] * w01 + chroma[y1, x0, 1] * w10
+                          + chroma[y1, x1, 1] * w11)
+                    cb = (chroma[y0, x0, 2] * w00 + chroma[y0, x1, 2] * w01 + chroma[y1, x0, 2] * w10
+                          + chroma[y1, x1, 2] * w11)
                     r = r + (L + cr - r) * nr
                     g = g + (L + cg - g) * nr
                     b = b + (L + cb - b) * nr
-                r = min(max(r, np.float32(0.0)), np.float32(1.0))
-                g = min(max(g, np.float32(0.0)), np.float32(1.0))
-                b = min(max(b, np.float32(0.0)), np.float32(1.0))
+                r = min(max(r, zero), one)
+                g = min(max(g, zero), one)
+                b = min(max(b, zero), one)
                 ur = np.sqrt(r) * s
                 ug = np.sqrt(g) * s
                 ub = np.sqrt(b) * s
-                r0 = min(int(ur), N - 2)
-                g0 = min(int(ug), N - 2)
-                b0 = min(int(ub), N - 2)
-                fr = ur - r0
-                fg = ug - g0
-                fb = ub - b0
+                r0 = min(np.int32(ur), N - 2)
+                g0 = min(np.int32(ug), N - 2)
+                b0 = min(np.int32(ub), N - 2)
+                fr = ur - _F32(r0)
+                fg = ug - _F32(g0)
+                fb = ub - _F32(b0)
+                o = b0 * sNN + g0 * sN + r0 * 3
                 for c in range(3):
-                    c00 = lut[b0, g0, r0, c] + (lut[b0, g0, r0 + 1, c] - lut[b0, g0, r0, c]) * fr
-                    c01 = lut[b0, g0 + 1, r0, c] + (lut[b0, g0 + 1, r0 + 1, c] - lut[b0, g0 + 1, r0, c]) * fr
-                    c10 = lut[b0 + 1, g0, r0, c] + (lut[b0 + 1, g0, r0 + 1, c] - lut[b0 + 1, g0, r0, c]) * fr
-                    c11 = (lut[b0 + 1, g0 + 1, r0, c]
-                           + (lut[b0 + 1, g0 + 1, r0 + 1, c] - lut[b0 + 1, g0 + 1, r0, c]) * fr)
+                    p = o + c
+                    c00 = lut[p] + (lut[p + 3] - lut[p]) * fr
+                    q = p + sN
+                    c01 = lut[q] + (lut[q + 3] - lut[q]) * fr
+                    q2 = p + sNN
+                    c10 = lut[q2] + (lut[q2 + 3] - lut[q2]) * fr
+                    q3 = q2 + sN
+                    c11 = lut[q3] + (lut[q3 + 3] - lut[q3]) * fr
                     c0 = c00 + (c01 - c00) * fg
                     c1 = c10 + (c11 - c10) * fg
                     out[i, j, c] = c0 + (c1 - c0) * fb
@@ -1624,7 +1666,8 @@ def grade(img, preset: str, mix: float = 0.0, auto_exposure=True, exact: bool = 
         chroma = _chroma_small(x) if nr > 0 else None
         if _nb is not None:
             res = np.empty_like(x)
-            _nb_lut3(x, lut, chroma if chroma is not None else np.zeros((1, 1, 3), np.float32), np.float32(nr), res)
+            _nb_lut3(x, lut.reshape(-1), lut.shape[0],
+                     chroma if chroma is not None else np.zeros((1, 1, 3), np.float32), np.float32(nr), res)
         else:
             res = _apply_lut3_cv(x, lut, chroma, nr)
     if glow > 0:  # halo diffus des hautes lumières (chaud)
@@ -1708,46 +1751,39 @@ def _finish_maps(h: int, w: int, vignette: float) -> dict:
 
 
 if _nb is not None:
-    @_nb.njit(cache=True, nogil=True, fastmath=True, inline="always")
-    def _nb_reflect(i, n):
-        if i < 0:
-            i = -i - 1
-        if i >= n:
-            i = 2 * n - i - 1
-        return min(max(i, 0), n - 1)
-
-    @_nb.njit(cache=True, nogil=True, fastmath=True, inline="always")
-    def _nb_bilin(x, c, yy, xx):
-        H, W = x.shape[0], x.shape[1]
-        y0 = int(np.floor(yy))
-        x0 = int(np.floor(xx))
-        fy = yy - y0
-        fx = xx - x0
-        ya, yb = _nb_reflect(y0, H), _nb_reflect(y0 + 1, H)
-        xa, xb = _nb_reflect(x0, W), _nb_reflect(x0 + 1, W)
-        top = x[ya, xa, c] + (x[ya, xb, c] - x[ya, xa, c]) * fx
-        bot = x[yb, xa, c] + (x[yb, xb, c] - x[yb, xa, c]) * fx
-        return top + (bot - top) * fy
-
-    @_nb.njit(cache=True, nogil=True, fastmath=True)
+    @_nb.njit(cache=True, nogil=True, fastmath=True, boundscheck=False)
     def _nb_finish(x, halo, use_halo, ca_k, vig, n1, n2, wgt, use_grain, chroma, out):
         """Halation + aberration chromatique (rouge vers l'extérieur, bleu vers l'intérieur) + vignettage + grain,
-        en une passe (repli cv2 équivalent ; seul le halo est pris au pixel et non au point décalé)."""
+        en une passe (repli cv2 équivalent ; le halo est pris au pixel et non au point décalé, bords répliqués)."""
         H, W = x.shape[0], x.shape[1]
-        cx, cy = W * 0.5, H * 0.5
+        cx, cy = _F32(W * 0.5), _F32(H * 0.5)
+        half, one, zero = _F32(0.5), _F32(1.0), _F32(0.0)
         for i in range(H):
-            dy = i + 0.5 - cy
+            dy = _F32(i) + half - cy
             for j in range(W):
-                dx = j + 0.5 - cx
+                dx = _F32(j) + half - cx
                 amt = ca_k * (dx * dx + dy * dy)
-                r = _nb_bilin(x, 0, cy - 0.5 + dy * (1 + amt), cx - 0.5 + dx * (1 + amt))
+                for c in (0, 2):
+                    k = one + amt if c == 0 else one - amt
+                    yy = cy - half + dy * k
+                    xx = cx - half + dx * k
+                    y0 = min(max(np.int32(np.floor(yy)), 0), H - 2)
+                    x0 = min(max(np.int32(np.floor(xx)), 0), W - 2)
+                    fy = min(max(yy - _F32(y0), zero), one)
+                    fx = min(max(xx - _F32(x0), zero), one)
+                    t0 = x[y0, x0, c] + (x[y0, x0 + 1, c] - x[y0, x0, c]) * fx
+                    t1 = x[y0 + 1, x0, c] + (x[y0 + 1, x0 + 1, c] - x[y0 + 1, x0, c]) * fx
+                    v_ = t0 + (t1 - t0) * fy
+                    if c == 0:
+                        r = v_
+                    else:
+                        b = v_
                 g = x[i, j, 1]
-                b = _nb_bilin(x, 2, cy - 0.5 + dy * (1 - amt), cx - 0.5 + dx * (1 - amt))
                 if use_halo:
                     h = halo[i, j]
                     r += h
-                    g += h * np.float32(0.34)
-                    b += h * np.float32(0.10)
+                    g += h * _F32(0.34)
+                    b += h * _F32(0.10)
                 v = vig[i, j]
                 r *= v
                 g *= v
@@ -1755,13 +1791,13 @@ if _nb is not None:
                 if use_grain:
                     w = wgt[i, j]
                     a = n1[i, j] * w
-                    c = n2[i, j] * w * chroma
+                    cc = n2[i, j] * w * chroma
                     g += a
-                    r += a + c
-                    b += a - c
-                out[i, j, 0] = min(max(r, np.float32(0.0)), np.float32(1.0))
-                out[i, j, 1] = min(max(g, np.float32(0.0)), np.float32(1.0))
-                out[i, j, 2] = min(max(b, np.float32(0.0)), np.float32(1.0))
+                    r += a + cc
+                    b += a - cc
+                out[i, j, 0] = min(max(r, zero), one)
+                out[i, j, 1] = min(max(g, zero), one)
+                out[i, j, 2] = min(max(b, zero), one)
 
 
 def film_finish(img, frame_idx: int, grain: float = 0.055, vignette: float = 0.38, halation: float = 0.22):

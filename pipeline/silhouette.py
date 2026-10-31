@@ -41,7 +41,7 @@ except ModuleNotFoundError:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from pipeline import facefx as _fx  # noqa: E402
 
-VERSION = "silhouette-2"
+VERSION = "silhouette-2"        # (extraction ; l'incrustation a changé en phase 2 sans toucher au cache)
 ORT_THREADS = int(os.environ.get("ESCAPE_ORT_THREADS", "2"))
 _LOCK = threading.Lock()
 _SESS: dict[str, object] = {}
@@ -138,7 +138,11 @@ def _selfie(rgb: np.ndarray) -> np.ndarray:
     import mediapipe as mp
     with _LOCK:
         res = _segmenter().segment(mp.Image(image_format=mp.ImageFormat.SRGB, data=np.ascontiguousarray(rgb)))
-    bg = res.confidence_masks[0].numpy_view().astype(np.float32)
+    bg = np.asarray(res.confidence_masks[0].numpy_view(), np.float32)
+    if bg.ndim == 3:                     # MediaPipe récent : (h, w, 1)
+        bg = bg[..., 0]
+    if bg.shape[:2] != rgb.shape[:2]:
+        bg = cv2.resize(bg, (rgb.shape[1], rgb.shape[0]), interpolation=cv2.INTER_LINEAR)
     return np.clip(1.0 - bg, 0, 1)
 
 
@@ -632,6 +636,17 @@ def _prep_sil(sil_rgba) -> tuple[np.ndarray, tuple[int, int, int, int]]:
     return res
 
 
+def _blur(a: np.ndarray, sigma: float) -> np.ndarray:
+    """Flou gaussien ; grands rayons via réduction / flou / agrandissement (coût indépendant du rayon)."""
+    if sigma <= 6.0:
+        return cv2.GaussianBlur(a, (0, 0), max(0.3, sigma))
+    f = max(2, int(sigma // 3))
+    h, w = a.shape[:2]
+    small = cv2.resize(a, (max(1, w // f), max(1, h // f)), interpolation=cv2.INTER_AREA)
+    small = cv2.GaussianBlur(small, (0, 0), sigma / f)
+    return cv2.resize(small, (w, h), interpolation=cv2.INTER_LINEAR)
+
+
 def _foot_x(a: np.ndarray) -> float:
     h = a.shape[0]
     bottom = a[int(h * 0.9):, :, 3]
@@ -643,7 +658,11 @@ def composite(img, sil_rgba, x, foot_y, height, opacity=0.9, blur=1.5, darkness=
               frame_idx=0, occluder_mask=None):
     """Incruste la silhouette debout, pieds en (x, foot_y), hauteur `height`. Raccord : assombrie et
     désaturée selon la luminance de la plaque autour du point d'insertion, flou de profondeur, grain de la
-    plaque, respiration ±0,5 % à 0,3 Hz et micro-balancement ; occluder_mask (H, W) la passe derrière."""
+    plaque, respiration ±0,5 % à 0,3 Hz et micro-balancement ; occluder_mask (H, W) la passe derrière.
+    Crédibilité (relecture phase 2) : masse noire dense au cœur et à peine plus claire au bord (pas de
+    contour dur), contour net même agrandie (détourage basse définition re-profilé), contre-jour discret quand
+    la plaque est éclairée derrière elle, et sur une plaque quasi noire un très léger halo de brume derrière
+    elle (elle reste perceptible, en ombre chinoise)."""
     plate = _f32(img)
     H, W = plate.shape[:2]
     if opacity <= 0 or height <= 0:
@@ -679,6 +698,7 @@ def composite(img, sil_rgba, x, foot_y, height, opacity=0.9, blur=1.5, darkness=
     corners = np.float32([[0, 0], [sil_s.shape[1], 0], [0, fys], [sil_s.shape[1], fys]])
     pc = np.stack([corners[:, 0] * M[0, 0] + corners[:, 1] * M[0, 1] + M[0, 2],
                    corners[:, 0] * M[1, 0] + corners[:, 1] * M[1, 1] + M[1, 2]], 1)
+    fig_w = float(pc[:, 0].max() - pc[:, 0].min())
     pad = int(3 * max(blur, 1) * W / 1080) + 8
     x0, y0 = int(max(0, pc[:, 0].min() - pad)), int(max(0, pc[:, 1].min() - pad))
     x1, y1 = int(min(W, pc[:, 0].max() + pad)), int(min(H, pc[:, 1].max() + pad))
@@ -686,9 +706,15 @@ def composite(img, sil_rgba, x, foot_y, height, opacity=0.9, blur=1.5, darkness=
         return plate
     M2 = M.copy()
     M2[:, 2] -= (x0, y0)
-    lay = cv2.warpAffine(sil_s, M2, (x1 - x0, y1 - y0), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+    interp = cv2.INTER_CUBIC if s > 1.2 else cv2.INTER_LINEAR
+    lay = cv2.warpAffine(sil_s, M2, (x1 - x0, y1 - y0), flags=interp, borderMode=cv2.BORDER_CONSTANT)
     a = np.clip(lay[..., 3], 0, 1)
-    rgb = lay[..., :3] / np.maximum(a[..., None], 1e-4)
+    rgb = np.clip(lay[..., :3], 0, None) / np.maximum(a[..., None], 1e-4)
+    if s > 1.3:
+        # agrandie : le détourage basse définition donne un bord mou en escalier -> contour re-profilé net
+        # (forme lissée à l'échelle de la source, transition de ~1 px)
+        a = cv2.GaussianBlur(a, (0, 0), 0.45 * s)
+        a = np.clip((a - 0.5) * (1.0 + 0.9 * s) + 0.5, 0, 1).astype(np.float32)
     roi = plate[y0:y1, x0:x1]
     # statistiques de la plaque autour du point d'insertion (hors silhouette)
     ex = int(0.5 * (x1 - x0)) + 4
@@ -707,28 +733,62 @@ def composite(img, sil_rgba, x, foot_y, height, opacity=0.9, blur=1.5, darkness=
     C_bg = around[amask].mean(0) if amask.any() else around.reshape(-1, 3).mean(0)
     tint = C_bg / max(float(_lum(C_bg[None])[0]), 1e-3)
     tint = 0.55 * tint + 0.45                       # teinte ambiante partielle
-    # couleur de la silhouette : tonalités internes atténuées, niveau = plaque assombrie
+    # couleur de la silhouette : quasi sans détail interne (masse), niveau = plaque assombrie
     sl = _lum(rgb)
     wsum = float(a.sum())
     sl_mean = float((sl * a).sum() / wsum) if wsum > 1 else 0.1
-    rel = np.clip(sl / max(sl_mean, 1e-3), 0.5, 2.0) ** 0.35
-    # toujours plus sombre que la plaque qu'elle masque : (1 - darkness) × lumière locale (plaque floutée,
-    # bornée par la référence d'ombre), plancher = noirs de la plaque (légèrement plus profonds)
-    k_l = max(5.0, 0.08 * (y1 - y0))
-    L_loc = np.minimum(cv2.GaussianBlur(_lum(roi), (0, 0), k_l), max(L_bg, black))
+    rel = np.clip(sl / max(sl_mean, 1e-3), 0.5, 2.0) ** 0.18
+    k_l = max(5.0, 0.08 * hp)
+    L_loc = np.minimum(_blur(_lum(roi), k_l), max(L_bg, black))
     dk = 1.0 - float(np.clip(darkness, 0, 1))
     fig_l = np.maximum(0.6 * black, L_loc * dk) + (L_bg - black) * dk * 0.15
+    # densité : cœur plus noir, bords à peine plus clairs (atmosphère entre elle et la caméra)
+    core = cv2.distanceTransform((a > 0.5).astype(np.uint8), cv2.DIST_L2, 3)
+    core = np.clip(core / max(1.0, 0.18 * max(fig_w, 4)), 0, 1)
+    fig_l = fig_l * (1.18 - 0.42 * core)
     fig = (fig_l * rel)[..., None] * tint[None, None, :]
-    # flou de profondeur (prémultiplié) + light wrap discret
+    # flou de profondeur (prémultiplié)
     sig = max(0.0, float(blur)) * W / 1080.0
     if sig > 0.05:
         pm = cv2.GaussianBlur(fig * a[..., None], (0, 0), sig)
         a = cv2.GaussianBlur(a, (0, 0), sig)
         fig = pm / np.maximum(a[..., None], 1e-4)
+    # --- plaque derrière elle : halo de brume si la plaque est quasi noire (elle s'y découpe en ombre chinoise)
+    out = plate.copy()
+    dark_plate = float(_smoothstep(0.14, 0.04, L_bg))
+    # niveau visé au centre du halo ≈ 0,15 avant étalonnage : survit au pied de courbe « noirs écrasés »
+    haze_amt = dark_plate * max(0.0, 0.15 - L_bg) * math.sqrt(float(np.clip(opacity, 0, 1)))
+    occ_full = None
+    if occluder_mask is not None:
+        occ_full = np.asarray(occluder_mask, np.float32)
+        if occ_full.shape[:2] != (H, W):
+            occ_full = cv2.resize(occ_full, (W, H), interpolation=cv2.INTER_LINEAR)
+        occ_full = np.clip(occ_full, 0, 1)
+    hcx, hcy, hsx, hsy = xp, fy - 0.62 * hp, 0.55 * hp + 2, 0.65 * hp + 2
+    if haze_amt > 1e-4:
+        bx0, bx1 = int(max(0, hcx - 3 * hsx)), int(min(W, hcx + 3 * hsx))
+        by0, by1 = int(max(0, hcy - 3 * hsy)), int(min(H, hcy + 3 * hsy))
+        if bx1 > bx0 and by1 > by0:
+            gx = np.exp(-0.5 * ((np.arange(bx0, bx1, dtype=np.float32) - hcx) / hsx) ** 2)
+            gy = np.exp(-0.5 * ((np.arange(by0, by1, dtype=np.float32) - hcy) / hsy) ** 2)
+            hb = np.outer(gy, gx).astype(np.float32) * np.float32(haze_amt)
+            if occ_full is not None:          # le halo passe derrière les personnes
+                hb *= 1.0 - occ_full[by0:by1, bx0:bx1]
+            haze_col = (np.float32([0.80, 0.88, 1.0]) * (0.6 * tint + 0.4)).astype(np.float32)
+            out[by0:by1, bx0:bx1] += hb[..., None] * haze_col
+    back = out[y0:y1, x0:x1]
+    yy = (np.arange(y0, y1, dtype=np.float32) - hcy)[:, None]
+    xx = (np.arange(x0, x1, dtype=np.float32) - hcx)[None, :]
+    blob = np.exp(-0.5 * ((xx / hsx) ** 2 + (yy / hsy) ** 2)).astype(np.float32)
+    # --- contre-jour : fin liseré là où la plaque (ou le halo) est éclairée derrière la silhouette
+    lum_back = _blur(_lum(back), max(1.5, 0.015 * hp))
     a_in = cv2.erode(a, np.ones((3, 3), np.uint8)) if a.shape[0] > 4 else a
-    wrap = cv2.GaussianBlur(roi, (0, 0), max(2.0, 4.0 * W / 1080))
-    edge = np.clip(a - cv2.GaussianBlur(a_in, (0, 0), max(1.5, 2.5 * W / 1080)), 0, 1)
-    fig = fig + 0.22 * np.clip(wrap - fig, 0, None) * edge[..., None]
+    edge = np.clip(a - cv2.GaussianBlur(a_in, (0, 0), max(1.0, 1.6 * W / 1080)), 0, 1)
+    rim_k = 0.55 * float(_smoothstep(0.08, 0.45, float(np.percentile(lum_back[a > 0.3], 90)) if (a > 0.3).any() else 0))
+    wrap = cv2.GaussianBlur(back, (0, 0), max(2.0, 4.0 * W / 1080))
+    fig = fig + (0.18 + rim_k) * np.clip(wrap - fig, 0, None) * edge[..., None]
+    if haze_amt > 1e-4:   # liseré froid très discret dû au halo (lecture de la forme sur le noir)
+        fig = fig + (edge * blob * haze_amt * 1.5)[..., None] * np.float32([0.85, 0.92, 1.0])
     # grain : même écart-type que la plaque
     sig_n = _fx._noise_sigma(around)
     if sig_n > 1e-4:
@@ -738,20 +798,109 @@ def composite(img, sil_rgba, x, foot_y, height, opacity=0.9, blur=1.5, darkness=
                     (h_ // 256 + 1, w_ // 256 + 1))[:h_, :w_]
         fig = fig + (n * sig_n)[..., None]
     A_ = np.clip(a * float(opacity), 0, 1)
-    if occluder_mask is not None:
-        occ = np.asarray(occluder_mask, np.float32)
-        if occ.shape[:2] != (H, W):
-            occ = cv2.resize(occ, (W, H), interpolation=cv2.INTER_LINEAR)
-        A_ = A_ * (1.0 - np.clip(occ[y0:y1, x0:x1], 0, 1))
+    if occ_full is not None:
+        A_ = A_ * (1.0 - occ_full[y0:y1, x0:x1])
     A3 = A_[..., None]
     if blend == "multiply":
         factor = np.clip(fig / max(L_bg, 0.02), 0, 1)
-        res = roi * (1 - A3 * (1 - factor))
+        res = back * (1 - A3 * (1 - factor))
     else:
-        res = roi * (1 - A3) + fig * A3
-    out = plate.copy()
-    out[y0:y1, x0:x1] = np.clip(res, 0, 1)
+        res = back * (1 - A3) + fig * A3
+    out[y0:y1, x0:x1] = res
+    np.clip(out, 0, 1, out=out)
     return out
+
+
+# ---------------------------------------------------------------------------
+# Image subliminale plein cadre
+# ---------------------------------------------------------------------------
+_SUBL_CACHE: dict = {}
+
+
+def _crisp_alpha(sil: np.ndarray, w: int, h: int) -> np.ndarray:
+    """Alpha de la silhouette agrandie à (w, h), contour re-profilé net (transition ~1 px) et lissé."""
+    a = sil[..., 3]
+    s = h / max(1, a.shape[0])
+    up = cv2.resize(a, (w, h), interpolation=cv2.INTER_CUBIC)
+    if s > 1.2:
+        up = cv2.GaussianBlur(up, (0, 0), 0.45 * s)
+    up = np.clip((up - 0.5) * (1.0 + 0.9 * max(1.0, s)) + 0.5, 0, 1)
+    return cv2.GaussianBlur(up.astype(np.float32), (0, 0), 0.7)
+
+
+def subliminal_frame(sil_rgba, w: int, h: int, negative: bool = False, frame_idx: int = 0) -> np.ndarray:
+    """Image subliminale plein cadre (2–3 images) : « lui » en contre-jour, net, à ~0,8·h, devant des phares
+    dans la brume (rayons, halo qui mord sur ses bords, fin liseré), noirs denses, grain. negative=True : flash
+    négatif (silhouette blanche irradiante sur noir). sil_rgba : RGBA (uint8/float) ou chemin, ou None ;
+    si la découpe est trop petite pour être agrandie proprement (> 3,2x) ou absente, silhouette procédurale.
+    Renvoie float32 (h, w, 3) dans [0, 1] (le rendu ajoute ensuite film_finish)."""
+    key = (id(sil_rgba) if not isinstance(sil_rgba, (str, Path)) else str(sil_rgba), w, h, bool(negative),
+           int(frame_idx) % 3)
+    hit = _SUBL_CACHE.get(key)
+    if hit is not None:
+        return hit.copy()
+    rng = np.random.default_rng(4242 + int(frame_idx) % 3)
+    target_h = 0.80 * h
+    sil = None
+    if sil_rgba is not None:
+        try:
+            sil, _ = _prep_sil(sil_rgba)
+        except Exception:
+            sil = None
+    if sil is None or target_h / max(1, sil.shape[0]) > 3.2:
+        sil, _ = _prep_sil(procedural(int(target_h)))
+    hh = int(round(target_h))
+    ww = max(2, int(round(sil.shape[1] * hh / sil.shape[0])))
+    if ww > 0.9 * w:
+        ww = int(0.9 * w)
+        hh = max(2, int(round(sil.shape[0] * ww / sil.shape[1])))
+    al = _crisp_alpha(sil, ww, hh)
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    u, v = xx / w, yy / h
+    # fond : deux phares dans la brume derrière lui (halo large + cœurs), rayons, brume texturée
+    cx, cy = 0.5, 0.47
+    d = np.sqrt(((u - cx) / 0.62) ** 2 + ((v - cy) / 0.42) ** 2)
+    glow = np.exp(-d * d * 2.2) * 0.62 + np.exp(-d * d * 9.0) * 0.55
+    for lx in (0.40, 0.60):
+        dd = np.sqrt(((u - lx) * w / h / 0.035) ** 2 + ((v - 0.50) / 0.035) ** 2)
+        glow += 1.4 * np.exp(-dd * dd) + 0.35 * np.exp(-dd * 0.9)
+    ang = np.arctan2(v - cy, (u - cx) * w / h)
+    rays = 0.5 + 0.5 * np.sin(ang * 23.0 + 1.3) * np.sin(ang * 9.0 + 0.4)
+    glow *= 0.82 + 0.18 * rays
+    fog = cv2.GaussianBlur(rng.standard_normal((h // 8 + 1, w // 8 + 1)).astype(np.float32), (0, 0), 2.5)
+    fog = cv2.resize(fog / max(float(fog.std()), 1e-6), (w, h), interpolation=cv2.INTER_CUBIC)
+    base = np.clip(glow * (1.0 + 0.10 * fog) + 0.015, 0, 1.6)
+    base = base / (1.0 + 0.35 * base)                                 # épaule douce
+    plate = base[..., None] * np.float32([0.80, 0.88, 1.0])
+    # silhouette : pieds hors bas de cadre si besoin, légèrement décentrée (plus inquiétant)
+    x0 = int(round(0.5 * w - ww / 2 + 0.02 * w))
+    y0 = int(round(0.995 * h - hh + 0.06 * h))
+    A_ = np.zeros((h, w), np.float32)
+    ys0, ys1 = max(0, y0), min(h, y0 + hh)
+    xs0, xs1 = max(0, x0), min(w, x0 + ww)
+    A_[ys0:ys1, xs0:xs1] = al[ys0 - y0:ys1 - y0, xs0 - x0:xs1 - x0]
+    # la lumière mord sur ses bords (halo) et un fin liseré dessine les épaules et la tête
+    bleed = cv2.GaussianBlur(plate, (0, 0), 0.012 * w) * (1.0 - cv2.GaussianBlur(A_, (0, 0), 0.01 * w))[..., None]
+    inner = cv2.GaussianBlur(cv2.erode(A_, np.ones((3, 3), np.uint8), iterations=max(1, w // 540)), (0, 0), 1.0)
+    rim = np.clip(A_ - inner, 0, 1)[..., None] * cv2.GaussianBlur(plate, (0, 0), 0.006 * w) * 1.6
+    figure = np.float32([0.010, 0.011, 0.014]) + rim
+    img = plate * (1.0 - A_[..., None]) + figure * A_[..., None] + 0.55 * bleed * A_[..., None] * (1 - A_[..., None])
+    # vignettage, grain fin (la finition argentique du rendu s'y ajoute)
+    vig = 1.0 - 0.55 * _smoothstep(0.35, 1.05, np.sqrt(((u - 0.5) / 0.6) ** 2 + ((v - 0.48) / 0.62) ** 2))
+    img = img * vig[..., None]
+    img = img + rng.standard_normal((h, w)).astype(np.float32)[..., None] * 0.018
+    img = np.clip(img, 0, 1).astype(np.float32)
+    if negative:
+        # flash négatif : la silhouette blanche irradie sur un noir où ne reste qu'un souvenir de la brume
+        bg = (np.clip(1.0 - base, 0, 1) ** 3 * 0.10)[..., None] * vig[..., None]
+        halo = cv2.GaussianBlur(A_, (0, 0), 0.015 * w) * 0.55 + cv2.GaussianBlur(A_, (0, 0), 0.06 * w) * 0.35
+        img = bg * (1.0 - A_[..., None]) + (0.96 * A_ + halo * (1.0 - A_))[..., None]
+        img = img + rng.standard_normal((h, w)).astype(np.float32)[..., None] * 0.02
+        img = np.clip(img * np.float32([0.90, 0.96, 1.0]), 0, 1).astype(np.float32)
+    if len(_SUBL_CACHE) > 12:
+        _SUBL_CACHE.clear()
+    _SUBL_CACHE[key] = img
+    return img.copy()
 
 
 # ---------------------------------------------------------------------------
@@ -799,4 +948,5 @@ def person_mask(img, min_score: float = 0.3, min_height: float = 0.10, max_boxes
     return mask.copy()
 
 
-__all__ = ["extract", "composite", "person_mask", "procedural", "load_rgba", "detect_persons", "dark_on_light"]
+__all__ = ["extract", "composite", "person_mask", "procedural", "load_rgba", "detect_persons", "dark_on_light",
+           "subliminal_frame"]

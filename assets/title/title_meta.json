@@ -14,7 +14,7 @@
     1920
   ],
   "text_box_note": "union des boîtes du titre (px, x0,y0,x1,y1) de t=2,6 s à la fin (travelling avant)",
-  "reveal_note": "premier instant où la lisibilité mesurée dépasse 0.053 (50 % du plateau final)",
+  "reveal_note": "premier instant où la lisibilité mesurée dépasse 0.060 (titre sorti de l'éblouissement)",
   "text_box_start": [
     140,
     644,
@@ -28,7 +28,7 @@
     928
   ],
   "sub_anchor": [
-    474,
+    480,
     998
   ],
   "font": "BodoniModa-Black-opsz28.ttf",
