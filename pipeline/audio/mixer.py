@@ -62,7 +62,8 @@ INTEL_MAX_DB = 14.0
 INTEL_LOW_SHARE = 0.3          # part de la réduction appliquée sous INTEL_XOVER_HZ
 INTEL_XOVER_HZ = 160.0
 CUE_PROTECT_S = 0.12           # attaque des SFX jamais baissée par le ducker d'intelligibilité
-MUSIC_WARN_SCORE = 0.55        # score de musique captée dans le son source au-delà duquel on prévient
+MUSIC_WARN_SCORE = 0.3         # score de musique captée dans le son source au-delà duquel on prévient
+MUSIC_EXPECTED = {"IMG_8354"}  # le piano de 8354 EST la musique voulue (leitmotiv)
 BUS_TRIM_DB = {"src": 0.0, "vox": 0.0, "sfx": 0.0, "music": 6.0}  # équilibre des bus (lits normalisés en crête)
 PIANO_SOUNDS = ("piano_note", "music_box_leitmotif", "piano_slow", "piano_reverse", "piano_detuned")
 
@@ -360,27 +361,27 @@ def band_level_db(x: np.ndarray, band=INTEL_BAND, win: float = 0.1) -> np.ndarra
     nf = max(1, len(p) // h)
     fr = p[:nf * h].reshape(nf, h).mean(axis=1)
     k = max(1, int(round(win / _FR_HOP)))
-    return 10 * np.log10(uniform_filter1d(fr, k, mode="nearest") + 1e-20)
+    return 10 * np.log10(np.maximum(uniform_filter1d(fr, k, mode="nearest"), 0.0) + 1e-20)
 
 
 def intel_reduction(fg: np.ndarray, bg: np.ndarray, presence: np.ndarray, target_db: float) -> np.ndarray:
     """Réduction (dB, par trame de 10 ms) à appliquer au fond pour qu'il reste `target_db` sous la voix.
 
-    Niveau de voix = crête syllabique (max sur 250 ms du niveau 100 ms) ; seulement là où la voix est
+    Niveau de voix = crête syllabique (max sur 400 ms du niveau 100 ms) ; seulement là où la voix est
     présente et à moins de 35 dB de son maximum (pas de pompage sur les traînes de réverbe).
     """
     L_fg = band_level_db(fg)
     L_bg = band_level_db(bg)
     n = min(len(L_fg), len(L_bg))
     L_fg, L_bg = L_fg[:n], L_bg[:n]
-    held = maximum_filter1d(L_fg, 25)
+    held = maximum_filter1d(L_fg, 41)
     h = int(_FR_HOP * SR)
     pr = presence[: n * h: h][:n] if len(presence) >= n * h else np.zeros(n)
     act = (pr > 0.5) & (held > held.max() - 35)
     return np.where(act, np.clip(L_bg - (held - target_db), 0.0, INTEL_MAX_DB), 0.0)
 
 
-def _smooth_reduction(r: np.ndarray, n: int, attack: float = 0.04, release: float = 0.3, hold: float = 0.15) -> np.ndarray:
+def _smooth_reduction(r: np.ndarray, n: int, attack: float = 0.05, release: float = 0.45, hold: float = 0.2) -> np.ndarray:
     """Trames 10 ms -> courbe par échantillon : maintien, anticipation (= attaque), attaque/relâche."""
     if not np.any(r > 0):
         return np.zeros(n)
@@ -407,21 +408,24 @@ def apply_split_gain(x: np.ndarray, r_db: np.ndarray, low_share: float = INTEL_L
 # Musique captée dans le son source (vrais rushs : sono du Burger King, accueil, autoradio)
 # ---------------------------------------------------------------------------
 def music_score(y: np.ndarray) -> float:
-    """0..1 : part de l'énergie 150 Hz–4 kHz portée par des composantes TENUES (notes, accords, basse)
-    sur ≥ 0,4 s. La parole (harmoniques qui glissent, syllabes) reste basse (~0,2–0,4) ; une musique
-    de fond tenue monte au-delà de ~0,55."""
+    """0..1 : part de l'énergie 150 Hz–4 kHz portée par des PICS SPECTRAUX TENUS (notes, accords, basse
+    d'une musique de fond) : pic ≥ 8 dB au-dessus de l'enveloppe spectrale locale, à fréquence fixe pendant
+    ≥ 0,4 s. Le bruit de fond (voiture, salle) n'a pas de pics ; les harmoniques de la parole glissent :
+    les deux restent bas (< ~0,2). Une sono / un autoradio dépasse ~0,3."""
+    from scipy.ndimage import median_filter
     m = dsp.to_mono(y).astype(np.float64)
     if len(m) < int(1.0 * SR):
         return 0.0
     f, _, Z = signal.stft(m, SR, nperseg=4096, noverlap=4096 - 1024)
     band = (f >= 150) & (f <= 4000)
-    A = np.abs(Z[band])
+    A = np.abs(Z[band]) ** 2
     if A.sum() <= 0:
         return 0.0
+    L = 10 * np.log10(A + 1e-20)
+    peak = (L - median_filter(L, size=(25, 1), mode="nearest")) > 8.0
     k = max(3, int(0.4 * SR / 1024) | 1)
-    from scipy.ndimage import median_filter
-    held = median_filter(A, size=(1, k), mode="nearest")
-    return float(np.clip(np.minimum(held, A).sum() / (A.sum() + 1e-12), 0.0, 1.0))
+    sustained = median_filter(peak.astype(np.float32), size=(1, k), mode="nearest") > 0.5
+    return float(np.clip(A[sustained & peak].sum() / (A.sum() + 1e-20), 0.0, 1.0))
 
 
 def demusic(y: np.ndarray, amount_db: float = 12.0, use_demucs: bool = True) -> tuple[np.ndarray, str]:
@@ -614,12 +618,12 @@ def build_buses(edl: dict, level_sources: bool = True, log=print) -> tuple[dict,
         # musique captée (sono, autoradio) : signalée, atténuée sur demande (src_fx demusic / variable d'env.)
         ms = round(music_score(y), 2)
         want = next((fx for fx in seg.get("src_fx") or [] if fx.get("type") == "demusic"), None)
-        if want is None and demusic_mode == "auto" and ms >= MUSIC_WARN_SCORE:
+        if want is None and demusic_mode == "auto" and ms >= MUSIC_WARN_SCORE and clip not in MUSIC_EXPECTED:
             want = {"type": "demusic"}
         method = None
         if want is not None:
             y, method = demusic(y, float(want.get("amount_db", 12.0)), bool(want.get("demucs", True)))
-        elif ms >= MUSIC_WARN_SCORE:
+        elif ms >= MUSIC_WARN_SCORE and clip not in MUSIC_EXPECTED:
             warnings.append(f"musique probable dans le son source {clip} ({seg.get('shot')}, score {ms}) : "
                             f"ajouter src_fx demusic, baisser src_gain_db ou ESCAPE_SRC_DEMUSIC=auto")
         info["src_music"].append({"shot": seg.get("shot"), "clip": clip, "score": ms, "demusic": method})
@@ -671,13 +675,17 @@ def build_buses(edl: dict, level_sources: bool = True, log=print) -> tuple[dict,
         gdb = float(c.get("gain_db", 0.0))
         t = float(c["t"])
         ps = params.pop("pre_silence", None)
-        if ps:
-            pre_sil.append([t - float(ps), t - 0.004])
+        if ps:  # trou franc jusqu'à l'attaque (remontée en 2 ms après t : l'attaque reste intacte)
+            pre_sil.append([t - float(ps), t])
         rtd = c.get("ramp_to_db", params.pop("ramp_to_db", None))
         if rtd is not None:
             params["ramp_to_db"] = float(rtd) - gdb  # absolu -> relatif au niveau de départ
         seed = int(params.pop("seed", _auto_seed(name, round(t, 3))))
-        y = render_sfx(name, c.get("dur"), seed, params)
+        cdur = c.get("dur")
+        if cdur is not None and name in RISING:  # la montée finit pile sur l'impact (arrondis à l'image)
+            hits_c = [float(h["t"]) for h in edl.get("cues", []) if h.get("sfx") in RISER_TARGETS]
+            cdur = _snap_rise_end(name, t + float(cdur), hits_c) - t
+        y = render_sfx(name, cdur, seed, params)
         if SFX_TAIL_DUCK_DB > 0 and len(y) > int(0.5 * SR):
             k0 = int(round(t * SR))
             idx = np.clip(np.arange(k0, k0 + len(y)), 0, N - 1)
@@ -696,12 +704,13 @@ def build_buses(edl: dict, level_sources: bool = True, log=print) -> tuple[dict,
 
     # --- lits musicaux
     t_c = time.time()
+    hits = [float(c["t"]) for c in edl.get("cues", []) if c.get("sfx") in RISER_TARGETS]
     for bed in edl.get("music", []):
         kind = bed.get("kind")
         if kind not in synth.CATALOG:
             warnings.append(f"lit inconnu ignoré : {kind}")
             continue
-        t0, t1 = float(bed["t0"]), float(bed["t1"])
+        t0, t1 = float(bed["t0"]), _snap_rise_end(kind, float(bed["t1"]), hits)
         if t1 <= t0:
             continue
         params = dict(bed.get("params") or {})
@@ -754,7 +763,7 @@ def build_buses(edl: dict, level_sources: bool = True, log=print) -> tuple[dict,
 
     # --- silences francs (après filtrage : le zéro reste absolu) ; trous « pre_silence » hors voix off
     mask = _silence_mask(N, edl.get("silence") or [])
-    mask_ps = _silence_mask(N, pre_sil, ramp=0.003) if pre_sil else np.ones(N, np.float32)
+    mask_ps = _silence_mask(N, pre_sil, ramp=0.002) if pre_sil else np.ones(N, np.float32)
     for k in buses:
         buses[k] *= (mask if k == "vox" else mask * mask_ps)[:, None]
     info["silence_non_voice_peak_db"] = [
@@ -765,6 +774,19 @@ def build_buses(edl: dict, level_sources: bool = True, log=print) -> tuple[dict,
     buses["vox"] += allowed
     info["presence_ratio"] = round(float(presence.mean()), 3)
     return buses, info
+
+
+RISING = ("riser", "reverse_swell", "whoosh_rev", "piano_reverse")
+RISER_TARGETS = ("impact_big", "impact_hit", "impact_sub", "braam", "braam_long", "screamer_stack", "sub_drop")
+RISER_SNAP_S = 0.08
+
+
+def _snap_rise_end(kind: str, t1: float, hits: list[float]) -> float:
+    """Fin d'un son montant recalée sur l'impact le plus proche (≤ 80 ms : arrondi à l'image du builder)."""
+    if kind not in RISING or not hits:
+        return t1
+    h = min(hits, key=lambda u: abs(u - t1))
+    return h if abs(h - t1) <= RISER_SNAP_S else t1
 
 
 def _cut_summary(cut: np.ndarray) -> list[list[float]]:

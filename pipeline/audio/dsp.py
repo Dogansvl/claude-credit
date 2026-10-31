@@ -657,7 +657,8 @@ def pitch(x, semitones: float, formant: bool = False) -> np.ndarray:
             y = _run_rubberband(x, ["-p", f"{semitones:.6f}"] + (["-F"] if formant else []))
             return pad_to(y, len(x))
         if be == "ffmpeg":
-            af = f"rubberband=pitch={2 ** (semitones / 12):.8f}:formant={'preserved' if formant else 'shifted'}"
+            af = (f"rubberband=pitch={2 ** (semitones / 12):.8f}:formant={'preserved' if formant else 'shifted'}"
+                  f":pitchq=quality:transients=mixed")  # « crisp » (défaut) fausse la hauteur des sons tenus
             return pad_to(_run_ffmpeg_filter(x, af), len(x))
     except Exception as e:  # repli silencieux mais signalé
         print(f"[dsp.pitch] {be} indisponible ({e}) -> repli numpy", file=sys.stderr)
@@ -676,7 +677,7 @@ def stretch(x, ratio: float) -> np.ndarray:
         if be == "rubberband":
             return pad_to(_run_rubberband(x, ["-t", f"{ratio:.8f}"]), n_out)
         if be == "ffmpeg":
-            return pad_to(_run_ffmpeg_filter(x, f"rubberband=tempo={1 / ratio:.8f}"), n_out)
+            return pad_to(_run_ffmpeg_filter(x, f"rubberband=tempo={1 / ratio:.8f}:transients=mixed"), n_out)
     except Exception as e:
         print(f"[dsp.stretch] {be} indisponible ({e}) -> repli numpy", file=sys.stderr)
     return pad_to(_pv_warp(x, np.arange(n_out) / ratio), n_out)

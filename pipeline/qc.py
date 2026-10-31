@@ -633,14 +633,26 @@ def check_asr(mp4: Path, edl: dict | None, log=print) -> tuple[list[dict], dict]
 def unexpected_words(toks: list[str], ttimes: list[float], edl: dict | None, margin: float = 1.5) -> list[dict]:
     """Mots entendus dans le mix qui ne sont ni dans une voix off ni dans une réplique gardée (sous-titre),
     au voisinage de leur instant (± margin). Regroupés en passages (écart < 0,8 s)."""
+    try:  # texte réellement prononcé des voix off (« 23h » → « vingt-trois heures »)
+        items = json.loads((config.VOICE_DIR / "manifest.json").read_text(encoding="utf-8")).get("items") or {}
+    except Exception:
+        items = {}
+
+    def vocab(*texts):
+        out = set()
+        for tx in texts:
+            ws = norm_text(tx or "").split()
+            out.update(ws)
+            out.update(a + b for a, b in zip(ws, ws[1:]))  # mots collés par l'ASR (« le30 »)
+        return out
     spans = []  # (t0, t1, vocabulaire)
     for sb in (edl or {}).get("subtitles") or []:
-        spans.append((float(sb.get("start", 0)) - margin, float(sb.get("end", 0)) + margin,
-                      set(norm_text(sb.get("text", "")).split())))
+        spans.append((float(sb.get("start", 0)) - margin, float(sb.get("end", 0)) + margin, vocab(sb.get("text"))))
     for v in (edl or {}).get("voices") or []:
         t0 = float(v.get("t_speech", 0))
+        it = items.get(v.get("id")) or {}
         spans.append((t0 - margin, t0 + float(v.get("speech_dur", 0)) + margin,
-                      set(norm_text(v.get("text", "")).split())))
+                      vocab(v.get("text"), it.get("tts_text"), it.get("text"))))
 
     def explained(tok, t):
         for a, b, voc in spans:

@@ -149,9 +149,11 @@ def impact_big(dur=None, seed=0, tail=3.0, **_):
     thud = dsp.to_mono(dsp.lowpass(_noise(n, rng), 300, order=4))
     thud = _norm(thud) * _env(t, 0.0015, 0.2)
     body = _norm(dsp.to_mono(dsp.bandpass(_noise(n, rng), (150, 700), order=2))) * _env(t, 0.001, 0.12)
-    crack = _norm(dsp.to_mono(dsp.bandpass(_noise(n, rng), (700, 4500), order=2))) * _env(t, 0.0004, 0.05)
+    crack = _norm(dsp.to_mono(dsp.bandpass(_noise(n, rng), (700, 4500), order=2))) * _env(t, 0.0004, 0.07)
     trans = _norm(dsp.to_mono(dsp.highpass(_noise(n, rng), 4000, order=4))) * np.exp(-t / 0.0016)
     trans[t > 0.005] = 0
+    # « slam » médium (1–3 kHz, saturé) : l'impact reste lourd ET s'entend sur un haut-parleur de téléphone
+    slam = np.tanh(3.0 * _norm(dsp.to_mono(dsp.bandpass(_noise(n, rng), (900, 3200), order=2)))) * _env(t, 0.0006, 0.11)
     ratios = np.array([1.0, 1.593, 2.136, 2.296, 2.653, 3.402, 3.938, 4.567, 5.218, 6.07])
     f0 = 148 * (1 + 0.04 * rng.uniform(-1, 1))
     bend = 1 - 0.018 * (1 - np.exp(-t / 1.2))
@@ -162,7 +164,7 @@ def impact_big(dur=None, seed=0, tail=3.0, **_):
         metal += _pan(part, (-1) ** k * rng.uniform(0.25, 0.8))
     metal /= np.max(np.abs(metal)) + 1e-9
     dry = (_st(sub * 0.7 + punch * 0.85) + _widen(thud * 0.9 + body * 0.75, 0.3, seed)
-           + _widen(crack * 0.8 + trans * 0.55, 0.5, seed + 1) + metal * 0.32)
+           + _widen(crack * 1.1 + trans * 0.6 + slam * 0.45, 0.5, seed + 1) + metal * 0.32)
     send = _widen(thud * 0.6 + body * 0.6 + crack * 0.8 + punch * 0.3, 0.45, seed + 2) + metal * 0.45
     wet = dsp.reverb(send, _hall(seed, max(0.5, float(tail)), 0.55), wet=1.0, tail=False)
     y = dry + wet * 0.5
@@ -235,7 +237,7 @@ def _braam_core(n: int, t: np.ndarray, rng, amp: np.ndarray, cutoff: np.ndarray,
     out = dsp.tv_filter(out, "lowpass", cutoff * 1.6, q=0.7, block=64)
     out = dsp.distort(out * amp[:, None] * 0.45, 3.2)
     breath = _norm(dsp.to_mono(dsp.bandpass(_noise(n, rng), (300, 1800), order=2))) * _env(t, 0.01, 0.12) * 0.25
-    sub = _sin(27.5, n) * amp * 0.45 + _sin(55.0, n) * amp * 0.3
+    sub = _sin(55.0, n) * amp * 0.45 + _sin(41.2, n) * amp * 0.12  # (pas de 27,5 Hz : inaudible, mange la marge)
     return out + _widen(breath, 0.5, seed) + _st(sub)
 
 

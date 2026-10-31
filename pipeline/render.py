@@ -1109,9 +1109,19 @@ class ShotRenderer:
             pass
 
     def subliminal_image(self, what: str) -> np.ndarray:
-        """Image subliminale plein cadre : silhouette noire sur mur éclairé (ou son négatif)."""
+        """Image subliminale plein cadre : silhouette.subliminal_frame (« lui » à ~0,8·H en contre-jour) si le
+        module l'expose ; sinon repli local (silhouette noire sur mur éclairé, ou son négatif)."""
         if what in self._subl:
             return self._subl[what]
+        fn = getattr(silhouette_mod(), "subliminal_frame", None)
+        if callable(fn):
+            try:
+                img = fn((self.sil_meta or {}).get("still"), self.ow, self.oh,
+                         negative=(what == "silhouette_negative"), frame_idx=self.fbase)
+                self._subl[what] = np.asarray(img, np.float32)
+                return self._subl[what]
+            except Exception as e:
+                self.warn(f"silhouette.subliminal_frame a échoué ({type(e).__name__}: {e}) -> repli local")
         import cv2
         W, H = self.ow, self.oh
         yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
@@ -1162,7 +1172,34 @@ class ShotRenderer:
             kw["mix"] = float(mix[0]) + (float(mix[1]) - float(mix[0])) * u
         elif mix is not None:
             kw["mix"] = _num(mix, 0.0)
+        if hasattr(self.G, "exposure_gain"):  # gain d'exposition FIXE par plan (aucun pompage)
+            kw["auto_exposure"] = False if g.get("auto_exposure") is False else self.exposure_gain()
         return self.safe(f"grade {preset}", self.G.grade, img, preset, **kw)
+
+    def exposure_gain(self):
+        """Gain d'exposition du plan, calculé une fois (gfx.exposure_gain) sur ~6 images de la source ;
+        True (= estimation image par image) en cas d'échec."""
+        if "_ae_gain" in self.__dict__:
+            return self._ae_gain
+        gain = True
+        try:
+            kind = self.shot.get("kind")
+            frames = []
+            if kind == "clip":
+                proxy = self._clip_proxy(self.shot["clip"])
+                js = source_frames(self.shot, self.tl)
+                for j in np.unique(np.linspace(js.min(), js.max(), 6).astype(int)):
+                    frames.append(read_single_frame(proxy, int(j)))
+            elif kind == "freeze":
+                src = self.job.get("freeze") or {}
+                if "clip" in src:
+                    frames.append(read_single_frame(self._clip_proxy(src["clip"]), fidx(_num(src.get("t"), 0.0))))
+            if frames:
+                gain = float(self.G.exposure_gain(frames))
+        except Exception as e:
+            self.warn(f"exposure_gain a échoué ({type(e).__name__}: {e}) -> estimation image par image")
+        self._ae_gain = gain
+        return gain
 
     def privacy_regions(self, faces: list, cam) -> list:
         """Personnes secondaires (analyse efficientdet, hors sujet(s) principal(aux)) + zones manuelles
@@ -1657,6 +1694,11 @@ class ShotRenderer:
         ph, pw = u8.shape[:2]
         self.job["plate_size"] = (pw, ph)
         plate = u8.astype(np.float32) / 255.0
+        try:
+            self._ae_gain = float(self.G.exposure_gain([plate])) if hasattr(self.G, "exposure_gain") else True
+        except Exception as e:
+            self.warn(f"exposure_gain a échoué ({e}) -> estimation image par image")
+            self._ae_gain = True
         P = parallax()
         try:
             dmap = P.depth(plate)

@@ -1,6 +1,6 @@
 """Livraison : deliver(video, mix) -> dict.
 
-final   : OUT_DIR/CEST_QUI_LUI_bande-annonce.mp4 (H.264 High, yuv420p, 1080x1920, 30 i/s, CRF 16 preset slow,
+final   : OUT_DIR/CEST_QUI_LUI_bande-annonce.mp4 (H.264 High, yuv420p, 1080x1920, 30 i/s, CRF 17 preset slow plafonné à 18 Mb/s,
           AAC 320 kb/s 48 kHz stéréo, -movflags +faststart), OUT_DIR/CEST_QUI_LUI_couverture.jpg (1080x1920),
           OUT_DIR/LISEZMOI.txt (≤ 5 lignes).
 preview : RENDER_DIR/preview/CEST_QUI_LUI_preview.mp4 (540x960, mêmes réglages audio) + couverture d'aperçu ;
@@ -30,6 +30,71 @@ def _quality_of(video: Path) -> str:
     return "preview" if "preview" in Path(video).stem else "final"
 
 
+TP_CEILING = -1.0      # dBTP mesuré APRÈS encodage AAC (le codec dépasse le master sur les transitoires)
+
+
+def _true_peak_db(x: np.ndarray) -> tuple[float, np.ndarray]:
+    """True peak (suréchantillonnage ×4) et enveloppe de crête par bloc de 10 ms (48 kHz)."""
+    from scipy.signal import resample_poly
+    up = np.abs(resample_poly(x, 4, 1, axis=0)).max(axis=1)
+    hop = 4 * 480
+    nb = len(up) // hop
+    env = up[: nb * hop].reshape(nb, hop).max(axis=1) if nb else up[:1]
+    return float(20 * np.log10(max(1e-9, float(up.max())))), env
+
+
+def _decode_audio(path: Path) -> np.ndarray:
+    r = subprocess.run([R._ffmpeg(), "-v", "error", "-nostdin", "-i", str(path), "-map", "0:a:0", "-f", "f32le",
+                        "-ac", "2", "-ar", "48000", "-"], capture_output=True)
+    return np.frombuffer(r.stdout, np.float32).reshape(-1, 2)
+
+
+def encode_audio(mix: Path, dur: float, out: Path, log=print) -> dict:
+    """Mix → AAC 320 kb/s 48 kHz à la durée exacte de la vidéo. Le codec AAC peut dépasser le master de >1 dB
+    sur un transitoire (screamer) : on mesure le true peak du fichier ENCODÉ et, s'il dépasse −1 dBTP, on creuse
+    localement le master (−excès, attaque 5 ms, relâchement 120 ms) avant de réencoder (3 essais au plus)."""
+    import soundfile as sf
+    x, sr = sf.read(str(mix), dtype="float32", always_2d=True)
+    if sr != config.SR:
+        from scipy.signal import resample_poly
+        x = resample_poly(x, config.SR, sr, axis=0).astype(np.float32)
+    if x.shape[1] == 1:
+        x = np.repeat(x, 2, axis=1)
+    n = int(round(dur * config.SR))
+    x = np.pad(x[:n, :2], ((0, max(0, n - len(x))), (0, 0)))
+    wav = out.with_suffix(".wav")
+    info = {"passes": 0, "tp_db": None, "dips": 0}
+    for attempt in range(4):
+        sf.write(str(wav), x, config.SR, subtype="FLOAT")
+        r = subprocess.run([R._ffmpeg(), "-y", "-v", "error", "-nostdin", "-i", str(wav), "-c:a", "aac", "-b:a", "320k",
+                            "-ar", "48000", "-ac", "2", str(out)], capture_output=True, text=True, encoding="utf-8",
+                           errors="replace")
+        if r.returncode != 0:
+            raise RuntimeError(f"encodage AAC échoué : {r.stderr[-800:]}")
+        tp, env = _true_peak_db(_decode_audio(out))
+        info.update(passes=attempt + 1, tp_db=round(tp, 2))
+        if tp <= TP_CEILING - 0.05 or attempt == 3:
+            break
+        # creux de gain local là où l'AAC dépasse (enveloppe 10 ms), lissé
+        lim = 10 ** ((TP_CEILING - 0.25) / 20)
+        g = np.minimum(1.0, lim / np.maximum(env, 1e-9))
+        bad = int((g < 1.0).sum())
+        if bad == 0:
+            break
+        from scipy.ndimage import minimum_filter1d
+        g = minimum_filter1d(g, size=13)                                  # ±60 ms autour du dépassement
+        k = np.exp(-np.arange(0, 12) / 4.0)
+        g = 1.0 - np.convolve(1.0 - g, k / k.sum() * 1.0, mode="same")   # relâchement doux
+        g = np.clip(g, 0.0, 1.0)
+        gs = np.repeat(g, 480)[:n]
+        gs = np.pad(gs, (0, max(0, n - len(gs))), constant_values=1.0)
+        x = (x * gs[:, None]).astype(np.float32)
+        info["dips"] += bad
+        log(f"[deliver] true peak après AAC {tp:+.2f} dBTP > {TP_CEILING:.0f} : creux local sur {bad * 10} ms, réencodage")
+    wav.unlink(missing_ok=True)
+    return info
+
+
 def mux(video: Path, mix: Path, out: Path, quality: str, log=print) -> dict:
     """Mux vidéo + mix : nombre d'images conservé, audio complété/coupé à la durée exacte de la vidéo."""
     video, mix, out = Path(video), Path(mix), Path(out)
@@ -46,20 +111,23 @@ def mux(video: Path, mix: Path, out: Path, quality: str, log=print) -> dict:
         log(f"[deliver] ⚠ vidéo {w}x{h} mise à l'échelle en {target[0]}x{target[1]}")
         vf.append(f"scale={target[0]}:{target[1]}:flags=lanczos")
     vf.append("format=yuv420p")
-    crf, preset = ("16", "slow") if quality == "final" else ("20", "fast")
+    # Débit plafonné : le grain argentique fait exploser le CRF seul (~70 Mb/s, ~800 Mo pour 92 s, refusé par
+    # TikTok mobile) ; CRF 17 + plafond 18 Mb/s ≈ 200–220 Mo, grain conservé (écart invisible à 1:1).
+    crf, preset, maxrate = ("17", "slow", "18M") if quality == "final" else ("20", "fast", "4M")
     out.parent.mkdir(parents=True, exist_ok=True)
     # fichier temporaire dans le dossier de travail (hors OneDrive : pas de synchro d'un fichier à moitié écrit),
     # puis déplacement vers les livrables
     config.RENDER_DIR.mkdir(parents=True, exist_ok=True)
     tmp = config.RENDER_DIR / (out.stem + ".tmp" + out.suffix)
-    cmd = [R._ffmpeg(), "-y", "-v", "error", "-nostdin", "-i", str(video), "-i", str(mix),
+    aac = config.RENDER_DIR / f"deliver_audio_{quality}.m4a"
+    ainfo = encode_audio(mix, dur, aac, log)
+    cmd = [R._ffmpeg(), "-y", "-v", "error", "-nostdin", "-i", str(video), "-i", str(aac),
            "-map", "0:v:0", "-map", "1:a:0", "-frames:v", str(n),
            "-vf", ",".join(vf), "-r", str(config.FPS),
            "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-crf", crf, "-preset", preset,
+           "-maxrate", maxrate, "-bufsize", str(int(maxrate[:-1]) * 2) + "M",
            "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", "-color_range", "tv",
-           "-af", f"apad=whole_dur={dur:.6f},atrim=0:{dur:.6f},aresample=48000",
-           "-c:a", "aac", "-b:a", "320k", "-ar", "48000", "-ac", "2",
-           "-movflags", "+faststart", "-t", f"{dur:.6f}", str(tmp)]
+           "-c:a", "copy", "-movflags", "+faststart", "-t", f"{dur:.6f}", str(tmp)]
     t0 = time.time()
     r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
     if r.returncode != 0:
@@ -75,8 +143,9 @@ def mux(video: Path, mix: Path, out: Path, quality: str, log=print) -> dict:
         shutil.copyfile(tmp, part)      # autre volume : copie complète puis renommage
         os.replace(part, out)
         tmp.unlink(missing_ok=True)
-    log(f"[deliver] {out.name} : {n} images, {dur:.2f} s ({time.time() - t0:.0f} s)")
-    return {"file": str(out), "frames": n, "duration": round(dur, 3), "size": list(target)}
+    log(f"[deliver] {out.name} : {n} images, {dur:.2f} s ({time.time() - t0:.0f} s), audio {ainfo['tp_db']} dBTP")
+    aac.unlink(missing_ok=True)
+    return {"file": str(out), "frames": n, "duration": round(dur, 3), "size": list(target), "audio": ainfo}
 
 
 # ---------------------------------------------------------------------------

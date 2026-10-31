@@ -6,8 +6,8 @@
       "text": "Le 30 octobre 2026, quatre amis ont pris la route pour un escape game.",
       "tts_text": "Le trente octobre deux mille vingt-six, quatre amis ont pris la route pour un eskeïpe gueïme.",
       "onset_s": 0.061,
-      "speech_dur": 4.885,
-      "dur": 5.496,
+      "speech_dur": 4.884,
+      "dur": 5.495,
       "kind": "narrator"
     },
     "N02": {
@@ -24,8 +24,8 @@
       "text": "Voici ce qu'ils ont filmé.",
       "tts_text": "Voici ce qu'ils ont filmé.",
       "onset_s": 0.06,
-      "speech_dur": 1.714,
-      "dur": 2.324,
+      "speech_dur": 1.579,
+      "dur": 2.189,
       "kind": "narrator"
     },
     "N04": {
@@ -33,8 +33,8 @@
       "text": "Ils ne l'ont jamais revu.",
       "tts_text": "Ils ne l'ont jamais revu.",
       "onset_s": 0.06,
-      "speech_dur": 1.257,
-      "dur": 1.867,
+      "speech_dur": 1.258,
+      "dur": 1.868,
       "kind": "narrator"
     },
     "N05": {
@@ -42,17 +42,17 @@
       "text": "Lui ne les a plus jamais quittés.",
       "tts_text": "Lui ne les a plus jamais quittés.",
       "onset_s": 0.059,
-      "speech_dur": 1.785,
-      "dur": 2.394,
+      "speech_dur": 1.779,
+      "dur": 2.388,
       "kind": "narrator"
     },
     "N06": {
       "file": "N06.wav",
       "text": "Les organisateurs jurent que cette pièce ne fait pas partie du jeu.",
       "tts_text": "Les organisateurs jurent que cette pièce ne fait pas partie du jeu.",
-      "onset_s": 0.06,
-      "speech_dur": 3.894,
-      "dur": 4.505,
+      "onset_s": 0.058,
+      "speech_dur": 3.605,
+      "dur": 4.213,
       "kind": "narrator"
     },
     "N07a": {
@@ -60,8 +60,8 @@
       "text": "À 22h12, Dogan s'est mis au piano.",
       "tts_text": "À vingt-deux heures douze, Dogane s'est mis au piano.",
       "onset_s": 0.06,
-      "speech_dur": 2.692,
-      "dur": 3.302,
+      "speech_dur": 2.693,
+      "dur": 3.303,
       "kind": "narrator"
     },
     "N07b": {
@@ -69,8 +69,8 @@
       "text": "Il ne se souvient pas d'avoir joué.",
       "tts_text": "Il ne se souvient pas d'avoir joué.",
       "onset_s": 0.06,
-      "speech_dur": 1.597,
-      "dur": 2.207,
+      "speech_dur": 1.598,
+      "dur": 2.208,
       "kind": "narrator"
     },
     "N08a": {
@@ -78,17 +78,17 @@
       "text": "Sur la photo, ils sont quatre.",
       "tts_text": "Sur la photo, ils sont quatre.",
       "onset_s": 0.06,
-      "speech_dur": 1.924,
-      "dur": 2.534,
+      "speech_dur": 1.922,
+      "dur": 2.533,
       "kind": "narrator"
     },
     "N08b": {
       "file": "N08b.wav",
       "text": "Regardez derrière eux.",
       "tts_text": "Regardez derrière eux.",
-      "onset_s": 0.062,
-      "speech_dur": 1.565,
-      "dur": 2.177,
+      "onset_s": 0.058,
+      "speech_dur": 1.515,
+      "dur": 2.122,
       "kind": "narrator"
     },
     "N09a": {
@@ -104,9 +104,9 @@
       "file": "N09b.wav",
       "text": "Ils riaient.",
       "tts_text": "Ils riaient.",
-      "onset_s": 0.06,
-      "speech_dur": 0.612,
-      "dur": 1.222,
+      "onset_s": 0.062,
+      "speech_dur": 0.576,
+      "dur": 1.187,
       "kind": "narrator"
     },
     "E_DOGAN": {
@@ -114,26 +114,26 @@
       "text": "Dogan…",
       "tts_text": "Dogane.",
       "onset_s": 0.653,
-      "speech_dur": 0.549,
-      "dur": 2.297,
+      "speech_dur": 0.652,
+      "dur": 2.243,
       "kind": "entity"
     },
     "E_GABRIEL": {
       "file": "E_GABRIEL.wav",
       "text": "Gabriel…",
       "tts_text": "Gabriel.",
-      "onset_s": 0.654,
-      "speech_dur": 0.55,
-      "dur": 2.255,
+      "onset_s": 0.652,
+      "speech_dur": 0.755,
+      "dur": 2.471,
       "kind": "entity"
     },
     "E_HUGO": {
       "file": "E_HUGO.wav",
       "text": "Hugo…",
       "tts_text": "Hugo.",
-      "onset_s": 0.653,
-      "speech_dur": 0.411,
-      "dur": 2.162,
+      "onset_s": 0.651,
+      "speech_dur": 0.394,
+      "dur": 2.196,
       "kind": "entity"
     },
     "E_ARSENE": {
@@ -141,8 +141,8 @@
       "text": "Arsène…",
       "tts_text": "Arsène.",
       "onset_s": 0.653,
-      "speech_dur": 0.747,
-      "dur": 2.409,
+      "speech_dur": 0.741,
+      "dur": 2.369,
       "kind": "entity"
     },
     "E_IDENT": {
@@ -150,17 +150,17 @@
       "text": "Identification terminée.",
       "tts_text": "Identification terminée.",
       "onset_s": 1.052,
-      "speech_dur": 1.408,
-      "dur": 3.9,
+      "speech_dur": 1.558,
+      "dur": 4.018,
       "kind": "entity"
     },
     "E_CQL": {
       "file": "E_CQL.wav",
       "text": "C'est qui lui ?",
       "tts_text": "C'est qui lui ?",
-      "onset_s": 0.484,
-      "speech_dur": 0.764,
-      "dur": 1.563,
+      "onset_s": 0.148,
+      "speech_dur": 0.766,
+      "dur": 1.248,
       "kind": "entity"
     }
   }

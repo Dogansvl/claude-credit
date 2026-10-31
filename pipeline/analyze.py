@@ -913,6 +913,12 @@ REVIEW_HINTS = {
     "bk_8355_t": "Burger King : rires, visages lisibles.",
     "bk_8356_t": "Burger King : moment où les rires peuvent ralentir.",
     "silhouette_center_8346": "Centre de la silhouette dans 8346 (poussée caméra).",
+    "wall_empty_8346_t": "Première image de 8346 où la silhouette a COMPLÈTEMENT disparu derrière le mur (gel S3b).",
+    "group_photo_faces": "Si la photo de groupe n'a pas 4 visages détectés : centres [[x, y, rayon]] normalisés, gauche→droite.",
+    "privacy_zones": "Inconnus reconnaissables (BK, parking) non floutés automatiquement : {\"IMG_8357\": [[x0,y0,x1,y1,t0,t1]]}.",
+    "hud_boxes_8347": "Si le HUD de 8347 ne trouve pas les 4 visages : 4 boîtes [[x0,y0,x1,y1]] normalisées, gauche→droite.",
+    "portrait_eyes_8349": "Yeux des TABLEAUX de 8349 [[x, y, r]] normalisés si la détection automatique s'abstient.",
+    "face_boxes": "Repli manuel par shot pour les effets visages (ex. screamer S6e) : {\"S6e\": [x0,y0,x1,y1]} normalisé.",
 }
 
 

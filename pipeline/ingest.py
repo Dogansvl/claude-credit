@@ -253,7 +253,8 @@ def hdr_lut(transfer: str) -> Path:
     lines = [f'TITLE "{tag.upper()} BT.2020 -> SDR BT.709 ({HDR_LUT_VERSION})"', f"LUT_3D_SIZE {n}",
              "DOMAIN_MIN 0.0 0.0 0.0", "DOMAIN_MAX 1.0 1.0 1.0"]
     lines += [f"{r:.6f} {g_:.6f} {b:.6f}" for r, g_, b in out]
-    tmp = path.with_name(path.name + ".part")
+    import threading
+    tmp = path.with_name(f"{path.name}.{os.getpid()}.{threading.get_ident()}.part")  # 2 proxies en parallèle
     tmp.write_text("\n".join(lines) + "\n", encoding="ascii")
     os.replace(tmp, path)
     return path

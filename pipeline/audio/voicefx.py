@@ -413,7 +413,7 @@ def _pitch_ffmpeg(x, sr, semitones, formant, tempo, fine):
         af = (f"rubberband=pitch={ratio:.6f}:tempo={tempo:.6f}:formant={'preserved' if formant else 'shifted'}"
               f":pitchq=quality:transients=smooth")
         subprocess.run([exe, "-hide_banner", "-loglevel", "error", "-y", "-i", str(fin), "-af", af,
-                        "-c:a", "pcm_f32le", str(fout)], check=True, timeout=300)
+                        "-c:a", "pcm_f32le", str(fout)], check=True, timeout=300, capture_output=True)
         y, _ = sf.read(str(fout), dtype="float32")
         return y
     finally:

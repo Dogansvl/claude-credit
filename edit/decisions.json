@@ -23,7 +23,8 @@
     "screamer_8349_t",
     "wall_empty_8346_t",
     "group_photo_faces",
-    "privacy_zones"
+    "privacy_zones",
+    "face_boxes"
   ],
   "_reviewed": false,
   "silhouette_source": {
@@ -243,5 +244,9 @@
   "portrait_eyes_8349": {
     "eyes": null,
     "_note": "repli manuel : positions des yeux des tableaux [[x,y,r]...] normalisées ; null = détection auto limitée aux tableaux"
+  },
+  "face_boxes": {
+    "_note": "repli manuel des effets visages par shot si le maillage décroche : {\"S6e\": [x0,y0,x1,y1]} normalisé dans l'image proxy",
+    "boxes": {}
   }
 }

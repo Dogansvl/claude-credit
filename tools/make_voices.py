@@ -64,7 +64,9 @@ LINES: list[dict] = [
     dict(id="N08b", kind="narrator", text="Regardez derrière eux.", tts="Regardez derrière eux."),
     dict(id="N09a", kind="narrator", text="À 23h, tout était fini.", tts="À vingt-trois heures, tout était fini."),
     dict(id="N09b", kind="narrator", text="Ils riaient.", tts="Ils riaient."),
-    dict(id="E_DOGAN", kind="entity", preset="name", text="Dogan…", tts="Dogane."),
+    # chuchotement « soufflé » : 60 % de voix réelle sous le souffle, sinon le /g/ dévoisé est compris « Dukan »
+    dict(id="E_DOGAN", kind="entity", preset="name", text="Dogan…", tts="Dogane.",
+         fx=dict(ear=dict(semitones=-1.0, gain=2.5, pan=-0.2, voiced=0.6))),
     dict(id="E_GABRIEL", kind="entity", preset="name", text="Gabriel…", tts="Gabriel."),
     dict(id="E_HUGO", kind="entity", preset="name", text="Hugo…", tts="Hugo."),
     dict(id="E_ARSENE", kind="entity", preset="name", text="Arsène…", tts="Arsène."),
@@ -568,13 +570,51 @@ def _render(line: dict, x: np.ndarray, sr: int, tempo: float, fx: dict, chain_se
     """Applique la chaîne de traitement du rôle ; renvoie (y 48 kHz stéréo, info)."""
     if line["kind"] == "narrator":
         return vf.narrator_chain(x, sr, tempo=tempo, **fx)
-    return vf.entity_chain(x, sr, preset=line["preset"], seed=chain_seed, tempo=tempo)
+    return vf.entity_chain(x, sr, preset=line["preset"], seed=chain_seed, tempo=tempo, **line.get("fx", {}))
 
 
 def _asr_speech(asr: ASR, y: np.ndarray, info: dict) -> str:
     """ASR sur la partie parlée (sans le pré-swell / l'inspiration, que Whisper prend pour des mots)."""
     i0 = max(0, int((info["onset_s"] - 0.05) * vf.SR))
     return asr(y[i0:], vf.SR)
+
+
+def _q24(y: np.ndarray) -> np.ndarray:
+    """Quantification PCM 24 bits (le fichier tel qu'il sera écrit)."""
+    return (np.round(np.clip(y, -1.0, 1.0) * 8388607.0) / 8388607.0).astype(np.float32)
+
+
+_PARAKEET = {"ok": None}
+
+
+def _parakeet(y: np.ndarray, info: dict) -> str | None:
+    """2e avis ASR (Parakeet TDT, moteur du contrôle qualité) si disponible ; None sinon."""
+    if _PARAKEET["ok"] is False:
+        return None
+    try:
+        from pipeline import asr as pasr
+        i0 = max(0, int((info["onset_s"] - 0.05) * vf.SR))
+        x16 = vf.resample(vf.mono(y[i0:]), vf.SR, 16000)
+        r = pasr.transcribe_audio(x16, 16000, "fr", "sherpa-parakeet")
+        if r.get("backend") == "none":
+            raise RuntimeError(r.get("errors"))
+        _PARAKEET["ok"] = True
+        return " ".join(w["w"] for w in r["words"])
+    except Exception:
+        _PARAKEET["ok"] = False
+        return None
+
+
+def asr_hyps(asr: ASR, y: np.ndarray, info: dict, kind: str) -> list[str]:
+    """Transcriptions de contrôle ROBUSTES : whisper-small (int8) bascule sur des écarts de 1e-7 (mesuré :
+    « Dogen s'est mis » en mémoire, « Dogen se met » sur le WAV 24 bits). Une prise n'est validée que si elle
+    passe sur le signal en mémoire ET sur le fichier 24 bits (ET Parakeet pour le narrateur, si disponible)."""
+    hyps = [_asr_speech(asr, y, info), _asr_speech(asr, _q24(y), info)]
+    if kind == "narrator":
+        h = _parakeet(y, info)
+        if h is not None:
+            hyps.append(h)
+    return hyps
 
 
 def make_take(backend, line: dict, takes: int, asr: ASR | None, log: list, max_sd: float | None = None) -> dict:
@@ -621,8 +661,10 @@ def make_take(backend, line: dict, takes: int, asr: ASR | None, log: list, max_s
             if max_sd and info["speech_dur"] > max_sd * 1.01 and tempo < TEMPO_MAX[role]:
                 tempo = round(min(TEMPO_MAX[role], tempo * info["speech_dur"] / max_sd * 1.01), 3)
                 y, info = _render(line, x, sr, tempo, fx, chain_seed)
-            hyp = _asr_speech(asr, y, info) if asr else ""
-            w = wer(line["text"], hyp) if asr else 0.0
+            hyps = asr_hyps(asr, y, info, kind) if asr else [""]
+            ws = [wer(line["text"], h) for h in hyps] if asr else [0.0]
+            w = 0.5 * max(ws) + 0.5 * float(np.mean(ws))  # doit passer partout (moteurs / variantes)
+            hyp = hyps[1] if len(hyps) > 1 else hyps[0]
             pr = prosody(y, vf.SR) if kind == "narrator" else {}
             over = max(0.0, info["speech_dur"] - max_sd - 0.06) if max_sd else 0.0  # tolérance 60 ms
             score = 6.0 * w + 10.0 * over + 0.3 * max(0.0, tempo - 1.0)  # chevaucher une voix > un mot mal compris
@@ -634,8 +676,8 @@ def make_take(backend, line: dict, takes: int, asr: ASR | None, log: list, max_s
             p_ = dict(params, **({"tempo": tempo} if tempo > 1.0 else {}))
             cands.append(dict(y=y, info=info, params=p_, raw=(x, sr), asr=hyp, wer=round(w, 3), prosody=pr,
                               score=round(score, 4)))
-            log.append(f"{line['id']} prise {k}: {p_} parole={info['speech_dur']:.2f}s wer={w:.2f} « {hyp} » "
-                       f"score={score:.3f}")
+            log.append(f"{line['id']} prise {k}: {p_} parole={info['speech_dur']:.2f}s wer={w:.2f} "
+                       + " | ".join(f"« {h} »" for h in hyps) + f" score={score:.3f}")
     best = min(cands, key=lambda c: c["score"])
     best["raw_sd"] = round(raw_speech_dur(*best["raw"]), 3)
     return best
@@ -859,8 +901,10 @@ CHAIN_DOC = """
 **Narrateur** (`pipeline/audio/voicefx.narrator_chain`) : TTS → 48 kHz → transposition **avec préservation des
 formants** (rubberband R3 `-F`) : −2,5 demi-tons pour tom (−1 pour edge-Henri, déjà abaissé de 8 Hz) → EQ (passe-haut
 65 Hz, chaleur +3 dB à 150 Hz, −2 dB à 320 Hz, +1 dB à 2,4 kHz, étagère −6 dB au-dessus de 4,2 kHz pour le souffle
-de tom ; exciteur discret au-dessus de 9 kHz pour les voix à bande étroite) → de-esser (bande > 4,5 kHz) →
-compression douce (2,4:1, genou 8 dB, 12/140 ms) → réverbe type plate synthétique 1,2 s, pré-délai 14 ms, 12 % wet →
+de tom ; exciteur discret au-dessus de 9 kHz pour les voix à bande étroite) → de-esser (bande > 4,5 kHz, séparation
+à phase nulle) → **de-esser relatif** (`deess_relative`, gain STFT) : les sifflantes, qui sortaient du TTS aussi fortes
+que les voyelles (+0 à +4 dB, d'où le côté « soufflé »), sont ramenées à 12 dB sous les voyelles (LTAS 4–8 kHz :
+−5…−10 dB → −14…−19 dB / bande 0,1–4 kHz, proche d'une voix naturelle) → compression douce (2,4:1, genou 8 dB, 12/140 ms) → réverbe type plate synthétique 1,2 s, pré-délai 14 ms, 12 % wet →
 −20 LUFS intégrés, crête vraie ≤ −3 dBTP (limiteur à anticipation suréchantillonné ×4) → tête 60 ms avant la parole,
 queue de réverbe ≤ 0,55 s fondue. Débit : piper `length_scale` 1,10 (plus lent que nature) ; si la fenêtre du montage
 l'exige, compression temporelle rubberband ≤ +10 % (formants préservés) ou débit TTS accéléré, la meilleure prise
@@ -871,10 +915,13 @@ gagne.
 × bruit blanc de phase aléatoire, énergie de trame conservée ; trames non voisées (fricatives, explosions) gardées
 telles quelles → consonnes nettes → couches désaccordées (0 / +15…+22 / −22…−27 cents, décalages 8–19 ms,
 panoramiques ±0,3–0,5) + couche sous-grave (−7 à −9 dt, passe-bas 2,5 kHz) + **couche sèche « collée à
-l'oreille »** (−1 à −2 dt, dominante pour E_IDENT et E_CQL, décalée à gauche avec retard interaural 0,35 ms) → EQ de
+l'oreille »** (−1 à −1,5 dt, DOMINANTE : gain 1,4–2,5 contre 0,15–0,5 pour les couches graves ; pour E_DOGAN 60 %
+de voix réelle sous le souffle, sinon le /g/ chuchoté est compris « Dukan » ; décalée à gauche avec retard
+interaural 0,35 ms) → EQ de
 proximité (+4,5 dB à 150 Hz, souffle +3 dB à 4 kHz, −3 dB à 7,5 kHz) → de-esser, compression → **pré-swell en
-réverbe inversée** `reverse(reverb(reverse(x)))` (IR sombre synthétique) qui monte jusqu'au mot (prénoms 0,6 s,
-E_IDENT 1,0 s ; E_CQL : aucun, remplacé par une inspiration très proche) → queue sombre courte → −20 LUFS, crête
+réverbe inversée** `reverse(reverb(reverse(x)))` (IR sombre synthétique) qui monte jusqu'au mot puis s'efface
+50–60 ms avant lui (attaque nette ; prénoms 0,6 s, E_IDENT 1,0 s ; E_CQL : aucun, remplacé par une inspiration très
+proche de 0,1 s, onset ≤ 0,15 s pour que le silence de S6d reste franc) → queue sombre courte → −20 LUFS, crête
 ≤ −3 dBTP. `onset_s` = début réel de la parole (après pré-swell / inspiration).
 """
 
@@ -883,8 +930,10 @@ REPORT_LIMITS = """
 * Les durées de parole sont contraintes par les fenêtres de `edit/edl_spec.py` (voir tableau) : le débit
   « lent » est conservé partout où la fenêtre le permet ; les phrases N01 et N07a+N07b sont au débit naturel.
   Allonger S2b/S2c (≈ +0,4 s) et S4h (≈ +0,5 s) permettrait un débit plus lent.
-* Les prénoms de l'entité doivent tenir dans les flashs de 0,55 s (S4i–S4l) : murmures courts ; leurs queues
-  et pré-swells débordent volontairement sur les flashs voisins.
+* Les prénoms de l'entité tiennent dans les flashs de ~0,6 s (S4i–S4l) en mordant de ≤ 0,15 s sur le flash
+  suivant (moins de compression temporelle = mieux compris) ; queues et pré-swells débordent volontairement.
+* « Hugo » isolé n'est reconnu par l'ASR (whisper-small) avec AUCUNE voix piper, même en TTS brut (« et deux »,
+  « Ido ») : limite de l'ASR sur un prénom de deux phonèmes ; il reste sous-titré.
 * Voix piper = repli hors ligne ; sur le PC du client, relancer `python tools/make_voices.py` produit la version
   edge-tts (même format, même manifeste), puis relancer `edit/build_edl.py`.
 """

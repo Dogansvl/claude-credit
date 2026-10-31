@@ -348,7 +348,7 @@ SHOTS: list[dict] = [
          src_in="decision:bk_8355_t", dur=4.4,
          camera=dict(zoom=(1.0, 1.04), center=[0.5, 0.45]),
          grade=dict(preset="warm"),
-         audio=dict(src_gain_db=-3),
+         audio=dict(src_gain_db=-3), keep_words=True,
          fx=[dict(type="privacy_blur")],
          overlays=[dict(type="timecode", text="23:18", date=TC_DATE)],
          voice=[dict(id="N09a", t=0.9), dict(id="N09b", t="after:N09a:0.45")]),
@@ -356,6 +356,7 @@ SHOTS: list[dict] = [
          src_in="decision:bk_8356_t", dur=3.2,
          camera=dict(zoom=(1.0, 1.1), center="face"),
          grade=dict(preset="warm_to_cold", mix=(0.0, 0.75)),
+         keep_words=True,
          audio=dict(src_gain_db=0.0, src_fx=[dict(type="slow_down", t0=1.2, t1=3.2, to=0.55),
                                               dict(type="pitch_drift", t0=1.2, t1=3.2, semitones=-7)]),
          fx=[dict(type="privacy_blur"), dict(type="speed_ramp", t0=1.2, t1=3.2, to=0.55),
@@ -426,7 +427,7 @@ SHOTS: list[dict] = [
          cues=[dict(t=0.35, sfx="car_pass", gain_db=-10), dict(t="title:reveal", sfx="impact_sub", gain_db=-6),
                dict(t=2.75, sfx="piano_note", gain_db=-6)],
          voice=[dict(id="E_IDENT", t=3.25)]),
-    dict(id="S7b", section=7, label="noir final (traîne du chuchotement)", kind="black", dur=1.15),
+    dict(id="S7b", section=7, label="noir final (traîne du chuchotement)", kind="black", dur=1.25),
 ]
 
 # ---------------------------------------------------------------------------

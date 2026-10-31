@@ -12,6 +12,8 @@ piper-tts>=1.2
 sherpa-onnx>=1.10
 edge-tts>=6.1
 fonttools>=4.40
+# Facultatif mais conseillé : accélère l'étalonnage (gfx.grade) ; repli OpenCV sinon.
+numba>=0.59
 # Transcription mot à mot la plus précise (télécharge large-v3 depuis Hugging Face au 1er passage, ~3 Go).
 # Recommandé sur le PC ; si l'installation échoue, la chaîne se replie sur sherpa-onnx.
 faster-whisper>=1.0
