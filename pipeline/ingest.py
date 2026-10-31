@@ -58,9 +58,9 @@ def log(msg: str) -> None:
 # ---------------------------------------------------------------------------
 # ffprobe
 # ---------------------------------------------------------------------------
-def _run(cmd: list, timeout: float | None = None) -> subprocess.CompletedProcess:
+def _run(cmd: list, timeout: float | None = None, cwd: Path | None = None) -> subprocess.CompletedProcess:
     return subprocess.run([str(c) for c in cmd], capture_output=True, text=True, encoding="utf-8",
-                          errors="replace", timeout=timeout)
+                          errors="replace", timeout=timeout, cwd=str(cwd) if cwd else None)
 
 
 def _ratio(s: str | None) -> float | None:
@@ -190,31 +190,115 @@ def _shift(start: float) -> str:
     return f"PTS-{start:.6f}/TB" if start >= 0 else f"PTS+{-start:.6f}/TB"
 
 
-def _video_filters(info: dict, start: float, n_frames: int) -> tuple[str, list[str]]:
-    """Chaîne de filtres vidéo (après l'autorotation automatique de ffmpeg) + notes."""
+# ---------------------------------------------------------------------------
+# HDR (HLG / PQ, BT.2020) → SDR BT.709 : LUT 3D calculée ici (pas de dépendance à zscale)
+# ---------------------------------------------------------------------------
+HDR_LUT_VERSION = "hdr2sdr-v1"
+HDR_LUT_SIZE = 65
+REF_WHITE_NITS = 203.0       # BT.2408 : blanc de référence HDR (= 75 % HLG) → blanc SDR
+HDR_PEAK_NITS = 1000.0       # pic HLG de référence (iPhone)
+KNEE = 0.72                  # en dessous (en relatif blanc = 1) : transfert linéaire exact ; au-dessus : épaule douce
+_M2020_TO_709 = ((1.6605, -0.5876, -0.0728), (-0.1246, 1.1329, -0.0083), (-0.0182, -0.1006, 1.1187))
+
+
+def hdr_to_sdr(sig, transfer: str):
+    """R'G'B' HDR BT.2020 non linéaire [0,1] (…,3) → R'G'B' SDR BT.709 (gamma 2,4, BT.1886) [0,1].
+
+    Conversion « lumière d'affichage » BT.2408 : signal → nits (OOTF HLG γ=1,2 pour 1000 nits, ou EOTF PQ),
+    203 nits → blanc SDR, primaires BT.2020 → BT.709 (hors gamut ramené par désaturation, pas d'écrêtage),
+    épaule douce sur max(R,G,B) (teinte conservée, fonction lisse → LUT sans cassure) pour les hautes
+    lumières jusqu'à 1000 nits. Les tons moyens et les ombres restent exacts.
+    """
+    import numpy as np
+    s = np.clip(np.asarray(sig, dtype=np.float64), 0.0, 1.0)
+    if transfer == "smpte2084":
+        m1, m2 = 2610 / 16384, 2523 / 4096 * 128
+        c1, c2, c3 = 3424 / 4096, 2413 / 4096 * 32, 2392 / 4096 * 32
+        p = s ** (1 / m2)
+        nits = 10000.0 * (np.maximum(p - c1, 0) / (c2 - c3 * p)) ** (1 / m1)
+    else:  # arib-std-b67 (HLG)
+        a, b, c = 0.17883277, 0.28466892, 0.55991073
+        e = np.where(s <= 0.5, s * s / 3.0, (np.exp((s - c) / a) + b) / 12.0)
+        ys = e @ np.array([0.2627, 0.6780, 0.0593])
+        nits = HDR_PEAK_NITS * np.maximum(ys, 1e-12)[..., None] ** 0.2 * e
+    x = (nits / REF_WHITE_NITS) @ np.array(_M2020_TO_709).T
+    lum = np.array([0.2126, 0.7152, 0.0722])
+    y = np.maximum(x @ lum, 0.0)
+    mn = x.min(-1)
+    k = np.where(mn < 0, y / np.maximum(y - mn, 1e-12), 1.0)[..., None]   # hors gamut → vers le gris
+    x = y[..., None] + (x - y[..., None]) * k
+    # épaule douce (C1) sur max(R,G,B) : teinte et saturation conservées, jamais de débordement
+    ymax = HDR_PEAK_NITS / REF_WHITE_NITS
+    mx = x.max(-1)
+    d, m = np.maximum(mx - KNEE, 0.0), 1.0 - KNEE
+    cst = (ymax - KNEE - m) / (ymax - KNEE)
+    mt = np.minimum(np.where(mx > KNEE, KNEE + d / (1.0 + d * cst / m), mx), 1.0)
+    x = x * (mt / np.maximum(mx, 1e-12))[..., None]
+    return np.clip(x, 0.0, 1.0) ** (1 / 2.4)
+
+
+def hdr_lut(transfer: str) -> Path:
+    """Écrit (une fois) la LUT .cube HDR→SDR dans le cache et renvoie son chemin."""
+    import numpy as np
+    tag = "pq" if transfer == "smpte2084" else "hlg"
+    d = config.CACHE_DIR / "ingest"
+    d.mkdir(parents=True, exist_ok=True)
+    path = d / f"{tag}_to_sdr_{HDR_LUT_VERSION}_{HDR_LUT_SIZE}.cube"
+    if path.exists() and path.stat().st_size > 1000:
+        return path
+    n = HDR_LUT_SIZE
+    g = np.linspace(0.0, 1.0, n)
+    bb, gg, rr = np.meshgrid(g, g, g, indexing="ij")                # R varie le plus vite (format .cube)
+    out = hdr_to_sdr(np.stack([rr, gg, bb], -1).reshape(-1, 3), transfer)
+    lines = [f'TITLE "{tag.upper()} BT.2020 -> SDR BT.709 ({HDR_LUT_VERSION})"', f"LUT_3D_SIZE {n}",
+             "DOMAIN_MIN 0.0 0.0 0.0", "DOMAIN_MAX 1.0 1.0 1.0"]
+    lines += [f"{r:.6f} {g_:.6f} {b:.6f}" for r, g_, b in out]
+    tmp = path.with_name(path.name + ".part")
+    tmp.write_text("\n".join(lines) + "\n", encoding="ascii")
+    os.replace(tmp, path)
+    return path
+
+
+def _video_filters(info: dict, start: float, n_frames: int) -> tuple[str, list[str], Path | None]:
+    """Chaîne de filtres vidéo (après l'autorotation automatique de ffmpeg) + notes + LUT HDR éventuelle.
+
+    La LUT est référencée par son NOM seul (ffmpeg est lancé dans son dossier) : aucun échappement de chemin
+    Windows (« C:\\… », virgules, espaces) dans le graphe de filtres.
+    """
     v = info["video"]
     W, H, FPS = config.W, config.H, config.FPS
     notes = []
+    lut = None
     f = [f"setpts={_shift(start)}", f"fps={FPS}:start_time=0"]
-    if v["hdr"]:
-        tin = v["color_transfer"] if v["color_transfer"] in HDR_TRANSFERS else "arib-std-b67"
-        f += [f"zscale=tin={tin}:min=bt2020nc:pin=bt2020:rin=tv:t=linear:npl=100",
-              "format=gbrpf32le", "zscale=p=bt709", "tonemap=tonemap=hable:desat=0",
-              "zscale=t=bt709:m=bt709:r=tv"]
-        notes.append(f"HDR ({tin}{', Dolby Vision' if v['dolby_vision'] else ''}) → tonemap hable BT.709")
     dw, dh = v["display_w"], v["display_h"]
+    rng = "pc" if v.get("color_range") == "pc" else "tv"
     if (dw, dh) == (W, H):
         notes.append("source déjà en 1080x1920 : pas de mise à l'échelle ni de recadrage")
+        geom = []
     else:
-        f += [f"scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos+accurate_rnd+full_chroma_int",
-              f"crop={W}:{H}"]
+        geom = [f"scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos+accurate_rnd+full_chroma_int"
+                + (f":in_color_matrix=bt2020:in_range={rng}" if v["hdr"] else ""), f"crop={W}:{H}"]
         if dw * H != dh * W:
             notes.append(f"ratio {dw}x{dh} ≠ 9:16 : recadrage centré")
         if dw > dh:
             notes.append("ATTENTION : source paysage (rotation absente ?) → recadrage centré important")
+    if v["hdr"]:
+        tin = v["color_transfer"] if v["color_transfer"] in HDR_TRANSFERS else "arib-std-b67"
+        lut = hdr_lut(tin)
+        if not geom:
+            geom = [f"scale=in_color_matrix=bt2020:in_range={rng}"]
+        # mise à l'échelle d'abord (LUT appliquée sur 2 Mpx au lieu de 8), en RGB 16 bits
+        f += geom + ["format=gbrp16le", f"lut3d=file={lut.name}:interp=tetrahedral",
+                     "scale=out_color_matrix=bt709:out_range=tv"]
+        notes.append(f"HDR ({tin}{', Dolby Vision' if v['dolby_vision'] else ''}) → SDR BT.709 "
+                     f"(LUT BT.2408, blanc 203 nits)")
+    else:
+        f += geom
+        if v.get("color_primaries") == "bt2020" or v.get("color_space", "").startswith("bt2020"):
+            notes.append("ATTENTION : SDR étiqueté BT.2020 (couleurs non converties)")
     f += ["setsar=1", "tpad=stop_mode=clone:stop_duration=2", f"trim=end_frame={n_frames}",
           "format=yuv420p"]
-    return ",".join(f), notes
+    return ",".join(f), notes, lut
 
 
 def make_proxy(clip: str, force: bool = False, threads: int | None = None) -> Path:
@@ -226,7 +310,8 @@ def make_proxy(clip: str, force: bool = False, threads: int | None = None) -> Pa
     if out.exists() and not force and _sidecar(clip).exists():
         try:
             old = json.loads(_sidecar(clip).read_text(encoding="utf-8"))
-            if all(old.get(k) == sig[k] for k in sig):
+            hdr_stale = any("HDR" in n for n in old.get("notes", [])) and old.get("hdr_lut") != HDR_LUT_VERSION
+            if all(old.get(k) == sig[k] for k in sig) and not hdr_stale:
                 return out
         except (OSError, ValueError):
             pass
@@ -244,7 +329,7 @@ def make_proxy(clip: str, force: bool = False, threads: int | None = None) -> Pa
     end = v["start_time"] + vdur - start
     n_frames = max(1, int(round(end * config.FPS)))
     n_samples = int(round(n_frames / config.FPS * config.SR))
-    vf, notes = _video_filters(info, start, n_frames)
+    vf, notes, lut = _video_filters(info, start, n_frames)
 
     tmp = out.with_name(f"{clip}.part.mp4")
     cmd = [FFMPEG, "-nostdin", "-hide_banner", "-loglevel", "error", "-y", "-i", src]
@@ -270,12 +355,14 @@ def make_proxy(clip: str, force: bool = False, threads: int | None = None) -> Pa
             "-c:a", "aac", "-b:a", "256k", "-ar", str(config.SR), "-ac", "2",
             "-map_metadata", "-1", "-map_chapters", "-1", "-movflags", "+faststart", tmp]
     t0 = time.time()
-    r = _run(cmd)
+    r = _run(cmd, cwd=lut.parent if lut else None)
     if r.returncode != 0:
         tmp.unlink(missing_ok=True)
         raise RuntimeError(f"{clip}: ffmpeg a échoué\n{r.stderr.strip()[-2000:]}")
     os.replace(tmp, out)
     check = verify_proxy(out, n_frames)
+    if lut is not None:
+        sig["hdr_lut"] = HDR_LUT_VERSION
     sig.update({"frames": n_frames, "duration": n_frames / config.FPS, "notes": notes,
                 "encode_s": round(time.time() - t0, 1), "check": check})
     _sidecar(clip).write_text(json.dumps(sig, ensure_ascii=False, indent=1), encoding="utf-8")

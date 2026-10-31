@@ -4,7 +4,11 @@ Contrôles (statut pass / warn / fail ; le film passe s'il n'y a aucun fail) :
   format      ffprobe : H.264 High, yuv420p, 1080x1920 (540x960 en preview), 30/1, AAC LC 48 kHz stéréo
               ~320 kb/s, atome moov avant mdat (faststart), nombre d'images = round(durée EDL × 30)
   durée       85–95 s ; audio et vidéo de même durée
-  noirs       blackdetect comparé aux noirs prévus de l'EDL (shots noires, cartons, fondus, début du titre ; ±0,1 s)
+  noirs       blackdetect comparé aux noirs prévus de l'EDL (shots noires, cartons, fondus, début du titre ; ±0,1 s).
+              Hors des noirs prévus, chaque image est classée : plan très sombre AVEC contenu (clip/gel/photo/
+              montage, écart-type spatial et 99e centile au-dessus des seuils) → avertissement ; noir déjà
+              présent dans le rush source → avertissement ; image quasi uniforme noire = TROU → échec
+              (aussi pour les trous courts de 2 images que blackdetect ne voit pas).
   loudness    ebur128 : −14 ±1 LUFS intégrés, true peak ≤ −1 dBTP ; max court terme (3 s) dans la shot du
               screamer ; max momentané calé sur le screamer
   ASR         transcription du mix livré (pipeline.asr) : aucun mot de la liste noire, répliques présentes
@@ -39,6 +43,13 @@ BLACK_TOL = 0.1           # tolérance (s) sur les noirs prévus
 FLASH_DELTA = 0.10        # variation de luminance relative (linéaire) comptée comme transition de flash
 FLASH_MAX_PER_S = 3
 LUFS_TOL = 1.0
+# Noir réel ou plan sombre ? Statistiques d'image en luma codée (0..1) sur une réduction 54x96 :
+DARK_STD_MIN = 0.012      # écart-type spatial au-dessus duquel l'image a du contenu (plan de nuit : 0,017–0,035 ; noir : 0)
+DARK_P99_MIN = 0.06       # et 99e centile (zones éclairées présentes ; plan de nuit : 0,17–0,23 ; noir : 0–0,02)
+TRUE_BLACK_MEAN = 0.03    # image quasi uniforme ET moyenne sous ce seuil = noir
+SRC_BLACK_LUMA = 0.04     # luminance moyenne du rush (analysis/<clip>.luma.json) sous laquelle la source est noire
+HOLE_MIN_FRAMES = 2       # un trou = au moins 2 images noires consécutives non prévues
+CONTENT_KINDS = ("clip", "freeze", "photo", "montage")
 
 
 # ---------------------------------------------------------------------------
@@ -188,7 +199,124 @@ def detect_black(mp4: Path) -> list[tuple[float, float]]:
     return out
 
 
-def check_black(mp4: Path, edl: dict | None) -> tuple[list[dict], dict]:
+def frame_stats(mp4: Path, w: int = 54, h: int = 96) -> dict:
+    """Statistiques par image (un seul décodage réduit) : luminance linéaire moyenne (flashs), et en luma
+    codée 0..1 : moyenne, écart-type spatial, 99e centile (noir réel vs plan sombre)."""
+    cmd = [R._ffmpeg(), "-v", "error", "-nostdin", "-i", str(mp4), "-map", "0:v:0", "-vf",
+           f"scale={w}:{h}:flags=area,format=rgb24", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"]
+    r = subprocess.run(cmd, capture_output=True)
+    a = np.frombuffer(r.stdout, np.uint8)
+    n = len(a) // (w * h * 3)
+    rgb = a[: n * w * h * 3].reshape(n, h * w, 3).astype(np.float32) / 255.0
+    coef = np.array([0.2126, 0.7152, 0.0722], np.float32)
+    lin = np.where(rgb <= 0.04045, rgb / 12.92, ((rgb + 0.055) / 1.055) ** 2.4)
+    y = rgb @ coef
+    return {"n": n, "Ylin": (lin @ coef).mean(axis=1), "mean": y.mean(axis=1), "std": y.std(axis=1),
+            "p99": np.percentile(y, 99, axis=1)}
+
+
+def _shot_at(edl: dict, t: float) -> dict | None:
+    for s in edl.get("shots", []):
+        st = float(s.get("start", 0))
+        if st <= t < st + float(s.get("dur", 0)):
+            return s
+    return None
+
+
+_LUMA_CACHE: dict[str, list | None] = {}
+
+
+def _source_luma(clip: str | None, t_src: float) -> float | None:
+    """Luminance moyenne du rush à l'instant source (analysis/<clip>.luma.json), ou None si inconnue."""
+    if not clip:
+        return None
+    if clip not in _LUMA_CACHE:
+        try:
+            d = json.loads((config.ANALYSIS_DIR / f"{clip}.luma.json").read_text(encoding="utf-8"))
+            _LUMA_CACHE[clip] = [float(x) for x in d.get("luma") or []]
+        except Exception:
+            _LUMA_CACHE[clip] = None
+    lu = _LUMA_CACHE[clip]
+    if not lu:
+        return None
+    return lu[min(len(lu) - 1, max(0, int(round(t_src * config.FPS))))]
+
+
+def _source_of(shot: dict, t_local: float) -> tuple[str | None, float]:
+    """(clip, temps source) de l'image d'une shot clip/gel (approximation suffisante pour le QC)."""
+    if shot.get("kind") == "freeze":
+        fs = shot.get("freeze_src") or {}
+        return fs.get("clip") or shot.get("clip"), R._num(fs.get("t"), R._num(shot.get("src_in"), 0.0))
+    try:
+        ts = float(R.source_times(shot, np.array([max(0.0, t_local)]))[0])
+    except Exception:
+        ts = R._num(shot.get("src_in"), 0.0) + t_local
+    return shot.get("clip"), ts
+
+
+def _runs(idx: list[int]) -> list[tuple[int, int]]:
+    """Plages d'indices consécutifs [(i0, i1 exclus)]."""
+    out = []
+    for i in idx:
+        if out and i == out[-1][1]:
+            out[-1] = (out[-1][0], i + 1)
+        else:
+            out.append((i, i + 1))
+    return out
+
+
+def _in_plan(t0: float, t1: float, plan) -> bool:
+    return any(pa - BLACK_TOL <= t0 and t1 <= pb + BLACK_TOL for pa, pb, _ in plan)
+
+
+def classify_dark(edl: dict | None, stats: dict, intervals: list[tuple[float, float]], plan) -> dict:
+    """Classe les images des intervalles sombres NON prévus : trou (noir uniforme), plan très sombre avec contenu,
+    ou noir présent dans le rush source. Ajoute les trous courts (≥ 2 images) que blackdetect ne voit pas."""
+    fps = config.FPS
+    n = stats["n"]
+    content = (stats["std"] >= DARK_STD_MIN) & (stats["p99"] >= DARK_P99_MIN)
+    black = (~content) & (stats["mean"] < TRUE_BLACK_MEAN)
+    frames = set()
+    for x, y in intervals:
+        frames.update(range(max(0, int(round(x * fps))), min(n, int(round(y * fps)))))
+    # trous courts hors blackdetect (2 images noires et plus, hors noirs prévus)
+    for i0, i1 in _runs([int(i) for i in np.nonzero(black)[0]]):
+        if i1 - i0 >= HOLE_MIN_FRAMES and not _in_plan(i0 / fps, i1 / fps, plan):
+            frames.update(range(i0, i1))
+    cls: dict[str, list[int]] = {"hole": [], "dark": [], "src_black": []}
+    shots_of: dict[int, str] = {}
+    for i in sorted(frames):
+        t = (i + 0.5) / fps
+        if _in_plan(t, t, plan):
+            continue
+        shot = _shot_at(edl, t) if edl else None
+        kind = (shot or {}).get("kind")
+        shots_of[i] = (shot or {}).get("id", "?")
+        if content[i]:  # contenu visible (dans un clip/gel/photo/montage, ou un titre sombre) : pas un trou
+            cls["dark"].append(i)
+        elif kind in ("clip", "freeze"):
+            clip, ts = _source_of(shot, t - float(shot.get("start", 0)))
+            sl = _source_luma(clip, ts)
+            cls["src_black" if sl is not None and sl < SRC_BLACK_LUMA else "hole"].append(i)
+        else:
+            cls["hole"].append(i)
+
+    def describe(idx, min_len=1):
+        out = []
+        for i0, i1 in _runs(idx):
+            if i1 - i0 < min_len:
+                continue
+            out.append({"t": [round(i0 / fps, 2), round(i1 / fps, 2)],
+                        "shots": sorted({shots_of.get(i, "?") for i in range(i0, i1)}),
+                        "luma": round(float(stats["mean"][i0:i1].mean()), 3),
+                        "ecart_type": round(float(stats["std"][i0:i1].mean()), 4)})
+        return out
+
+    return {"holes": describe(cls["hole"], HOLE_MIN_FRAMES), "dark": describe(cls["dark"]),
+            "src_black": describe(cls["src_black"])}
+
+
+def check_black(mp4: Path, edl: dict | None, stats: dict | None = None) -> tuple[list[dict], dict]:
     blacks = detect_black(mp4)
     plan = planned_dark(edl) if edl else []
     unplanned = []
@@ -208,10 +336,9 @@ def check_black(mp4: Path, edl: dict | None) -> tuple[list[dict], dict]:
                     if y > pb + BLACK_TOL:
                         nxt.append((pb + BLACK_TOL, y))
                 rest = nxt
-            rest = [(x, y) for x, y in rest if y - x > 0.05]
-            if rest:
-                unplanned.append({"black": [round(a, 2), round(b, 2)],
-                                  "non_prevu": [[round(x, 2), round(y, 2)] for x, y in rest]})
+            unplanned += [(x, y) for x, y in rest if y - x > 0.05]
+    stats = stats if stats is not None else frame_stats(mp4)
+    cl = classify_dark(edl, stats, unplanned, plan)
     planned_black_shots = [(float(s["start"]), float(s["start"]) + float(s["dur"]), s["id"])
                            for s in (edl or {}).get("shots", []) if s.get("kind") == "black"]
     missing = []
@@ -221,14 +348,22 @@ def check_black(mp4: Path, edl: dict | None) -> tuple[list[dict], dict]:
         cov = sum(max(0.0, min(b, y) - max(a, x)) for x, y in blacks)
         if cov < 0.7 * (b - a):  # couverture par les plages noires détectées
             missing.append(sid)
-    checks = [_check("noirs involontaires", "fail" if unplanned else "pass", unplanned or "aucun",
+    checks = [_check("noirs involontaires", "fail" if cl["holes"] else "pass", cl["holes"] or "aucun",
                      "seulement les noirs prévus (±0,1 s)",
-                     f"{len(blacks)} plage(s) noire(s) détectée(s), {len(plan)} prévue(s)")]
+                     f"{len(blacks)} plage(s) noire(s) détectée(s), {len(plan)} prévue(s) ; trou = image quasi "
+                     f"uniforme noire (écart-type < {DARK_STD_MIN}) hors noirs prévus")]
+    if cl["dark"]:
+        checks.append(_check("plans très sombres", "warn", cl["dark"], "lisibles",
+                             "contenu présent (pas un trou) : vérifier sur la planche que l'image reste lisible"))
+    if cl["src_black"]:
+        checks.append(_check("noir présent dans le rush", "warn", cl["src_black"], "voulu par le montage ?",
+                             "le rush source est lui-même noir à cet endroit"))
     if missing:
         checks.append(_check("noirs prévus présents", "warn", missing, "noirs francs",
                              "shots noires non détectées comme noires (sous-titres ? grain ?)"))
     return checks, {"detected": [[round(a, 3), round(b, 3)] for a, b in blacks],
-                    "planned": [[round(a, 3), round(b, 3), w] for a, b, w in plan]}
+                    "planned": [[round(a, 3), round(b, 3), w] for a, b, w in plan],
+                    "unplanned": [[round(a, 3), round(b, 3)] for a, b in unplanned], **cl}
 
 
 def measure_loudness(mp4: Path) -> dict:
@@ -320,8 +455,8 @@ def count_flashes(Y: np.ndarray, fps: int = config.FPS, delta: float = FLASH_DEL
     return best, best_t, [(round(b / fps, 2), s) for b, s in trans]
 
 
-def check_flashes(mp4: Path) -> tuple[list[dict], dict]:
-    Y = luminance_series(mp4)
+def check_flashes(mp4: Path, stats: dict | None = None) -> tuple[list[dict], dict]:
+    Y = stats["Ylin"] if stats is not None else luminance_series(mp4)
     best, t, trans = count_flashes(Y)
     return ([_check("flashs", "pass" if best <= FLASH_MAX_PER_S else "fail", f"{best} flash(s)/s max (t≈{t:.1f} s)",
                     f"≤ {FLASH_MAX_PER_S}/s", f"{len(trans)} variation(s) ≥ {int(FLASH_DELTA * 100)} %")],
@@ -531,6 +666,12 @@ def write_report(res: dict, out_md: Path) -> None:
     d = res.get("data", {})
     if d.get("black"):
         L += ["", "## Noirs", f"- détectés : {d['black']['detected']}", f"- prévus : {d['black']['planned']}"]
+        for key, lab in (("holes", "TROUS (noir uniforme non prévu)"), ("dark", "plans très sombres (contenu présent)"),
+                         ("src_black", "noir déjà présent dans le rush")):
+            if d["black"].get(key):
+                L.append(f"- {lab} : " + "; ".join(f"{x['t'][0]:.2f}–{x['t'][1]:.2f} s {'/'.join(x['shots'])} "
+                                                    f"(luma {x['luma']}, σ {x['ecart_type']})"
+                                                    for x in d["black"][key]))
     if d.get("loudness"):
         lo = d["loudness"]
         L += ["", "## Loudness", f"- intégré {lo.get('I')} LUFS, true peak {lo.get('TP')} dBTP, LRA {lo.get('LRA')} LU",
@@ -578,10 +719,17 @@ def qc(final_mp4, edl: dict | None = None, quality: str | None = None, run_asr: 
     data: dict = {}
     n_exp = R.fidx(R.edl_duration(edl)) if edl else None
 
+    stats: dict = {}
+
+    def _stats():
+        if not stats:
+            stats.update(frame_stats(mp4))
+        return stats
+
     steps = [("format", lambda: check_format(mp4, quality, n_exp)),
-             ("black", lambda: check_black(mp4, edl)),
+             ("black", lambda: check_black(mp4, edl, _stats())),
              ("loudness", lambda: check_loudness(mp4, edl)),
-             ("flashes", lambda: check_flashes(mp4))]
+             ("flashes", lambda: check_flashes(mp4, _stats()))]
     if edl:
         steps += [("subtitles", lambda: check_subtitles(edl)), ("names", lambda: check_names(edl))]
     if run_asr:

@@ -88,6 +88,49 @@ GRADE = dict(
 )
 
 
+# Lisibilité du titre après l'éblouissement des phares (relecture phase 2) : de 1,8 s à la fin, le métal gris se
+# confondait avec le brouillard gris (lettres plus sombres que le fond). Recomposition sans Blender :
+#   * gain des surfaces des lettres (toutes lumières) ;
+#   * liseré froid synthétique sur les biseaux, calculé depuis les normales de la passe « text » (contre-jour
+#     haut-arrière = lampadaire, + clé latérale gauche = lune), atténué par la transmittance du brouillard ;
+#   * brouillard légèrement assombri derrière les lettres (ombre portée diffuse), sources très vives épargnées.
+# Montée progressive entre t_on[0] et t_on[1] (s) : avant, image strictement inchangée (éblouissement).
+TEXT_LOOK = dict(
+    t_on=(1.45, 2.15),
+    gain=2.5,                       # surfaces des lettres
+    rim=0.075, rim_pow=1.6,         # liseré (linéaire scène, avant exposition) et dureté
+    rim_dirs=((0.25, 0.92, 0.30, 1.0), (-0.85, 0.35, 0.15, 0.45)),   # (x, y, z, poids) ; +y haut, +z arrière
+    rim_color=(0.82, 0.92, 1.0),
+    spec=0.06, spec_pow=18.0,       # reflet franc du métal (lumière froide de face-haut)
+    spec_dir=(0.15, 0.55, -0.82),
+    backdrop=0.55, backdrop_sigma=44.0, backdrop_grow=9,
+)
+
+
+def text_look_amount(t: float | None) -> float:
+    if t is None:
+        return 0.0
+    a, b = TEXT_LOOK["t_on"]
+    u = min(1.0, max(0.0, (t - a) / (b - a)))
+    return u * u * (3 - 2 * u)
+
+
+def text_rim(normal: np.ndarray, T: np.ndarray, k: float) -> np.ndarray:
+    """Liseré + reflet synthétiques (linéaire, (h,w,3)) depuis les normales de la passe text."""
+    tl = TEXT_LOOK
+    n = normal / np.maximum(np.linalg.norm(normal, axis=-1, keepdims=True), 1e-6)
+    shade = np.zeros(n.shape[:2], np.float32)
+    for x, y, z, w in tl["rim_dirs"]:
+        L = np.array([x, y, z], np.float32)
+        L /= np.linalg.norm(L)
+        shade += w * np.clip(n @ L, 0, 1) ** tl["rim_pow"]
+    S = np.array(tl["spec_dir"], np.float32)
+    S /= np.linalg.norm(S)
+    spec = np.clip(n @ S, 0, 1) ** tl["spec_pow"]
+    col = np.array(tl["rim_color"], np.float32)
+    return (k * (tl["rim"] * shade + tl["spec"] * spec))[..., None] * col * T
+
+
 # Couverture : brouillard plus sombre, titre plus éclairé (doit rester lisible en vignette)
 GRADE_COVER = dict(GRADE, exposure=1.8, k_fog_head=0.45, k_head=1.4, k_amb=1.0, k_fog_amb=1.0, haze_dyn=0.05)
 COVER_PASSES = (("fog", "cover_fog", 33, 32), ("bg", "cover_surf", 50, 16), ("text", "cover_text", 100, 24))
@@ -411,13 +454,35 @@ def despeckle(img: np.ndarray, ratio: float = 4.0, floor: float = 0.05) -> np.nd
     return img * k
 
 
-def assemble(surf: dict[str, np.ndarray], fog_up: np.ndarray, g: dict, haze_dyn: np.ndarray) -> np.ndarray:
-    """fog_up : (H,W,10) = [T, S_head(3), S_red(3), S_amb(3)] déjà suréchantillonné sur la grille des surfaces."""
+def assemble(surf: dict[str, np.ndarray], fog_up: np.ndarray, g: dict, haze_dyn: np.ndarray,
+             surf_gain=1.0) -> np.ndarray:
+    """fog_up : (H,W,10) = [T, S_head(3), S_red(3), S_amb(3)] déjà suréchantillonné sur la grille des surfaces.
+    surf_gain : gain des surfaces seules (scalaire ou (H,W,1)) — le brouillard devant elles n'est pas touché."""
     T = fog_up[..., :1]
     S = g["k_fog_head"] * fog_up[..., 1:4] + g["k_fog_red"] * fog_up[..., 4:7] + g["k_fog_amb"] * fog_up[..., 7:10]
-    L = (g["k_head"] * surf["head"] + g["k_red"] * surf["red"] + g["k_amb"] * surf["amb"]) * T
+    L = (g["k_head"] * surf["head"] + g["k_red"] * surf["red"] + g["k_amb"] * surf["amb"]) * T * surf_gain
     haze = np.array(g["haze"], np.float32) * g["k_fog_amb"] + haze_dyn
     return L + S + (1.0 - T) * haze
+
+
+def backdrop(lin: np.ndarray, mask: np.ndarray, amount: float, exposure: float) -> np.ndarray:
+    """Assombrit le brouillard autour des lettres (ombre diffuse, comme si le titre masquait la lueur derrière
+    lui) ; les lettres elles-mêmes et les sources très vives (feux, phares) sont épargnées."""
+    import cv2
+    tl = TEXT_LOOK
+    m8 = mask.astype(np.uint8)
+    k = 2 * tl["backdrop_grow"] + 1
+    grown = cv2.dilate(m8, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))).astype(np.float32)
+    q = 4
+    small = cv2.resize(grown, (W // q, H // q), interpolation=cv2.INTER_AREA)
+    halo = cv2.GaussianBlur(small, (0, 0), tl["backdrop_sigma"] / q)
+    halo = cv2.resize(halo / max(float(halo.max()), 1e-6), (W, H), interpolation=cv2.INTER_LINEAR)
+    halo = np.clip(halo * 1.6, 0, 1)
+    lum = (0.2126 * lin[..., 0] + 0.7152 * lin[..., 1] + 0.0722 * lin[..., 2]) * exposure
+    keep_src = np.clip((lum - 0.6) / 1.4, 0, 1)
+    soft_letters = cv2.GaussianBlur(m8.astype(np.float32), (0, 0), 1.0)
+    d = amount * halo * (1.0 - soft_letters) * (1.0 - keep_src)
+    return lin * (1.0 - d)[..., None]
 
 
 def composite_frame(wd: Path, f: int, g: dict = GRADE, cover: bool = False) -> tuple[np.ndarray, dict]:
@@ -443,6 +508,7 @@ def composite_frame(wd: Path, f: int, g: dict = GRADE, cover: bool = False) -> t
     mask = (bx["IndexOB"][..., 0] > 0.5) if "IndexOB" in bx and bx["IndexOB"].shape[:2] == (H, W) else None
 
     text_exr = wd / ("cover_text" if cover else "exr_text") / name
+    k_look = 0.0 if cover else text_look_amount((f - 1) / FPS)
     if text_exr.exists():
         tx = read_exr(text_exr)
         alpha = tx["Combined"][..., 3]
@@ -454,7 +520,15 @@ def composite_frame(wd: Path, f: int, g: dict = GRADE, cover: bool = False) -> t
             h_lo = fog["depth"].shape[0]
             upc = jbu(fog_stack, fog["depth"], tx["Depth"][y0:y1, x0:x1, 0], offset=(y0, x0),
                       scale=(h_lo / H, h_lo / H))
-            lin_hi = assemble(surf, upc, g, haze_dyn)
+            obj = (tx["IndexOB"][y0:y1, x0:x1, :1] > 0.5).astype(np.float32)
+            if k_look > 0:
+                # lettres : gain des surfaces + liseré/reflet synthétiques (bords adoucis à 1 px)
+                obj_s = cv2.GaussianBlur(obj[..., 0], (0, 0), 0.7)[..., None]
+                gain = 1.0 + (TEXT_LOOK["gain"] - 1.0) * k_look * obj_s
+                lin_hi = assemble(surf, upc, g, haze_dyn, surf_gain=gain)
+                lin_hi = lin_hi + text_rim(tx["Denoising Normal"][y0:y1, x0:x1], upc[..., :1], k_look) * obj_s
+            else:
+                lin_hi = assemble(surf, upc, g, haze_dyn)
             # fondu de raccord sur 14 px au bord du cadre pleine définition
             m = np.ones((y1 - y0, x1 - x0), np.float32)
             m = cv2.erode(m, np.ones((3, 3), np.uint8), borderType=cv2.BORDER_CONSTANT, borderValue=0)
@@ -463,6 +537,8 @@ def composite_frame(wd: Path, f: int, g: dict = GRADE, cover: bool = False) -> t
             lin[y0:y1, x0:x1] = lin[y0:y1, x0:x1] * (1 - m) + lin_hi * m
             mask = np.zeros((H, W), bool)
             mask[y0:y1, x0:x1] = tx["IndexOB"][y0:y1, x0:x1, 0] > 0.5
+            if k_look > 0:
+                lin = backdrop(lin, mask, k_look * TEXT_LOOK["backdrop"], g["exposure"])
     out = grade(lin, g)
     stats = text_stats(out, mask)
     return out, stats
@@ -619,9 +695,9 @@ def meta(args) -> dict:
         "reveal_note": f"premier instant où la lisibilité mesurée dépasse {thr:.3f} (50 % du plateau final)",
         "text_box_start": stats[frames[0]]["box"],
         "text_box_end": end["box"],
-        # centre optique du titre (480 px : il est décalé à gauche pour la zone sûre TikTok). gfx.draw_title_sub
-        # recentre sur W/2 toute ancre à moins de 6 % du centre : on ancre 6 px plus à gauche pour l'éviter.
-        "sub_anchor": [min(int((box[0] + box[2]) / 2), int(W / 2 - 0.061 * W)), int(box[3] + 70)],
+        # centre optique du titre (≈ 480 px : il est décalé à gauche pour la zone sûre TikTok) ; gfx.draw_title_sub
+        # utilise l'ancre telle quelle
+        "sub_anchor": [int(round((box[0] + box[2]) / 2)), int(box[3] + 70)],
         "font": FONT_STATIC.name,
         "plate": "propre (sans grain ni vignettage) : à finir avec gfx.film_finish",
     }

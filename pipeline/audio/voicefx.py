@@ -240,6 +240,42 @@ def deess(x: np.ndarray, sr: int, freq: float = 5500.0, thr_db: float = -30.0, r
     return (lo + hi * (g if x.ndim == 1 else g[:, None])).astype(np.float32)
 
 
+def deess_relative(x: np.ndarray, sr: int, below_vowel_db: float = 9.0, freq: float = 3600.0,
+                   max_cut_db: float = 14.0, attack_ms: float = 1.0, release_ms: float = 45.0) -> np.ndarray:
+    """De-esser RELATIF (indépendant du niveau d'entrée) : les trames de sifflantes (énergie 4–9 kHz
+    dominante) sont ramenées à `below_vowel_db` dB sous le niveau des voyelles (p90 des trames où les
+    basses 100 Hz–1 kHz dominent). Seule la bande au-dessus de `freq` est atténuée : la consonne reste
+    nette, mais ne siffle plus plus fort que la voyelle (défaut typique des voix TTS soufflées)."""
+    m = mono(x).astype(np.float64)
+    n_fft, hop = 1024, 128
+    X = _stft(m, n_fft, hop)
+    P = np.abs(X) ** 2
+    fr = np.fft.rfftfreq(n_fft, 1 / sr)
+    hf = P[(fr >= 4000) & (fr < 9000)].sum(axis=0)
+    lf = P[(fr >= 100) & (fr < 1000)].sum(axis=0)
+    tot = P[fr >= 60].sum(axis=0) + EPS
+    lvl = 10 * np.log10(tot)
+    act = lvl > lvl.max() - 35
+    vow = act & (lf > 10 * hf)
+    if vow.sum() < 5:
+        return np.asarray(x, dtype=np.float32)
+    ref = np.percentile(lvl[vow], 90) - below_vowel_db
+    # part de la trame portée par la bande haute : seule elle est réduite
+    hi_share = P[fr >= freq].sum(axis=0) / tot
+    need = np.clip(lvl - ref, 0.0, None)
+    # atténuation de la bande haute nécessaire pour baisser la trame de `need` dB
+    rem = 10 ** (-need / 10) - (1 - hi_share)
+    cut = np.where(need > 0, -10 * np.log10(np.clip(rem / np.maximum(hi_share, EPS), 10 ** (-max_cut_db / 10), 1.0)), 0.0)
+    cut = np.where(hf > lf, cut, 0.0)
+    t_fr = np.arange(len(cut)) * hop
+    cut_s = np.interp(np.arange(len(m)), t_fr, cut)
+    cut_s = _envelope(cut_s, sr, attack_ms, release_ms, block=16).astype(np.float64)
+    g = (10 ** (-cut_s / 20)).astype(np.float32)
+    hi = highpass(x, sr, freq, order=2)
+    lo = x - hi
+    return (lo + hi * (g if np.ndim(x) == 1 else g[:, None])).astype(np.float32)
+
+
 def true_peak_db(x: np.ndarray, oversample: int = 4) -> float:
     y = signal.resample_poly(np.asarray(x, dtype=np.float64), oversample, 1, axis=0)
     return lin2db(np.max(np.abs(y)) if y.size else 0.0)
@@ -640,6 +676,7 @@ NARRATOR_DEFAULTS = dict(
     eq=[("hp", 65, 2), ("lowshelf", 160, 2.5), ("peak", 320, -2.0, 1.1), ("peak", 2800, 1.2, 0.9),
         ("highshelf", 9000, -1.5)],
     deess=dict(freq=5200, thr_db=-31, ratio=3.0, max_cut_db=7),
+    sib_db=9.0,              # sifflantes ramenées à 9 dB sous les voyelles (de-esser relatif) ; None = off
     comp=dict(thr_db=-24, ratio=2.4, attack_ms=12, release_ms=140, knee_db=8, makeup_db=0),
     reverb=dict(decay_s=1.2, predelay_ms=14, damping=0.45, wet=0.12, seed=7),
     exciter_db=None,         # air recréé au-dessus de ~9 kHz (voix à bande étroite), ex. -24
@@ -663,6 +700,8 @@ def narrator_chain(x: np.ndarray, sr: int, **params) -> tuple[np.ndarray, dict]:
     if p["exciter_db"] is not None:
         y = exciter(y, SR, p["exciter_db"])
     y = deess(y, SR, **p["deess"])
+    if p.get("sib_db") is not None:
+        y = deess_relative(y, SR, below_vowel_db=p["sib_db"])
     y = compress(y, SR, **p["comp"])
     # recadrage précis sur la parole (sec) avant la réverbe
     a, b = speech_bounds(y, SR)

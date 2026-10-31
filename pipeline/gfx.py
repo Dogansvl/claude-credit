@@ -36,10 +36,10 @@ except ModuleNotFoundError:  # exécution directe
 __all__ = [
     "font", "grade", "film_finish", "glitch", "rgb_split", "negative", "darken",
     "draw_card", "draw_name", "draw_timecode", "draw_subtitle", "draw_hud_face", "draw_red_circle",
-    "draw_title_sub", "safe_zone", "GFX_VERSION",
+    "draw_title_sub", "safe_zone", "exposure_gain", "GFX_VERSION",
 ]
 
-GFX_VERSION = "gfx-1.0"          # à inclure dans les clés de cache des rendus de shots
+GFX_VERSION = "gfx-2.0"          # à inclure dans les clés de cache des rendus de shots
 
 REF_W, REF_H = 1080, 1920
 SAFE_REF = (60, 160, 900, 1536)  # x0, y0, x1, y1 à 1080x1920 (1536 = début des 20 % du bas)
@@ -1325,89 +1325,310 @@ def _grade_params(preset: str, mix: float, kw: dict) -> dict:
     return out
 
 
-def _apply_lut(plane: np.ndarray, lut_row: np.ndarray) -> np.ndarray:
-    """Courbe 1D sur [0, 1] (4096 entrées, au plus proche : pas de 1/4095). Le plan d'entrée (un temporaire)
-    est modifié en place."""
-    n = lut_row.shape[1] - 1
-    np.clip(plane, 0.0, 1.0, out=plane)
-    plane *= np.float32(n)
-    plane += np.float32(0.5)
-    return lut_row[0].take(plane.astype(np.uint16))
+# ----------------------------------------------------------------------------- exposition automatique
+# Plans de nuit iPhone (très sombres, bruités) : sans normalisation, la courbe « noirs écrasés » les rend
+# illisibles sur téléphone. Relèvement AVANT la courbe, par une pente dans les ombres plafonnée :
+#   f(v) = g·v / (1 + (g − 1)·v)    (v = max(R, V, B) ; f(0) = 0, f(1) = 1 : rien ne sature, teinte conservée)
+# g est choisi pour amener la médiane vers AE_TARGET_MED et le 90e centile vers AE_TARGET_HI (le plus petit
+# des deux gains), g ≤ AE_MAX_GAIN, g ≥ 1 (une image bien exposée n'est jamais modifiée). Une image noire
+# (90e centile < 0,02) reste noire. Stable dans le temps : exposure_gain(images) se calcule UNE fois par plan.
+AE_TARGET_MED = 0.15
+AE_TARGET_HI = 0.50
+AE_MAX_GAIN = 4.0
+AE_BLACK_P90 = (0.02, 0.05)    # 90e centile en dessous duquel l'image est considérée noire (pas de relèvement)
+AE_NR_FROM = 1.3               # gain à partir duquel la chrominance est débruitée
 
 
-def grade(img, preset: str, mix: float = 0.0, **kw):
-    """Étalonnage. preset : cold | night_red | blue | warm | warm_to_cold (mix 0 = chaud -> 1 = froid) | bleach.
-    kw : red_accent (0..1, rouges renforcés), keep_blue (bool/0..1, bleus gardés : gyrophares),
-    warm_highlights (0..1, hautes lumières chaudes : bougies), exposure (diaph. en plus),
-    saturation (multiplicateur), strength (0..1, mélange avec l'original)."""
-    x = _f32(img)
-    p = _grade_params(preset, mix, kw)
-    H, W = x.shape[:2]
+def _value_samples(img) -> np.ndarray:
+    """max(R, V, B) d'une version réduite (~120 px de large) de l'image, aplati."""
+    a = np.asarray(img)
+    if a.dtype == np.uint8:
+        a = a.astype(np.float32) * np.float32(1.0 / 255.0)
+    else:
+        a = a.astype(np.float32, copy=False)
+    h, w = a.shape[:2]
+    f = max(1, int(w // 120))
+    if f > 1:
+        a = cv2.resize(a, (max(1, w // f), max(1, h // f)), interpolation=cv2.INTER_AREA)
+    return np.clip(a[..., :3].max(axis=-1), 0.0, 1.0).ravel()
+
+
+def _gain_for(level: float, target: float) -> float:
+    level = max(float(level), 1e-4)
+    if level >= target:
+        return 1.0
+    return target * (1.0 - level) / (level * (1.0 - target))
+
+
+def exposure_gain(sample_frames, preset: str | None = None, max_gain: float | None = None,
+                  target_med: float = AE_TARGET_MED, target_hi: float = AE_TARGET_HI) -> float:
+    """Gain de normalisation d'exposition (≥ 1) d'un plan, à calculer UNE fois par plan sur quelques images
+    (liste d'images float [0,1] ou uint8 de n'importe quelle taille, ou une seule image), puis à passer à
+    grade(..., auto_exposure=gain) pour toutes les images du plan (aucun pompage). preset : réservé (même
+    calcul pour tous les looks filmés)."""
+    if isinstance(sample_frames, np.ndarray) and sample_frames.ndim == 3:
+        sample_frames = [sample_frames]
+    vals = [_value_samples(f) for f in sample_frames if f is not None]
+    if not vals:
+        return 1.0
+    v = np.concatenate(vals)
+    p50, p90 = (float(q) for q in np.percentile(v, [50, 90]))
+    g = min(_gain_for(p50, target_med), _gain_for(p90, target_hi), float(max_gain or AE_MAX_GAIN))
+    g = 1.0 + (max(1.0, g) - 1.0) * float(_sstep(AE_BLACK_P90[0], AE_BLACK_P90[1], p90))
+    return round(max(1.0, g), 3)
+
+
+def _resolve_gain(x: np.ndarray, auto_exposure) -> float:
+    if auto_exposure is None or auto_exposure is False:
+        return 1.0
+    if auto_exposure is True:        # repli image par image (le rendu devrait passer un gain fixe par plan)
+        return exposure_gain([x])
+    return max(1.0, min(float(auto_exposure), 2.0 * AE_MAX_GAIN))
+
+
+# ----------------------------------------------------------------------------- étalonnage par pixel (référence)
+def _curve_apply(c: np.ndarray, lut_row: np.ndarray) -> np.ndarray:
+    n = lut_row.shape[0] - 1
+    return np.interp(np.clip(c, 0.0, 1.0) * n, np.arange(n + 1, dtype=np.float32), lut_row).astype(np.float32)
+
+
+def _grade_pixels(x: np.ndarray, p: dict, gain: float = 1.0) -> np.ndarray:
+    """Étalonnage d'un tableau (..., 3) pixel par pixel (aucune opération spatiale) : référence exacte qui sert
+    à construire les LUT 3D. Ordre : normalisation d'exposition -> balance/exposition -> saturation sélective
+    (rouges vifs gardés, bleus, verts tués vers le bleu-vert) -> rouges vers le cramoisi -> bleach -> courbe."""
+    x = np.clip(np.asarray(x, np.float32), 0.0, 1.0)
+    if gain > 1.0 + 1e-4:
+        v = x.max(axis=-1, keepdims=True)
+        x = x * (np.float32(gain) / (1.0 + np.float32(gain - 1.0) * v))
     gains = (np.asarray(p["wb"], np.float32) * np.float32(2.0 ** p["exposure"]))
-    L = cv2.transform(x, _LUMA * gains[None, :])
-    r, g, b = cv2.split(x)
-    r *= gains[0]
-    g *= gains[1]
-    b *= gains[2]
+    r, g, b = (x[..., i] * gains[i] for i in range(3))
+    L = r * _LUMA[0, 0] + g * _LUMA[0, 1] + b * _LUMA[0, 2]
     sat = float(p["sat"])
-    rs = float(p.get("red_shift", 0.0))
-    rg = float(p.get("red_gain", 1.0))
+    rlo = float(p.get("red_lo", 0.55))
+    rmask = _sstep(rlo, rlo + 0.3, (r - np.maximum(g, b)) / (r + np.float32(0.02))) * _sstep(0.025, 0.10, r)
+    s_map = np.float32(sat) + np.float32(p["red_sat"] - sat) * rmask
+    if abs(p["blue_sat"] - sat) > 1e-3:
+        bmask = _sstep(0.15, 0.55, (b - np.maximum(r, g)) / (b + np.float32(0.02))) * _sstep(0.03, 0.12, b)
+        s_map = s_map + np.float32(p["blue_sat"] - sat) * bmask
     gsat = float(p.get("green_sat", sat))
     gteal = float(p.get("green_teal", 0.0))
-    need_b = abs(p["blue_sat"] - sat) > 1e-3
-    need_g = abs(gsat - sat) > 1e-3 or gteal > 0
-    # cartes de teinte calculées à mi-résolution (4x moins de calcul, transitions douces) :
-    # rouges vifs (sang, feux arrière ; la peau orangée n'en fait PAS partie), bleus vifs, verts
-    hw_, hh_ = max(1, (W + 1) // 2), max(1, (H + 1) // 2)
-    sr, sg, sb = cv2.split(cv2.resize(x, (hw_, hh_), interpolation=cv2.INTER_AREA))
-    sr, sg, sb = sr * gains[0], sg * gains[1], sb * gains[2]
-    rlo = float(p.get("red_lo", 0.55))
-    rmask = _sstep(rlo, rlo + 0.3, (sr - np.maximum(sg, sb)) / (sr + np.float32(0.02))) * _sstep(0.025, 0.10, sr)
-    s_small = np.float32(sat) + np.float32(p["red_sat"] - sat) * rmask
-    if need_b:
-        bmask = _sstep(0.15, 0.55, (sb - np.maximum(sr, sg)) / (sb + np.float32(0.02))) * _sstep(0.03, 0.12, sb)
-        s_small += np.float32(p["blue_sat"] - sat) * bmask
     gmask = None
-    if need_g:
-        gmask = _sstep(0.04, 0.35, (sg - np.maximum(sr, sb)) / (sg + np.float32(0.02))) * _sstep(0.02, 0.08, sg)
-        s_small += np.float32(gsat - sat) * gmask
-
-    def up(m):
-        return cv2.resize(m, (W, H), interpolation=cv2.INTER_LINEAR)
-
-    s_map = up(s_small)
-    for ch in (r, g, b):   # saturation sélective, en place
-        ch -= L
-        ch *= s_map
-        ch += L
-    if gmask is not None and gteal:  # ce qui reste de vert part vers le bleu-vert
-        k = up(gmask * np.float32(gteal))
-        delta = np.maximum(g - r, 0) * k
-        r -= delta * np.float32(0.35)
-        b += delta * np.float32(0.6)
-    if rs or rg != 1.0:
-        rm = up(rmask)
-        if rs:  # rouges poussés vers le cramoisi (moins d'orange)
-            k = rm * np.float32(rs)
-            g *= 1.0 - k
-            b *= 1.0 - 0.4 * k
-        if rg != 1.0:
-            r *= 1.0 + np.float32(rg - 1.0) * rm
-    if p.get("bleach", 0.0) > 0:  # bleach bypass : superposition de la luminance
+    if abs(gsat - sat) > 1e-3 or gteal > 0:
+        gmask = _sstep(0.04, 0.35, (g - np.maximum(r, b)) / (g + np.float32(0.02))) * _sstep(0.02, 0.08, g)
+        s_map = s_map + np.float32(gsat - sat) * gmask
+    r, g, b = L + (r - L) * s_map, L + (g - L) * s_map, L + (b - L) * s_map
+    if gmask is not None and gteal:
+        delta = np.maximum(g - r, 0) * (gmask * np.float32(gteal))
+        r = r - delta * np.float32(0.35)
+        b = b + delta * np.float32(0.6)
+    rs, rg = float(p.get("red_shift", 0.0)), float(p.get("red_gain", 1.0))
+    if rs:
+        k = rmask * np.float32(rs)
+        g = g * (1.0 - k)
+        b = b * (1.0 - 0.4 * k)
+    if rg != 1.0:
+        r = r * (1.0 + np.float32(rg - 1.0) * rmask)
+    if p.get("bleach", 0.0) > 0:
         bl = np.float32(p["bleach"])
-        L2 = r * np.float32(0.2126) + g * np.float32(0.7152) + b * np.float32(0.0722)
-        L2 = np.clip(L2, 0, 1)
+        L2 = np.clip(r * _LUMA[0, 0] + g * _LUMA[0, 1] + b * _LUMA[0, 2], 0, 1)
+        out_ = []
         for ch in (r, g, b):
             c = np.clip(ch, 0, 1)
             ov = np.where(c < 0.5, 2 * c * L2, 1 - 2 * (1 - c) * (1 - L2))
-            ch += (ov - ch) * bl
+            out_.append(ch + (ov - ch) * bl)
+        r, g, b = out_
     lut = p["lut"]
-    r = _apply_lut(r, lut[0:1])
-    g = _apply_lut(g, lut[1:2])
-    b = _apply_lut(b, lut[2:3])
-    res = cv2.merge([r, g, b])
-    if p.get("glow", 0.0) > 0:  # halo diffus des hautes lumières (chaud)
-        gl = np.float32(p["glow"])
+    res = np.stack([_curve_apply(r, lut[0]), _curve_apply(g, lut[1]), _curve_apply(b, lut[2])], -1)
+    return np.clip(res, 0.0, 1.0).astype(np.float32)
+
+
+# ----------------------------------------------------------------------------- LUT 3D (rendu rapide)
+# Tout l'étalonnage par pixel (exposition auto comprise) est précalculé dans une LUT 3D 49³ par preset, sur
+# une grille en racine carrée (finesse dans les ombres, où sont la courbe et le relèvement), appliquée en
+# trilinéaire (noyau numba si disponible, sinon cv2.remap). Écart à la référence < 1/255 en pratique.
+LUT3_N = 49
+_MIX_STEPS = 64               # warm_to_cold : LUT tous les 1/64, interpolées entre elles
+_GAIN_STEPS = 16              # exposition : LUT tous les 1/16 de diaph, interpolées
+
+
+@functools.lru_cache(maxsize=40)
+def _lut3(preset: str, kw_items: tuple, mix_q: int, gain_q: int, strength: float | None) -> np.ndarray:
+    """LUT (N, N, N, 3) indexée [b, g, r], nœuds en racine carrée (x = u²)."""
+    N = LUT3_N
+    p = _grade_params(preset, mix_q / _MIX_STEPS, dict(kw_items))
+    u = (np.arange(N, dtype=np.float32) / (N - 1)) ** 2
+    bb, gg, rr = np.meshgrid(u, u, u, indexing="ij")
+    lattice = np.stack([rr, gg, bb], -1).reshape(N * N, N, 3)
+    out = _grade_pixels(lattice, p, 2.0 ** (gain_q / _GAIN_STEPS))
+    if strength is not None and strength < 1.0:
+        out = lattice + (out - lattice) * np.float32(strength)
+    out = np.ascontiguousarray(out.reshape(N, N, N, 3), dtype=np.float32)
+    out.flags.writeable = False
+    return out
+
+
+_LUT_BLEND: dict = {}
+
+
+def _lut3_for(preset: str, kw_items: tuple, mix: float, gain: float, strength) -> np.ndarray:
+    key = (preset, kw_items, round(mix, 5), round(gain, 5), strength)
+    hit = _LUT_BLEND.get(key)
+    if hit is not None:
+        return hit
+    mf = _clamp(float(mix)) * _MIX_STEPS if preset == "warm_to_cold" else 0.0
+    gf = math.log2(max(1.0, gain)) * _GAIN_STEPS
+    m0, g0 = int(math.floor(mf)), int(math.floor(gf))
+    fm, fg = mf - m0, gf - g0
+    acc, wsum = None, 0.0
+    for dm, wm in ((0, 1.0 - fm), (1, fm)):
+        for dg, wg in ((0, 1.0 - fg), (1, fg)):
+            w = wm * wg
+            if w < 1e-4:
+                continue
+            lt = _lut3(preset, kw_items, min(m0 + dm, _MIX_STEPS), g0 + dg, strength)
+            acc = lt * np.float32(w) if acc is None else acc + lt * np.float32(w)
+            wsum += w
+    out = acc if abs(wsum - 1.0) < 1e-6 else acc / np.float32(wsum)
+    if len(_LUT_BLEND) > 6:
+        _LUT_BLEND.clear()
+    _LUT_BLEND[key] = out
+    return out
+
+
+try:   # noyaux compilés (optionnels) : même résultat que les replis numpy/cv2, 3 à 5x plus rapides
+    import numba as _nb
+except Exception:  # pragma: no cover - numba absent : replis cv2
+    _nb = None
+
+if _nb is not None:
+    @_nb.njit(cache=True, nogil=True, fastmath=True)
+    def _nb_lut3(x, lut, chroma, nr, out):
+        H, W = x.shape[0], x.shape[1]
+        N = lut.shape[0]
+        s = np.float32(N - 1)
+        hc, wc = chroma.shape[0], chroma.shape[1]
+        use_nr = nr > 0.0
+        for i in range(H):
+            for j in range(W):
+                r = x[i, j, 0]
+                g = x[i, j, 1]
+                b = x[i, j, 2]
+                if use_nr:   # chrominance remplacée par sa version lissée (basse résolution, bilinéaire)
+                    L = np.float32(0.2126) * r + np.float32(0.7152) * g + np.float32(0.0722) * b
+                    cy = (i + np.float32(0.5)) * hc / H - np.float32(0.5)
+                    cx = (j + np.float32(0.5)) * wc / W - np.float32(0.5)
+                    y0 = int(np.floor(cy))
+                    x0 = int(np.floor(cx))
+                    fy = cy - y0
+                    fx = cx - x0
+                    ya, yb = min(max(y0, 0), hc - 1), min(max(y0 + 1, 0), hc - 1)
+                    xa, xb = min(max(x0, 0), wc - 1), min(max(x0 + 1, 0), wc - 1)
+                    w00 = (1 - fy) * (1 - fx)
+                    w01 = (1 - fy) * fx
+                    w10 = fy * (1 - fx)
+                    w11 = fy * fx
+                    cr = (chroma[ya, xa, 0] * w00 + chroma[ya, xb, 0] * w01 + chroma[yb, xa, 0] * w10
+                          + chroma[yb, xb, 0] * w11)
+                    cg = (chroma[ya, xa, 1] * w00 + chroma[ya, xb, 1] * w01 + chroma[yb, xa, 1] * w10
+                          + chroma[yb, xb, 1] * w11)
+                    cb = (chroma[ya, xa, 2] * w00 + chroma[ya, xb, 2] * w01 + chroma[yb, xa, 2] * w10
+                          + chroma[yb, xb, 2] * w11)
+                    r = r + (L + cr - r) * nr
+                    g = g + (L + cg - g) * nr
+                    b = b + (L + cb - b) * nr
+                r = min(max(r, np.float32(0.0)), np.float32(1.0))
+                g = min(max(g, np.float32(0.0)), np.float32(1.0))
+                b = min(max(b, np.float32(0.0)), np.float32(1.0))
+                ur = np.sqrt(r) * s
+                ug = np.sqrt(g) * s
+                ub = np.sqrt(b) * s
+                r0 = min(int(ur), N - 2)
+                g0 = min(int(ug), N - 2)
+                b0 = min(int(ub), N - 2)
+                fr = ur - r0
+                fg = ug - g0
+                fb = ub - b0
+                for c in range(3):
+                    c00 = lut[b0, g0, r0, c] + (lut[b0, g0, r0 + 1, c] - lut[b0, g0, r0, c]) * fr
+                    c01 = lut[b0, g0 + 1, r0, c] + (lut[b0, g0 + 1, r0 + 1, c] - lut[b0, g0 + 1, r0, c]) * fr
+                    c10 = lut[b0 + 1, g0, r0, c] + (lut[b0 + 1, g0, r0 + 1, c] - lut[b0 + 1, g0, r0, c]) * fr
+                    c11 = (lut[b0 + 1, g0 + 1, r0, c]
+                           + (lut[b0 + 1, g0 + 1, r0 + 1, c] - lut[b0 + 1, g0 + 1, r0, c]) * fr)
+                    c0 = c00 + (c01 - c00) * fg
+                    c1 = c10 + (c11 - c10) * fg
+                    out[i, j, c] = c0 + (c1 - c0) * fb
+
+
+def _chroma_small(x: np.ndarray) -> np.ndarray:
+    """Chrominance (RVB − luminance) lissée au 1/4 de résolution (bruit chromatique des capteurs de nuit)."""
+    h, w = x.shape[:2]
+    small = cv2.resize(x, (max(1, w // 4), max(1, h // 4)), interpolation=cv2.INTER_AREA)
+    L = cv2.transform(small, _LUMA)[..., None]
+    c = small - L
+    return np.ascontiguousarray(cv2.GaussianBlur(c, (0, 0), 1.1), dtype=np.float32)
+
+
+def _apply_lut3_cv(x: np.ndarray, lut: np.ndarray, chroma, nr: float) -> np.ndarray:
+    """Repli sans numba : même interpolation trilinéaire via deux cv2.remap sur un atlas 2D des tranches b."""
+    N = lut.shape[0]
+    H, W = x.shape[:2]
+    if nr > 0 and chroma is not None:
+        L = cv2.transform(x, _LUMA)[..., None]
+        cu = cv2.resize(chroma, (W, H), interpolation=cv2.INTER_LINEAR)
+        x = x + ((L + cu) - x) * np.float32(nr)
+    u = np.clip(x, 0.0, 1.0)
+    cv2.sqrt(u, u)
+    u *= np.float32(N - 1)
+    ur, ug, ub = cv2.split(u)
+    b0 = np.minimum(ub.astype(np.int32), N - 2).astype(np.float32)
+    fb = ub - b0
+    mx = ur + b0 * np.float32(N)
+    atlas = lut.transpose(1, 0, 2, 3).reshape(N, N * N, 3)    # [g, b·N + r]
+    o0 = cv2.remap(atlas, mx, ug, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
+    mx += np.float32(N)
+    o1 = cv2.remap(atlas, mx, ug, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
+    o1 -= o0
+    o1 *= fb[..., None]
+    o0 += o1
+    return o0
+
+
+def grade(img, preset: str, mix: float = 0.0, auto_exposure=True, exact: bool = False, **kw):
+    """Étalonnage. preset : cold | night_red | blue | warm | warm_to_cold (mix 0 = chaud -> 1 = froid) | bleach.
+    kw : red_accent (0..1, rouges renforcés), keep_blue (bool/0..1, bleus gardés : gyrophares),
+    warm_highlights (0..1, hautes lumières chaudes : bougies), exposure (diaph. en plus),
+    saturation (multiplicateur), strength (0..1, mélange avec l'original).
+    auto_exposure : normalisation d'exposition avant la courbe — True (défaut : gain estimé sur CETTE image,
+    repli), un gain fixe du plan (float, cf. exposure_gain : recommandé, stable), ou False/None (désactivée).
+    exact : calcul de référence pixel par pixel (lent) au lieu de la LUT 3D."""
+    x = np.ascontiguousarray(_f32(img)[..., :3])
+    H, W = x.shape[:2]
+    gain = _resolve_gain(x, auto_exposure)
+    st = kw.pop("strength", None)
+    st = None if st is None or float(st) >= 1.0 else _clamp(float(st))
+    kw_items = tuple(sorted((k, v) for k, v in kw.items()))
+    p = _grade_params(preset, mix, kw)            # (valide le preset ; glow)
+    nr = _clamp((gain - AE_NR_FROM) / 1.2) * 0.85 if gain > AE_NR_FROM else 0.0
+    glow = float(p.get("glow", 0.0))
+    st_in_lut = st if glow <= 0 else None
+    if exact:
+        xin = x
+        if nr > 0:
+            L = cv2.transform(x, _LUMA)[..., None]
+            xin = x + ((L + cv2.resize(_chroma_small(x), (W, H), interpolation=cv2.INTER_LINEAR)) - x) * np.float32(nr)
+        res = _grade_pixels(xin, p, gain)
+        if st_in_lut is not None:
+            res = np.clip(x + (res - x) * np.float32(st_in_lut), 0, 1)
+    else:
+        lut = _lut3_for(preset, kw_items, float(mix), gain, st_in_lut)
+        chroma = _chroma_small(x) if nr > 0 else None
+        if _nb is not None:
+            res = np.empty_like(x)
+            _nb_lut3(x, lut, chroma if chroma is not None else np.zeros((1, 1, 3), np.float32), np.float32(nr), res)
+        else:
+            res = _apply_lut3_cv(x, lut, chroma, nr)
+    if glow > 0:  # halo diffus des hautes lumières (chaud)
+        gl = np.float32(glow)
         sw, sh_ = max(8, W // 4), max(8, H // 4)
         small = cv2.resize(res, (sw, sh_), interpolation=cv2.INTER_AREA)
         bright = np.clip(small - np.float32(0.5), 0, None) * np.float32(2.0)
@@ -1415,10 +1636,9 @@ def grade(img, preset: str, mix: float = 0.0, **kw):
         big = cv2.resize(bright, (W, H), interpolation=cv2.INTER_LINEAR)
         res = res + big * (gl * np.array([1.0, 0.82, 0.58], np.float32))
         np.clip(res, 0.0, 1.0, out=res)
-    st = kw.get("strength")
-    if st is not None and float(st) < 1.0:
-        res = np.clip(x + (res - x) * np.float32(_clamp(float(st))), 0.0, 1.0)
-    return res   # (les courbes bornent déjà le résultat dans [0, 1])
+        if st is not None:
+            res = np.clip(x + (res - x) * np.float32(st), 0.0, 1.0)
+    return res
 
 
 # ============================================================================= finition argentique
@@ -1426,9 +1646,13 @@ _GRAIN_BANK: dict = {}
 _FINISH_MAPS: dict = {}
 _GRAIN_TILES, _GRAIN_PAD = 4, 96
 _gl = np.linspace(0.0, 1.0, 256, dtype=np.float32)
-_GRAIN_W_LUT = (0.31 + 3.7 * _gl * (1 - _gl) * np.sqrt(1 - _gl)).astype(np.float32)[None, :]
+# poids du grain selon la luminance : maximal dans les tons moyens-sombres, discret dans les hautes lumières,
+# faible plancher dans les noirs (noirs denses, pas de « neige » colorée sur les aplats noirs)
+_GRAIN_W_LUT = (0.16 + 3.9 * _gl * (1 - _gl) * np.sqrt(1 - _gl) + 0.6 * _sstep(0.0, 0.08, _gl) * (1 - _gl)
+                ).astype(np.float32)[None, :]
 _GRAIN_W_LUT.flags.writeable = False
 del _gl
+GRAIN_CHROMA = 0.12     # part de grain chromatique (rouge/bleu en opposition)
 
 
 def _grain_bank(h: int, w: int) -> list:
@@ -1474,7 +1698,7 @@ def _finish_maps(h: int, w: int, vignette: float) -> dict:
         amt = 2.6 * (w / REF_W) / rc * rr ** 2                  # aberration : ~2,6 px dans les coins à 1080
         dx, dy = (xx + 0.5 - w / 2), (yy + 0.5 - h / 2)
         maps = dict(
-            vig=vig.astype(np.float32),
+            vig=vig.astype(np.float32), ca_k=float(2.6 * (w / REF_W) / rc ** 3),
             rx=(w / 2 - 0.5 + dx * (1 + amt)).astype(np.float32), ry=(h / 2 - 0.5 + dy * (1 + amt)).astype(np.float32),
             bx=(w / 2 - 0.5 + dx * (1 - amt)).astype(np.float32), by=(h / 2 - 0.5 + dy * (1 - amt)).astype(np.float32))
         if len(_FINISH_MAPS) > 4:
@@ -1483,49 +1707,112 @@ def _finish_maps(h: int, w: int, vignette: float) -> dict:
     return _FINISH_MAPS[key]
 
 
+if _nb is not None:
+    @_nb.njit(cache=True, nogil=True, fastmath=True, inline="always")
+    def _nb_reflect(i, n):
+        if i < 0:
+            i = -i - 1
+        if i >= n:
+            i = 2 * n - i - 1
+        return min(max(i, 0), n - 1)
+
+    @_nb.njit(cache=True, nogil=True, fastmath=True, inline="always")
+    def _nb_bilin(x, c, yy, xx):
+        H, W = x.shape[0], x.shape[1]
+        y0 = int(np.floor(yy))
+        x0 = int(np.floor(xx))
+        fy = yy - y0
+        fx = xx - x0
+        ya, yb = _nb_reflect(y0, H), _nb_reflect(y0 + 1, H)
+        xa, xb = _nb_reflect(x0, W), _nb_reflect(x0 + 1, W)
+        top = x[ya, xa, c] + (x[ya, xb, c] - x[ya, xa, c]) * fx
+        bot = x[yb, xa, c] + (x[yb, xb, c] - x[yb, xa, c]) * fx
+        return top + (bot - top) * fy
+
+    @_nb.njit(cache=True, nogil=True, fastmath=True)
+    def _nb_finish(x, halo, use_halo, ca_k, vig, n1, n2, wgt, use_grain, chroma, out):
+        """Halation + aberration chromatique (rouge vers l'extérieur, bleu vers l'intérieur) + vignettage + grain,
+        en une passe (repli cv2 équivalent ; seul le halo est pris au pixel et non au point décalé)."""
+        H, W = x.shape[0], x.shape[1]
+        cx, cy = W * 0.5, H * 0.5
+        for i in range(H):
+            dy = i + 0.5 - cy
+            for j in range(W):
+                dx = j + 0.5 - cx
+                amt = ca_k * (dx * dx + dy * dy)
+                r = _nb_bilin(x, 0, cy - 0.5 + dy * (1 + amt), cx - 0.5 + dx * (1 + amt))
+                g = x[i, j, 1]
+                b = _nb_bilin(x, 2, cy - 0.5 + dy * (1 - amt), cx - 0.5 + dx * (1 - amt))
+                if use_halo:
+                    h = halo[i, j]
+                    r += h
+                    g += h * np.float32(0.34)
+                    b += h * np.float32(0.10)
+                v = vig[i, j]
+                r *= v
+                g *= v
+                b *= v
+                if use_grain:
+                    w = wgt[i, j]
+                    a = n1[i, j] * w
+                    c = n2[i, j] * w * chroma
+                    g += a
+                    r += a + c
+                    b += a - c
+                out[i, j, 0] = min(max(r, np.float32(0.0)), np.float32(1.0))
+                out[i, j, 1] = min(max(g, np.float32(0.0)), np.float32(1.0))
+                out[i, j, 2] = min(max(b, np.float32(0.0)), np.float32(1.0))
+
+
 def film_finish(img, frame_idx: int, grain: float = 0.055, vignette: float = 0.38, halation: float = 0.22):
     """Finition argentique : halation (les hautes lumières bavent en rouge-orangé), légère aberration
     chromatique sur les bords, vignettage ovale 9:16, grain temporel (~1,5 px à 1080, pondéré par la
-    luminance, déterministe par frame_idx)."""
-    x = _f32(img)
+    luminance, déterministe par frame_idx). Noyau numba en une passe si disponible (sinon cv2)."""
+    x = np.ascontiguousarray(_f32(img)[..., :3])
     H, W = x.shape[:2]
     mp_ = _finish_maps(H, W, float(vignette))
-    r, g, b = cv2.split(x)
     sw, sh_ = max(8, W // 4), max(8, H // 4)
     Ls = cv2.transform(cv2.resize(x, (sw, sh_), interpolation=cv2.INTER_AREA), _LUMA)   # luminance au 1/4
+    halo = None
     if halation > 0:
         hl = _sstep(0.55, 0.97, Ls)
         k = sw / 270.0   # 1 px à 1/4 de résolution ≈ 4 px à 1080
         # frange autour des hautes lumières (l'intérieur d'une grande zone claire n'est pas teinté)
         halo = 1.0 * cv2.GaussianBlur(hl, (0, 0), 1.6 * k) + 0.8 * cv2.GaussianBlur(hl, (0, 0), 5.5 * k) - 1.75 * hl
         halo = cv2.resize(np.maximum(halo, 0) * np.float32(halation * 1.3), (W, H), interpolation=cv2.INTER_LINEAR)
+    wgt = n1 = n2 = None
+    if grain > 0:
+        # grain plus présent dans les ombres et tons moyens, discret dans les hautes lumières : poids calculé
+        # au 1/4 de résolution (il varie lentement) puis agrandi ; le grain lui-même est pleine résolution
+        Lv = np.clip(Ls * cv2.resize(mp_["vig"], (sw, sh_), interpolation=cv2.INTER_AREA), 0.0, 1.0)
+        w_small = np.interp(Lv, np.linspace(0.0, 1.0, _GRAIN_W_LUT.shape[1]), _GRAIN_W_LUT[0]).astype(np.float32)
+        wgt = cv2.resize(w_small * np.float32(0.8 * grain), (W, H), interpolation=cv2.INTER_LINEAR)  # σ max ≈ 0,8·grain
+        n1 = _grain_field(H, W, int(frame_idx), 1)
+        n2 = _grain_field(H, W, int(frame_idx), 2)
+    if _nb is not None:
+        out = np.empty_like(x)
+        dummy = np.zeros((1, 1), np.float32)
+        _nb_finish(x, halo if halo is not None else dummy, halo is not None, np.float32(mp_["ca_k"]), mp_["vig"],
+                   n1 if n1 is not None else dummy, n2 if n2 is not None else dummy,
+                   wgt if wgt is not None else dummy, wgt is not None, np.float32(GRAIN_CHROMA), out)
+        return out
+    r, g, b = cv2.split(x)
+    if halo is not None:
         r += halo
-        halo *= np.float32(0.34)
-        g += halo
-        halo *= np.float32(0.10 / 0.34)
-        b += halo
-    # aberration chromatique (rouge vers l'extérieur, bleu vers l'intérieur), nulle au centre
+        g += halo * np.float32(0.34)
+        b += halo * np.float32(0.10)
     r = cv2.remap(r, mp_["rx"], mp_["ry"], cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
     b = cv2.remap(b, mp_["bx"], mp_["by"], cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
     vig = mp_["vig"]
     r *= vig
     g *= vig
     b *= vig
-    if grain > 0:
-        # grain plus présent dans les ombres et tons moyens, discret dans les hautes lumières : poids calculé
-        # au 1/4 de résolution (il varie lentement) puis agrandi ; le grain lui-même est pleine résolution
-        Lv = np.clip(Ls * cv2.resize(vig, (sw, sh_), interpolation=cv2.INTER_AREA), 0.0, 1.0)
-        w_small = np.interp(Lv, np.linspace(0.0, 1.0, _GRAIN_W_LUT.shape[1]), _GRAIN_W_LUT[0]).astype(np.float32)
-        wgt = cv2.resize(w_small * np.float32(0.8 * grain), (W, H), interpolation=cv2.INTER_LINEAR)  # σ max ≈ 0,8·grain
-        n1 = _grain_field(H, W, int(frame_idx), 1) * wgt
-        wgt *= np.float32(0.2)                                       # un peu de grain chromatique
-        n2 = _grain_field(H, W, int(frame_idx), 2) * wgt
-        g += n1
-        n1 += n2
-        r += n1
-        n1 -= n2
-        n1 -= n2
-        b += n1
+    if wgt is not None:
+        a = n1 * wgt
+        c = n2 * wgt * np.float32(GRAIN_CHROMA)
+        g += a
+        r += a + c
+        b += a - c
     res = cv2.merge([r, g, b])
     np.clip(res, 0.0, 1.0, out=res)
     return res
