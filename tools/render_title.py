@@ -1,0 +1,574 @@
+"""Pilote du titre 3D « C'EST QUI LUI ? » (Blender headless + recomposition Python).
+
+Produit :
+  assets/title/title_seq.mp4    1080x1920, 30 i/s, 150 images (5,0 s), H.264 CRF 12, yuv420p — plaque propre (sans grain)
+  assets/title/title_meta.json  {"dur", "reveal", "text_box", "fps", ...}
+  assets/title/cover_plate.png  image fixe 1080x1920 pour la couverture (titre en haut, contre-jour au centre/bas)
+  assets/title/BodoniModa-Black-opsz28.ttf  instance statique (Blender ne gère pas les axes variables)
+
+Passes Blender (tools/blender_title.py), toutes en EXR linéaire dans WORK_DIR/title_frames/ :
+  bg   : surfaces sans volume, 540x960 (le fond est flou de toute façon : profondeur de champ + brouillard)
+  text : surfaces sans volume, 1080x1920 mais uniquement dans un cadre autour du titre (bords nets)
+  fog  : brouillard seul, 270x480, transmittance T + diffusion S par groupe de lumière
+Post (ce script) : débruitage OIDN, suréchantillonnage bilatéral joint guidé par la profondeur,
+recomposition image = Σ surf·T + S + brume, halo, courbe filmique, étalonnage froid, PNG 8 bits tramé.
+
+Usage (chaque commande est reprenable ; --time-limit borne la durée d'un appel) :
+  python tools/render_title.py font
+  python tools/render_title.py probe --frames 1,30,45,90,150 [--scale-div 2]
+  python tools/render_title.py render --pass fog|bg|text [--frames 1-150] [--time-limit 500]
+  python tools/render_title.py post [--frames 1-150] [--time-limit 500]
+  python tools/render_title.py encode | meta | cover | all
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+
+REPO = Path(__file__).resolve().parents[1]
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
+import config  # noqa: E402
+
+SCRIPT = REPO / "tools" / "blender_title.py"
+TITLE_DIR = config.TITLE_DIR
+FONT_SRC = config.FONTS_DIR / "BodoniModaopsz_wght.ttf"
+FONT_STATIC = TITLE_DIR / "BodoniModa-Black-opsz28.ttf"
+FONT_AXES = {"wght": 900, "opsz": 28}
+FPS, N_FRAMES, W, H = 30, 150, 1080, 1920
+SUB_T0 = 2.6     # apparition de « INSPIRÉ DE FAITS RÉELS — 30.10.2026 » (edit/edl_spec.py, S7a)
+
+# Réglages de rendu (mesurés : ~25-35 s/frame au total sur 4 CPU partagés)
+PASSES = {
+    "fog": dict(scale=25, samples=32, extra=["--fog-mode", "hetero", "--step-rate", "1.0"]),
+    "bg": dict(scale=50, samples=10, extra=[]),
+    "text": dict(scale=100, samples=10, extra=[]),
+}
+CHUNK = 5   # frames par appel Blender (chaque appel reste court)
+
+# Étalonnage (linéaire scène -> affichage)
+GRADE = dict(
+    exposure=2.2,           # multiplicateur linéaire avant la courbe
+    k_head=1.0, k_red=1.0, k_amb=1.0,          # surfaces par groupe de lumière
+    k_fog_head=1.0, k_fog_red=1.15,            # diffusion du brouillard par groupe
+    haze=(0.0030, 0.0042, 0.0066),             # brume ambiante (clair de lune diffus) * (1 - T)
+    haze_dyn=0.35,          # brume qui s'éclaire avec les phares (diffusion multiple approximée)
+    bloom=0.10, bloom_thr=0.9,
+    black=0.0025,           # point noir (noirs écrasés, mais texture du brouillard conservée)
+    shadow_tint=(0.90, 0.98, 1.10),
+    sat=0.80,
+)
+
+
+def work_dir(args) -> Path:
+    base = Path(args.work) if getattr(args, "work", None) else config.WORK_DIR
+    d = base / "title_frames"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def log(msg: str) -> None:
+    print(f"[render_title] {msg}", flush=True)
+
+
+# ----------------------------------------------------------------------------- outils externes
+def find_blender() -> str:
+    cand = [os.environ.get("BLENDER"), shutil.which("blender")]
+    if config.IS_WINDOWS:
+        pf = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Blender Foundation"
+        if pf.exists():
+            cand += [str(p) for p in sorted(pf.glob("Blender*/blender.exe"), reverse=True)]
+    for c in cand:
+        if c and Path(c).exists():
+            return c
+    raise FileNotFoundError("Blender introuvable (définir la variable BLENDER)")
+
+
+def find_ffmpeg() -> str:
+    c = os.environ.get("FFMPEG") or shutil.which("ffmpeg")
+    if not c:
+        raise FileNotFoundError("ffmpeg introuvable")
+    return c
+
+
+def parse_frames(spec: str) -> list[int]:
+    out: list[int] = []
+    for part in spec.split(","):
+        part = part.strip()
+        if "-" in part:
+            a, b = part.split("-")
+            out.extend(range(int(a), int(b) + 1))
+        elif part:
+            out.append(int(part))
+    return out
+
+
+def frames_spec(frames: list[int]) -> str:
+    return ",".join(str(f) for f in frames)
+
+
+# ----------------------------------------------------------------------------- police
+def make_font(force: bool = False) -> Path:
+    """Instance statique Bodoni Moda Black (wght 900, opsz 28) : capitales à fort contraste, empattements nets."""
+    if FONT_STATIC.exists() and not force:
+        return FONT_STATIC
+    from fontTools.ttLib import TTFont
+    from fontTools.varLib import instancer
+    TITLE_DIR.mkdir(parents=True, exist_ok=True)
+    vf = TTFont(str(FONT_SRC))
+    try:
+        st = instancer.instantiateVariableFont(vf, FONT_AXES, updateFontNames=True)
+    except Exception:  # noqa: BLE001 - table STAT absente : noms conservés
+        st = instancer.instantiateVariableFont(TTFont(str(FONT_SRC)), FONT_AXES)
+    st.save(str(FONT_STATIC))
+    log(f"police statique -> {FONT_STATIC.name}")
+    return FONT_STATIC
+
+
+# ----------------------------------------------------------------------------- Blender
+def run_blender(pass_: str, frames: list[int], out_dir: Path, mode: str = "seq", samples: int | None = None,
+                scale: int | None = None, extra: list[str] | None = None, threads: int = 0) -> None:
+    cfg = PASSES[pass_]
+    cmd = [find_blender(), "-b", "--factory-startup", "-noaudio", "-P", str(SCRIPT), "--",
+           "--font", str(make_font()), "--pass", "fog" if pass_ == "fog" else ("text" if pass_ == "text" else "surf"),
+           "--mode", mode, "--frames", frames_spec(frames), "--out", str(out_dir), "--skip-existing",
+           "--scale", str(scale or cfg["scale"]), "--samples", str(samples or cfg["samples"])]
+    cmd += cfg["extra"] + (extra or [])
+    if threads:
+        cmd += ["--threads", str(threads)]
+    proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8",
+                          errors="replace")
+    for line in proc.stdout.splitlines():
+        if line.startswith("[title]") or "Error" in line or "Traceback" in line:
+            print("   ", line, flush=True)
+    if proc.returncode != 0:
+        tail = "\n".join(proc.stdout.splitlines()[-25:])
+        raise RuntimeError(f"Blender a échoué ({pass_}, frames {frames[0]}..{frames[-1]}) :\n{tail}")
+
+
+def render_pass(args, pass_: str, frames: list[int], t_start: float) -> bool:
+    """Rend les frames manquantes par paquets ; renvoie False si la limite de temps a interrompu."""
+    out = work_dir(args) / f"exr_{pass_}"
+    todo = [f for f in frames if not (out / f"f_{f:04d}.exr").exists()]
+    for i in range(0, len(todo), CHUNK):
+        if args.time_limit and time.time() - t_start > args.time_limit:
+            log(f"limite de temps atteinte : {len(todo) - i} frames {pass_} restantes")
+            return False
+        run_blender(pass_, todo[i:i + CHUNK], out, threads=args.threads)
+    return True
+
+
+# ----------------------------------------------------------------------------- EXR / débruitage
+def read_exr(path: Path) -> dict[str, np.ndarray]:
+    """EXR multicouche Blender -> {couche: (H, W, C) float32}."""
+    import OpenEXR
+    f = OpenEXR.File(str(path), separate_channels=True)
+    layers: dict[str, dict[str, np.ndarray]] = {}
+    for name, ch in f.parts[0].channels.items():
+        parts = name.split(".")
+        layer, comp = ".".join(parts[1:-1]) or parts[0], parts[-1]
+        layers.setdefault(layer, {})[comp] = ch.pixels
+    out = {}
+    for layer, comps in layers.items():
+        order = [k for k in ("R", "G", "B", "A", "X", "Y", "Z") if k in comps]
+        out[layer] = np.stack([comps[k].astype(np.float32) for k in order], -1)
+    return out
+
+
+_OIDN = None
+
+
+def oidn(color: np.ndarray, albedo: np.ndarray | None = None, normal: np.ndarray | None = None,
+         hdr: bool = True) -> np.ndarray:
+    """Débruitage Intel Open Image Denoise (pyoidn). Repli : flou bilatéral léger si indisponible."""
+    global _OIDN
+    color = np.ascontiguousarray(color[..., :3], dtype=np.float32)
+    try:
+        import pyoidn
+    except ImportError:
+        import cv2
+        return cv2.bilateralFilter(color, 5, 0.05, 2.0)
+    if _OIDN is None:
+        _OIDN = pyoidn.Device(pyoidn.OIDN_DEVICE_TYPE_CPU)
+        _OIDN.commit()
+    out = np.zeros_like(color)
+    flt = pyoidn.Filter(_OIDN, pyoidn.OIDN_FILTER_TYPE_RT)
+    flt.set_image(pyoidn.OIDN_IMAGE_COLOR, color, pyoidn.OIDN_FORMAT_FLOAT3)
+    if albedo is not None:
+        alb = np.ascontiguousarray(np.clip(albedo[..., :3], 0, 1), dtype=np.float32)
+        flt.set_image(pyoidn.OIDN_IMAGE_ALBEDO, alb, pyoidn.OIDN_FORMAT_FLOAT3)
+        if normal is not None:
+            nrm = np.ascontiguousarray(normal[..., :3], dtype=np.float32)
+            flt.set_image(pyoidn.OIDN_IMAGE_NORMAL, nrm, pyoidn.OIDN_FORMAT_FLOAT3)
+    flt.set_image(pyoidn.OIDN_IMAGE_OUTPUT, out, pyoidn.OIDN_FORMAT_FLOAT3)
+    flt.set_bool("hdr", hdr)
+    flt.set_quality(pyoidn.OIDN_QUALITY_HIGH)
+    flt.commit()
+    flt.execute()
+    err = _OIDN.get_error()
+    flt.release()
+    if err:
+        raise RuntimeError(f"OIDN : {err}")
+    return np.maximum(out, 0.0)
+
+
+def denoise_groups(ex: dict, crop=None) -> dict[str, np.ndarray]:
+    """Débruite chaque groupe de lumière avec albédo/normales ; crop=(y0,y1,x0,x1) limite le calcul."""
+    sl = (slice(None), slice(None)) if crop is None else (slice(crop[0], crop[1]), slice(crop[2], crop[3]))
+    alb = ex["Denoising Albedo"][sl]
+    nrm = ex["Denoising Normal"][sl]
+    out = {}
+    for g in ("head", "red", "amb"):
+        key = f"Combined_{g}"
+        img = np.zeros(ex[key].shape[:2] + (3,), np.float32)
+        img[sl] = oidn(ex[key][sl], alb, nrm)
+        out[g] = img
+    return out
+
+
+# ----------------------------------------------------------------------------- suréchantillonnage guidé
+def jbu(lo: np.ndarray, lo_depth: np.ndarray, hi_depth: np.ndarray, sigma: float = 0.06,
+        radius: int = 2, offset=(0.0, 0.0), scale=None) -> np.ndarray:
+    """Suréchantillonnage bilatéral joint : les valeurs basse définition (h,w,C) sont interpolées vers la
+    grille de hi_depth (H',W') en ne mélangeant que des échantillons de profondeur voisine.
+    offset/scale : position (y, x) du coin de la grille fine et rapport lo/hi (pour une fenêtre recadrée)."""
+    h, w = lo_depth.shape
+    Hh, Wh = hi_depth.shape
+    sy, sx = scale if scale is not None else (h / Hh, w / Wh)
+    yy = (np.arange(Hh) + offset[0] + 0.5) * sy - 0.5
+    xx = (np.arange(Wh) + offset[1] + 0.5) * sx - 0.5
+    y0, x0 = np.floor(yy).astype(np.int64), np.floor(xx).astype(np.int64)
+    ldh = np.log(np.maximum(hi_depth, 1e-3)).astype(np.float32)
+    ldl = np.log(np.maximum(lo_depth, 1e-3)).astype(np.float32)
+    acc = np.zeros((Hh, Wh, lo.shape[2]), np.float32)
+    wsum = np.zeros((Hh, Wh), np.float32)
+    for dy in range(-radius + 1, radius + 1):
+        yi = np.clip(y0 + dy, 0, h - 1)
+        wy = np.maximum(0.0, 1.0 - np.abs(yy - (y0 + dy)) / radius).astype(np.float32)
+        for dx in range(-radius + 1, radius + 1):
+            xi = np.clip(x0 + dx, 0, w - 1)
+            wx = np.maximum(0.0, 1.0 - np.abs(xx - (x0 + dx)) / radius).astype(np.float32)
+            ws = wy[:, None] * wx[None, :]
+            d = ldh - ldl[yi[:, None], xi[None, :]]
+            wgt = ws * (np.exp(-(d / sigma) ** 2) + 1e-4)
+            acc += wgt[..., None] * lo[yi[:, None], xi[None, :]]
+            wsum += wgt
+    return acc / np.maximum(wsum, 1e-8)[..., None]
+
+
+# ----------------------------------------------------------------------------- étalonnage
+def bloom(img: np.ndarray, thr: float, amount: float) -> np.ndarray:
+    import cv2
+    hi = np.maximum(img - thr, 0.0)
+    out = np.zeros_like(img)
+    h, w = img.shape[:2]
+    for div, wgt in ((4, 0.5), (8, 0.3), (16, 0.2)):
+        small = cv2.resize(hi, (w // div, h // div), interpolation=cv2.INTER_AREA)
+        small = cv2.GaussianBlur(small, (0, 0), 2.5)
+        out += wgt * cv2.resize(small, (w, h), interpolation=cv2.INTER_LINEAR)
+    return img + amount * out
+
+
+def filmic(x: np.ndarray) -> np.ndarray:
+    """Courbe ACES (approximation Narkowicz) appliquée à la luminance, chroma préservée puis désaturée
+    dans les hautes lumières (pas de virage orange des rouges)."""
+    lum = np.maximum(0.2126 * x[..., 0] + 0.7152 * x[..., 1] + 0.0722 * x[..., 2], 1e-6)
+    a, b, c, d, e = 2.51, 0.03, 2.43, 0.59, 0.14
+    lt = np.clip((lum * (a * lum + b)) / (lum * (c * lum + d) + e), 0, 1)
+    y = x * (lt / lum)[..., None]
+    over = np.clip((y.max(-1) - 1.0) / 1.0, 0, 1)[..., None]       # hors gamut -> vers le blanc
+    y = y * (1 - over) + lt[..., None] * over
+    return np.clip(y, 0, 1)
+
+
+def grade(lin: np.ndarray, g: dict = GRADE) -> np.ndarray:
+    """Linéaire scène -> sRGB affichage [0,1] : exposition, halo, courbe, noirs, teinte froide, saturation."""
+    x = bloom(lin * g["exposure"], g["bloom_thr"], g["bloom"])
+    x = np.maximum(x - g["black"], 0.0)
+    y = filmic(x)
+    lum = (0.2126 * y[..., 0] + 0.7152 * y[..., 1] + 0.0722 * y[..., 2])[..., None]
+    sh = np.clip(1.0 - lum * 3.0, 0, 1)                    # teinte froide dans les ombres
+    y = y * (1 - sh * (1 - np.array(g["shadow_tint"], np.float32)))
+    red = np.clip((y[..., :1] - np.maximum(y[..., 1:2], y[..., 2:3])) * 4, 0, 1)  # protège les rouges
+    s = g["sat"] + (1 - g["sat"]) * red
+    y = lum + (y - lum) * s
+    y = np.clip(y, 0, 1)
+    return np.where(y <= 0.0031308, 12.92 * y, 1.055 * np.power(y, 1 / 2.4) - 0.055)
+
+
+def to_u8(img: np.ndarray, seed: int) -> np.ndarray:
+    """Quantification 8 bits avec tramage triangulaire (pas de bandes dans les dégradés du brouillard)."""
+    rng = np.random.default_rng(seed)
+    n = rng.random(img.shape, dtype=np.float32) - rng.random(img.shape, dtype=np.float32)
+    return np.clip(np.round(img * 255.0 + n), 0, 255).astype(np.uint8)
+
+
+# ----------------------------------------------------------------------------- recomposition
+def fog_terms(fx: dict) -> dict[str, np.ndarray]:
+    t = oidn(np.repeat(fx["Emit"][..., :1], 3, -1), hdr=False)[..., :1]
+    return dict(T=np.clip(t, 0, 1), S_head=oidn(fx["Combined_head"]), S_red=oidn(fx["Combined_red"]),
+                depth=fx["Depth"][..., 0])
+
+
+def assemble(surf: dict[str, np.ndarray], fog_up: np.ndarray, g: dict, haze_dyn: np.ndarray) -> np.ndarray:
+    """fog_up : (H,W,7) = [T, S_head(3), S_red(3)] déjà suréchantillonné sur la grille des surfaces."""
+    T = fog_up[..., :1]
+    S = g["k_fog_head"] * fog_up[..., 1:4] + g["k_fog_red"] * fog_up[..., 4:7]
+    L = (g["k_head"] * surf["head"] + g["k_red"] * surf["red"] + g["k_amb"] * surf["amb"]) * T
+    haze = np.array(g["haze"], np.float32) + haze_dyn
+    return L + S + (1.0 - T) * haze
+
+
+def composite_frame(wd: Path, f: int, g: dict = GRADE, cover: bool = False) -> tuple[np.ndarray, dict]:
+    """Recompose une frame -> (sRGB float (1920,1080,3), stats du titre)."""
+    import cv2
+    name = "cover.exr" if cover else f"f_{f:04d}.exr"
+    fx = read_exr(wd / ("cover_fog" if cover else "exr_fog") / name)
+    fog = fog_terms(fx)
+    fog_stack = np.concatenate([fog["T"], fog["S_head"], fog["S_red"]], -1)
+    s_mean = fog["S_head"].mean(axis=(0, 1))
+    haze_dyn = g["haze_dyn"] * s_mean / max(float(s_mean.mean()), 1e-6) * float(s_mean.mean())
+
+    bx = read_exr(wd / ("cover_surf" if cover else "exr_bg") / name)
+    bg = denoise_groups(bx)
+    up = jbu(fog_stack, fog["depth"], bx["Depth"][..., 0])
+    lin_bg = assemble(bg, up, g, haze_dyn)
+    if lin_bg.shape[:2] != (H, W):
+        lin = cv2.resize(lin_bg, (W, H), interpolation=cv2.INTER_LANCZOS4)
+        lin = np.maximum(lin, 0.0)
+    else:
+        lin = lin_bg
+    mask = (bx["IndexOB"][..., 0] > 0.5) if "IndexOB" in bx and bx["IndexOB"].shape[:2] == (H, W) else None
+
+    if not cover and (wd / "exr_text" / name).exists():
+        tx = read_exr(wd / "exr_text" / name)
+        alpha = tx["Combined"][..., 3]
+        ys, xs = np.nonzero(alpha > 0)
+        if len(ys):
+            y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+            crop = (y0, y1, x0, x1)
+            surf = {k: v[y0:y1, x0:x1] for k, v in denoise_groups(tx, crop).items()}
+            h_lo = fog["depth"].shape[0]
+            upc = jbu(fog_stack, fog["depth"], tx["Depth"][y0:y1, x0:x1, 0], offset=(y0, x0),
+                      scale=(h_lo / H, h_lo / H))
+            lin_hi = assemble(surf, upc, g, haze_dyn)
+            # fondu de raccord sur 14 px au bord du cadre pleine définition
+            m = np.ones((y1 - y0, x1 - x0), np.float32)
+            m = cv2.erode(m, np.ones((3, 3), np.uint8), borderType=cv2.BORDER_CONSTANT, borderValue=0)
+            m = cv2.GaussianBlur(cv2.erode(m, np.ones((15, 15), np.uint8), borderType=cv2.BORDER_CONSTANT,
+                                           borderValue=0), (0, 0), 4.0)[..., None]
+            lin[y0:y1, x0:x1] = lin[y0:y1, x0:x1] * (1 - m) + lin_hi * m
+            mask = np.zeros((H, W), bool)
+            mask[y0:y1, x0:x1] = tx["IndexOB"][y0:y1, x0:x1, 0] > 0.5
+    out = grade(lin, g)
+    stats = text_stats(out, mask)
+    return out, stats
+
+
+def text_stats(img: np.ndarray, mask: np.ndarray | None) -> dict:
+    """Lisibilité du titre : luminance du titre vs anneau de fond autour des lettres, part des lettres éclairées."""
+    if mask is None or not mask.any():
+        return {}
+    import cv2
+    lum = 0.2126 * img[..., 0] + 0.7152 * img[..., 1] + 0.0722 * img[..., 2]
+    ys, xs = np.nonzero(mask)
+    m8 = mask.astype(np.uint8)
+    ring = (cv2.dilate(m8, np.ones((25, 25), np.uint8)) > 0) & ~(cv2.dilate(m8, np.ones((7, 7), np.uint8)) > 0)
+    t = lum[mask]
+    b = lum[ring]
+    # contraste local : |Δ| moyen entre lettres et fond immédiat (lettres sombres sur brume claire = lisible aussi)
+    lit = float(np.mean(t > 0.16))
+    return dict(box=[int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1],
+                text_mean=round(float(t.mean()), 4), ring_mean=round(float(b.mean()), 4),
+                text_p90=round(float(np.percentile(t, 90)), 4), lit_frac=round(lit, 4),
+                contrast=round(abs(float(t.mean()) - float(b.mean())) + float(np.std(t)), 4))
+
+
+def post(args, frames: list[int], t_start: float) -> bool:
+    import cv2
+    wd = work_dir(args)
+    png = wd / "png"
+    png.mkdir(exist_ok=True)
+    stats_path = wd / "stats.json"
+    stats = json.loads(stats_path.read_text()) if stats_path.exists() else {}
+    for f in frames:
+        dst = png / f"f_{f:04d}.png"
+        if dst.exists() and str(f) in stats and not args.force:
+            continue
+        if args.time_limit and time.time() - t_start > args.time_limit:
+            log("limite de temps atteinte (post)")
+            stats_path.write_text(json.dumps(stats, indent=0))
+            return False
+        need = ("fog", "bg") if args.lookdev else ("fog", "bg", "text")
+        if not all((wd / f"exr_{p}" / f"f_{f:04d}.exr").exists() for p in need):
+            log(f"frame {f} : passes manquantes, ignorée")
+            continue
+        t0 = time.time()
+        img, st = composite_frame(wd, f)
+        cv2.imwrite(str(dst), cv2.cvtColor(to_u8(img, seed=1000 + f), cv2.COLOR_RGB2BGR))
+        stats[str(f)] = st
+        log(f"post frame {f} en {time.time() - t0:.1f} s  {st}")
+        stats_path.write_text(json.dumps(stats, indent=0))
+    return True
+
+
+# ----------------------------------------------------------------------------- encodage / méta / couverture
+def encode(args) -> Path:
+    wd = work_dir(args)
+    missing = [f for f in range(1, N_FRAMES + 1) if not (wd / "png" / f"f_{f:04d}.png").exists()]
+    if missing:
+        raise RuntimeError(f"{len(missing)} PNG manquants (ex. {missing[:5]})")
+    TITLE_DIR.mkdir(parents=True, exist_ok=True)
+    dst = TITLE_DIR / "title_seq.mp4"
+    cmd = [find_ffmpeg(), "-y", "-hide_banner", "-loglevel", "error", "-framerate", str(FPS), "-start_number", "1",
+           "-i", str(wd / "png" / "f_%04d.png"), "-frames:v", str(N_FRAMES),
+           "-vf", "scale=out_color_matrix=bt709:out_range=tv:flags=accurate_rnd+full_chroma_int,format=yuv420p",
+           "-c:v", "libx264", "-preset", "slow", "-crf", "12", "-profile:v", "high", "-pix_fmt", "yuv420p",
+           "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709", "-color_range", "tv",
+           "-r", str(FPS), "-movflags", "+faststart", "-an", str(dst)]
+    subprocess.run(cmd, check=True)
+    probe = subprocess.run([find_ffmpeg().replace("ffmpeg", "ffprobe"), "-v", "error", "-count_frames",
+                            "-select_streams", "v:0", "-show_entries",
+                            "stream=width,height,nb_read_frames,r_frame_rate,pix_fmt", "-of", "json", str(dst)],
+                           capture_output=True, text=True)
+    log(f"encodé -> {dst} {probe.stdout.strip()}")
+    return dst
+
+
+def meta(args) -> dict:
+    """title_meta.json : instant de lisibilité mesuré sur les images, boîte du titre (px) sous laquelle placer
+    la ligne « INSPIRÉ DE FAITS RÉELS — 30.10.2026 »."""
+    wd = work_dir(args)
+    stats = {int(k): v for k, v in json.loads((wd / "stats.json").read_text()).items() if v}
+    frames = sorted(stats)
+    end = stats[frames[-1]]
+    plateau = float(np.median([stats[f]["contrast"] for f in frames if f >= 60]))
+    reveal = None
+    for f in frames:   # lisible = contraste ≥ 75 % du plateau ET ≥ 60 % des lettres éclairées
+        if stats[f]["contrast"] >= 0.75 * plateau and stats[f]["lit_frac"] >= 0.6:
+            reveal = (f - 1) / FPS
+            break
+    sub_frames = [f for f in frames if (f - 1) / FPS >= SUB_T0]
+    boxes = np.array([stats[f]["box"] for f in sub_frames])
+    box = [int(boxes[:, 0].min()), int(boxes[:, 1].min()), int(boxes[:, 2].max()), int(boxes[:, 3].max())]
+    out = {
+        "dur": N_FRAMES / FPS,
+        "reveal": round(reveal if reveal is not None else 1.2, 3),
+        "text_box": box,
+        "fps": FPS,
+        "frames": N_FRAMES,
+        "size": [W, H],
+        "text_box_note": "union des boîtes du titre (px, x0,y0,x1,y1) de t=2,6 s à la fin (travelling avant)",
+        "text_box_start": stats[frames[0]]["box"],
+        "text_box_end": end["box"],
+        "sub_anchor": [int((box[0] + box[2]) / 2), int(box[3] + 70)],
+        "font": FONT_STATIC.name,
+        "plate": "propre (sans grain ni vignettage) : à finir avec gfx.film_finish",
+    }
+    cover_json = wd / "cover_meta.json"
+    if cover_json.exists():
+        out["cover"] = json.loads(cover_json.read_text())
+    TITLE_DIR.mkdir(parents=True, exist_ok=True)
+    (TITLE_DIR / "title_meta.json").write_text(json.dumps(out, indent=2, ensure_ascii=False))
+    log(f"title_meta.json : reveal={out['reveal']} s text_box={box}")
+    return out
+
+
+def cover(args) -> Path:
+    """Plaque de couverture : rendu fixe haute qualité (surfaces pleine définition, brouillard 540x960)."""
+    import cv2
+    wd = work_dir(args)
+    for pass_, d, scale, spp in (("fog", "cover_fog", 50, args.cover_fog_spp), ("bg", "cover_surf", 100, args.cover_spp)):
+        if not (wd / d / "cover.exr").exists():
+            run_blender(pass_, [1], wd / d, mode="cover", samples=spp, scale=scale, threads=args.threads)
+    img, st = composite_frame(wd, 1, cover=True)
+    dst = TITLE_DIR / "cover_plate.png"
+    cv2.imwrite(str(dst), cv2.cvtColor(to_u8(img, seed=77), cv2.COLOR_RGB2BGR))
+    (wd / "cover_meta.json").write_text(json.dumps({
+        "text_box": st.get("box"),
+        "silhouette_slot": {"x": 0.5, "foot_y": 0.86, "height": 0.46,
+                            "note": "contre-jour des phares au centre/bas : silhouette sombre devant la lueur"}}))
+    log(f"couverture -> {dst} {st}")
+    return dst
+
+
+def contact(args, frames: list[int], src: str = "png") -> Path:
+    import cv2
+    wd = work_dir(args)
+    tiles = []
+    for f in frames:
+        p = wd / src / f"f_{f:04d}.png"
+        if p.exists():
+            im = cv2.imread(str(p))
+            im = cv2.resize(im, (270, 480), interpolation=cv2.INTER_AREA)
+            cv2.putText(im, f"{(f - 1) / FPS:.2f}s", (8, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 200, 255), 1)
+            tiles.append(im)
+    if not tiles:
+        raise RuntimeError("aucune image")
+    cols = min(len(tiles), 6)
+    while len(tiles) % cols:
+        tiles.append(np.zeros_like(tiles[0]))
+    rows = [np.hstack(tiles[i:i + cols]) for i in range(0, len(tiles), cols)]
+    dst = wd / "contact.jpg"
+    cv2.imwrite(str(dst), np.vstack(rows), [cv2.IMWRITE_JPEG_QUALITY, 90])
+    return dst
+
+
+# ----------------------------------------------------------------------------- CLI
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("cmd", choices=["font", "render", "post", "encode", "meta", "cover", "contact", "all"])
+    ap.add_argument("--pass", dest="pass_", choices=list(PASSES), default=None)
+    ap.add_argument("--frames", default=f"1-{N_FRAMES}")
+    ap.add_argument("--time-limit", type=float, default=0, help="s ; arrête proprement après ce délai (reprendre ensuite)")
+    ap.add_argument("--threads", type=int, default=0)
+    ap.add_argument("--work", default=None, help="WORK_DIR (défaut : config.WORK_DIR)")
+    ap.add_argument("--force", action="store_true")
+    ap.add_argument("--lookdev", action="store_true", help="post sans la passe text (aperçu rapide)")
+    ap.add_argument("--cover-spp", type=int, default=48)
+    ap.add_argument("--cover-fog-spp", type=int, default=64)
+    args = ap.parse_args(argv)
+    frames = parse_frames(args.frames)
+    t0 = time.time()
+
+    if args.cmd == "font":
+        make_font(force=args.force)
+    elif args.cmd == "render":
+        for p in ([args.pass_] if args.pass_ else ["fog", "bg", "text"]):
+            if not render_pass(args, p, frames, t0):
+                return 3
+    elif args.cmd == "post":
+        return 0 if post(args, frames, t0) else 3
+    elif args.cmd == "encode":
+        encode(args)
+    elif args.cmd == "meta":
+        meta(args)
+    elif args.cmd == "cover":
+        cover(args)
+    elif args.cmd == "contact":
+        log(f"planche -> {contact(args, frames)}")
+    elif args.cmd == "all":
+        make_font()
+        for p in ("fog", "bg", "text"):
+            if not render_pass(args, p, frames, t0):
+                return 3
+        if not post(args, frames, t0):
+            return 3
+        encode(args)
+        if not (TITLE_DIR / "cover_plate.png").exists():
+            cover(args)
+        meta(args)
+    log(f"terminé en {time.time() - t0:.0f} s")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
