@@ -2,7 +2,7 @@
 
 Durée totale : **93.13 s** (2794 images, cible 92.0 s, fenêtre 85–95 s) — OK
 
-Construite avec : transcriptions non (0/34 ancres trouvées), manifeste des voix oui, title_meta non, analyse non, decisions.json revu NON.
+Construite avec : transcriptions non (0/35 ancres trouvées), manifeste des voix oui, title_meta non, analyse non, decisions.json revu NON.
 
 ## Shots
 
@@ -113,7 +113,7 @@ Construite avec : transcriptions non (0/34 ancres trouvées), manifeste des voix
 | 84.43 | 85.50 | entity | C'est qui lui ? |
 | 90.25 | 91.96 | entity | Identification terminée. |
 
-## Cues SFX (61)
+## Cues SFX (62)
 
 | t | sfx | gain | durée | shot |
 |---|---|---|---|---|
@@ -134,8 +134,9 @@ Construite avec : transcriptions non (0/34 ancres trouvées), manifeste des voix
 | 21.70 | impact_hit | -4 |  | S2l |
 | 21.70 | glitch_short | -14 |  | S2l |
 | 28.43 | reverse_swell | -12 | 0.9 | S3a |
-| 33.53 | impact_big | -2 |  | S3a |
-| 33.53 | braam_long | -5 |  | S3a |
+| 33.08 | whoosh_rev | -14 | 0.45 | S3a |
+| 34.83 | impact_big | -2 |  | S3a |
+| 34.83 | braam_long | -5 |  | S3a |
 | 38.92 | impact_sub | -3 |  | S3c |
 | 38.92 | sub_drop | -8 |  | S3c |
 | 40.18 | scan_sweep | -14 |  | S4a |
@@ -189,7 +190,7 @@ Construite avec : transcriptions non (0/34 ancres trouvées), manifeste des voix
 | drone_low | 18.90 | 21.15 | -27.0 | 0.0 |  |
 | drone_tension | 22.93 | 35.23 | -30.0 | 4.0 | [[22.9333, -30.0], [35.2333, -13.0]] |
 | heartbeat | 24.93 | 34.63 | -15.0 | 0.0 |  |
-| riser | 30.63 | 34.63 | -15.0 | 0.0 |  |
+| riser | 30.88 | 34.90 | -15.0 | 0.0 |  |
 | drone_low | 34.63 | 39.93 | -16.0 | 6.0 |  |
 | clock_tick | 39.93 | 56.37 | -24.0 | 0.0 |  |
 | drone_low | 39.93 | 67.67 | -18.0 | 6.0 |  |
@@ -275,8 +276,9 @@ Construite avec : transcriptions non (0/34 ancres trouvées), manifeste des voix
 | S3a | camera.center | repli | [0.5, 0.45] | person_center:IMG_8346:6.0-9.5 : pas d'analyse |
 | S3a | camera.center | décision | [0.5, 0.45] | decision:silhouette_center_8346 |
 | S3a | cue reverse_swell | repli | 5.5 | « c est qui lui » (start) introuvable dans IMG_8346 |
-| S3a | cue impact_big | repli | 10.6 | « oh putain » (start) introuvable dans IMG_8346 |
-| S3a | cue braam_long | repli | 10.6 | « oh putain » (start) introuvable dans IMG_8346 |
+| S3a | cue whoosh_rev | repli | 10.15 | « oh putain » (start) introuvable dans IMG_8346 |
+| S3a | cue impact_big | repli | 11.9 | « oh putain » (end) introuvable dans IMG_8346 |
+| S3a | cue braam_long | repli | 11.9 | « oh putain » (end) introuvable dans IMG_8346 |
 | S3a | sub.at | repli | 0.3 | « t as entendu le bruit » (start) introuvable dans IMG_8346 |
 | S3a | sub.until | repli | 2.4 | « t as entendu le bruit » (end) introuvable dans IMG_8346 |
 | S3a | sub.at | repli | 3.2 | « je crois qu il y a un gars » (start) introuvable dans IMG_8346 |

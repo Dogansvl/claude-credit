@@ -187,8 +187,10 @@ SHOTS: list[dict] = [
                dict(text="Oh putain !", at=A("oh putain", "start", fallback=10.6),
                     until=A("oh putain", "end", 0.35, fallback=11.9))],
          cues=[dict(at=A("c est qui lui", "start", -0.9, fallback=5.5), sfx="reverse_swell", dur=0.9, gain_db=-12),
-               dict(at=A("oh putain", "start", 0.0, fallback=10.6), sfx="impact_big", gain_db=-2),
-               dict(at=A("oh putain", "start", 0.0, fallback=10.6), sfx="braam_long", gain_db=-5)]),
+               dict(at=A("oh putain", "start", -0.45, fallback=10.15), sfx="whoosh_rev", dur=0.45, gain_db=-14),
+               # impact + braam sur la FIN de la réplique (sinon « Oh putain ! » est masqué)
+               dict(at=A("oh putain", "end", 0.02, fallback=11.9), sfx="impact_big", gain_db=-2),
+               dict(at=A("oh putain", "end", 0.02, fallback=11.9), sfx="braam_long", gain_db=-5)]),
     dict(id="S3b", section=3, label="mur vide, il a disparu", kind="freeze", freeze_src="prev_last", dur=2.0,
          camera=dict(zoom=(1.16, 1.24), center="decision:silhouette_center_8346"),
          grade=dict(preset="cold"),
@@ -442,7 +444,7 @@ MUSIC: list[dict] = [
          automation=[(0.0, -30), ("rel_end", -13)], duck=4),
     dict(kind="heartbeat", start=ref("S3a", "start", 2.0), end=ref("S3a", "end", -0.6), gain_db=-15,
          params=dict(bpm_start=62, bpm_end=118)),
-    dict(kind="riser", start=ref("S3a", "end", -4.6), end=ref("S3a", "end", -0.6), gain_db=-15),
+    dict(kind="riser", start=ref("S3a", "end", -4.35), end=ref("S3a", "end", -0.33), gain_db=-15),  # finit sur l'impact
     dict(kind="drone_low", start=ref("S3a", "end", -0.6), end=ref("S3c", "end"), gain_db=-16, fade_out=0.6,
          params=dict(seed=5, darker=True), duck=6),
     dict(kind="clock_tick", start=ref("S4a", "start"), end=ref("S4h", "start"), gain_db=-24, params=dict(bpm=60)),

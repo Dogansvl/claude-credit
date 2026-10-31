@@ -45,7 +45,7 @@ FPS = config.FPS
 SIZES = {"preview": (540, 960), "final": (1080, 1920)}
 SRC_W, SRC_H = config.W, config.H            # espace des proxies (coordonnées FaceTrack / decisions)
 # Encodage des intermédiaires (quasi sans perte) : crf, preset
-INTERMEDIATE = {"preview": ("12", "veryfast"), "final": ("9", "medium")}
+INTERMEDIATE = {"preview": ("12", "veryfast"), "final": ("10", "veryfast")}
 FLASH_TYPES = ("negative", "subliminal")
 MAX_FLASHES_PER_S = 3
 FACE_FX = ("black_eyes", "stretch_smile", "melt", "widen_eyes", "demon_face", "head_tic", "portrait_eyes")
@@ -1197,8 +1197,9 @@ class ShotRenderer:
             if p <= 0:
                 continue
             (px, py) = proj(cx, cy)
-            (qx, qy) = proj(cx + ax, cy + ay)
-            img = self.safe("red_circle", G.draw_red_circle, img, (px, py), (abs(qx - px), abs(qy - py)),
+            (qx, _) = proj(cx + 4.0, cy)  # échelle locale (même profondeur que le centre)
+            sc = abs(qx - px) / 4.0
+            img = self.safe("red_circle", G.draw_red_circle, img, (px, py), (ax * sc, ay * sc),
                             min(1.0, p), self.seed + 17 * i, frantic=frantic)
         return img
 
@@ -1413,10 +1414,16 @@ class ShotRenderer:
         center = (float(c[0]), float(c[1])) if isinstance(c, (list, tuple)) and len(c) == 2 else (0.5, 0.45)
         amount = _num(cam.get("parallax"), 1.0)
         sil = self.shot.get("silhouette")
+        pl_key, pl = None, plate
         for k in range(self.n):
             t = float(self.tl[k])
-            fi = self.fbase + k
-            pl = self.apply_silhouette(plate, t, fi) if sil else plate
+            if sil:
+                # plaque photo + silhouette mise à jour toutes les 3 images (la parallaxe réutilise alors ses
+                # couches en cache ; la respiration de la silhouette est lente, 0,3 Hz)
+                kq = (k // 3) * 3
+                if kq != pl_key:
+                    pl_key = kq
+                    pl = self.apply_silhouette(plate, float(self.tl[kq]), self.fbase + kq)
             try:
                 img = P.render_parallax(pl, dmap, t, self.dur, zoom=zoom, center=center, amount=amount,
                                         out_size=(self.ow, self.oh))
@@ -1424,7 +1431,7 @@ class ShotRenderer:
                 self.warn(f"render_parallax a échoué ({e}) -> poussée 2D")
                 img = _stub_parallax().render_parallax(pl, dmap, t, self.dur, zoom, center, amount,
                                                        (self.ow, self.oh))
-            self._proj = _photo_projector(P, pw, ph, self.ow, self.oh, zoom, center, t, self.dur)
+            self._proj = _photo_projector(P, pw, ph, self.ow, self.oh, zoom, center, t, self.dur, dmap, amount)
             enc.write(self.post(img, t, k, None, faces))
 
     def r_title(self, enc):
@@ -1498,7 +1505,17 @@ class ShotRenderer:
                     faces_seq.append([])
         else:
             p = config.proxy_path(it.get("photo"))
-            u8 = _load_photo_u8(p, (SRC_W, SRC_H))
+            if "silhouette" in fxs:  # incrustation dans l'espace de la photo entière, puis recadrage 9:16
+                from PIL import Image
+                ph = np.asarray(Image.open(p).convert("RGB")).astype(np.float32) / 255.0
+                slot = dict((_decisions().get("silhouette_slots") or {}).get("group_photo_bg") or {})
+                for s_ in self.job.get("photo_slots") or []:
+                    slot = s_
+                ph = self.apply_silhouette(ph, 0.0, self.fbase + a, slot=slot) if slot else ph
+                u8 = _cover_u8(np.clip(ph * 255 + 0.5, 0, 255).astype(np.uint8), (SRC_W, SRC_H))
+                fxs = [f for f in fxs if f != "silhouette"]
+            else:
+                u8 = _load_photo_u8(p, (SRC_W, SRC_H))
             frames = [u8] * n
             faces_seq = [[]] * n
         center = (SRC_W * 0.5, SRC_H * 0.45)
@@ -1506,7 +1523,6 @@ class ShotRenderer:
         if mf and mf[0]:
             bb = mf[0][0].bbox
             center = ((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2 + 0.05 * SRC_H)
-        group_slot = (_decisions().get("silhouette_slots") or {}).get("group_photo_bg")
         for m in range(n):
             k = a + m
             t = float(self.tl[k])
@@ -1523,8 +1539,6 @@ class ShotRenderer:
                 elif f == "head_tic":
                     mfc = main_faces(faces)
                     img = self.safe(f, FF.head_tic, img, mfc[0] if mfc else None, fi, 0.9)
-                elif f == "silhouette" and group_slot:
-                    img = self.apply_silhouette(img, t, fi, slot=group_slot)
             z = 1.06 + 0.06 * (m / max(1, n - 1))
             cam = Camera(self.ow, self.oh, z, center[0], center[1], lanczos=self.q == "final")
             img = cam.apply(img)
@@ -1545,11 +1559,15 @@ def _iou(a, b) -> float:
 
 def _load_photo_u8(p: Path, size) -> np.ndarray:
     """Photo recadrée « cover » au format 9:16 de l'espace proxy."""
-    import cv2
     from PIL import Image
     if not Path(p).exists():
         raise FileNotFoundError(f"photo absente : {p}")
-    u8 = np.asarray(Image.open(p).convert("RGB"))
+    return _cover_u8(np.asarray(Image.open(p).convert("RGB")), size)
+
+
+def _cover_u8(u8: np.ndarray, size) -> np.ndarray:
+    """Mise à l'échelle « cover » + recadrage centré à la taille (W, H)."""
+    import cv2
     h, w = u8.shape[:2]
     W, H = size
     s = max(W / w, H / h)
@@ -1558,16 +1576,18 @@ def _load_photo_u8(p: Path, size) -> np.ndarray:
     return np.ascontiguousarray(r[y0:y0 + H, x0:x0 + W])
 
 
-def _photo_projector(P, pw, ph, ow, oh, zoom, center, t, dur):
+def _photo_projector(P, pw, ph, ow, oh, zoom, center, t, dur, dmap=None, amount=1.0):
     """Projection photo -> sortie de la parallaxe (pour les cercles rouges).
 
-    Utilise parallax.project(...) si le module l'expose, sinon le modèle « cover + zoom autour du centre »."""
-    fn = getattr(P, "project", None)
-    if callable(fn):
+    Utilise parallax.project_points(...) (même caméra que render_parallax, profondeur comprise) si le module
+    l'expose, sinon le modèle « cover + zoom autour du centre »."""
+    fn = getattr(P, "project_points", None)
+    if callable(fn) and dmap is not None:
         def proj(x, y):
             try:
-                r = fn((x, y), (pw, ph), t, dur, zoom=zoom, center=center, out_size=(ow, oh))
-                return float(r[0]), float(r[1])
+                r = fn([(x, y)], (ph, pw), dmap, t, dur, zoom=zoom, center=center, amount=amount,
+                       out_size=(ow, oh))
+                return float(r[0][0]), float(r[0][1])
             except Exception:
                 return _cover_zoom(x, y, pw, ph, ow, oh, zoom, center, t, dur)
         return proj
@@ -1601,6 +1621,18 @@ def _fallback_title(w, h, t, G, y_center: float = 0.42) -> np.ndarray:
     a = (np.asarray(layer, np.float32) / 255.0)[..., None] * min(1.0, max(0.0, (t - 0.3) / 0.9))
     img = img * (1 - a) + np.array([0.86, 0.85, 0.82], np.float32) * a
     return img.astype(np.float32)
+
+
+def _pool_init(log_dir: str):
+    """Processus de travail : le bavardage C++ de MediaPipe/TFLite (stderr) part dans un journal."""
+    try:
+        Path(log_dir).mkdir(parents=True, exist_ok=True)
+        f = open(Path(log_dir) / f"render_worker_{os.getpid()}.log", "a", encoding="utf-8")
+        os.dup2(f.fileno(), 2)
+        sys.stderr = f
+    except OSError:
+        pass
+    _worker_init()
 
 
 def _worker_init():
@@ -1660,6 +1692,8 @@ def build_jobs(edl: dict, quality: str, sil_meta: dict | None) -> tuple[list[dic
     code = _code_sig()
     stub_sig = sorted(n for n in ("gfx", "facefx", "silhouette", "parallax") if _module(n) is not None and
                       n in STUBS_USED)  # un rendu STUB n'est jamais réutilisé pour un rendu réel
+    # emplacement de la silhouette sur la photo de groupe (réutilisé par les micro-plans photo du montage)
+    photo_slots = [dict(s["silhouette"]) for s in edl["shots"] if s.get("kind") == "photo" and s.get("silhouette")]
     jobs = []
     for i, s in enumerate(edl["shots"]):
         f0, f1 = plan[i]
@@ -1680,6 +1714,7 @@ def build_jobs(edl: dict, quality: str, sil_meta: dict | None) -> tuple[list[dic
             "v": code, "q": quality, "shot": s, "n": n, "off": round(f0 / FPS - start, 5),
             "subs": [[round(x["start"] - start, 3), round(x["end"] - start, 3), x["text"], x["kind"]] for x in my_subs],
             "skip": skips.get(s["id"], []), "freeze": freeze, "stubs": stub_sig,
+            "pslot": photo_slots[:1] if s.get("kind") == "montage" else [],
             "files": [_file_sig(config.proxy_path(c)) for c in clips] + [_file_sig(config.proxy_path(p)) for p in photos]
             + ([_file_sig(config.TITLE_DIR / "title_seq.mp4")] if s.get("kind") == "title" else [])
             + ([_file_sig(Path(sil_meta["still"]))] if sil_meta and sil_meta.get("still") else []),
@@ -1689,7 +1724,8 @@ def build_jobs(edl: dict, quality: str, sil_meta: dict | None) -> tuple[list[dic
         h = _hash(key)
         out = config.CACHE_DIR / "shots" / quality / f"{s['id']}_{h}.mp4"
         jobs.append({"shot": s, "quality": quality, "n": n, "f0": f0, "subs": my_subs, "flash_skip": skips.get(s["id"]),
-                     "freeze": freeze, "silhouette": sil_meta, "out": str(out)})
+                     "freeze": freeze, "silhouette": sil_meta, "out": str(out),
+                     "photo_slots": photo_slots[:1] if s.get("kind") == "montage" else []})
     return jobs, flash_report
 
 
@@ -1697,7 +1733,9 @@ def concat(files: list[Path], out: Path, n_expected: int, log=print) -> Path:
     """Concaténation sans réencodage (même codec/paramètres) ; vérifie le nombre d'images exact."""
     out.parent.mkdir(parents=True, exist_ok=True)
     lst = out.with_suffix(".concat.txt")
-    lst.write_text("".join(f"file '{Path(f).resolve().as_posix()}'\n" for f in files), encoding="utf-8")
+    def q(f):  # échappement des apostrophes pour le démultiplexeur concat
+        return Path(f).resolve().as_posix().replace("'", "'\\''")
+    lst.write_text("".join(f"file '{q(f)}'\n" for f in files), encoding="utf-8")
     tmp = out.with_name(out.stem + ".tmp.mp4")
     cmd = [_ffmpeg(), "-y", "-v", "error", "-nostdin", "-f", "concat", "-safe", "0", "-i", str(lst),
            "-map", "0:v:0", "-c", "copy", "-movflags", "+faststart", str(tmp)]
@@ -1765,7 +1803,8 @@ def render(edl: dict, quality: str = "preview", shots: list[str] | None = None, 
                     failures.append(res)
         else:
             ctx = mp.get_context("spawn")
-            with cf.ProcessPoolExecutor(max_workers=njobs, mp_context=ctx) as ex:
+            with cf.ProcessPoolExecutor(max_workers=njobs, mp_context=ctx, initializer=_pool_init,
+                                        initargs=(str(config.WORK_DIR / "logs"),)) as ex:
                 futs = {ex.submit(_render_shot_job, j): j for j in todo}
                 for fut in cf.as_completed(futs):
                     res = fut.result()

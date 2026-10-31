@@ -157,7 +157,7 @@ class Pipeline:
         warn = edl.get("warnings") or []
         d = edl.get("meta", {}).get("duration")
         if d is not None and not (config.DURATION_MIN <= float(d) <= config.DURATION_MAX):
-            raise RuntimeError(f"durée de l'EDL {d:.2f} s hors fenêtre {config.DURATION_MIN}–{config.DURATION_MAX} s")
+            raise StageError(f"durée de l'EDL {d:.2f} s hors fenêtre {config.DURATION_MIN}–{config.DURATION_MAX} s")
         return f"{len(edl['shots'])} shots, {d} s, {len(warn)} avertissement(s) (voir {config.WORK_DIR / 'edl_report.md'})"
 
     def voices(self):
@@ -227,7 +227,7 @@ class Pipeline:
         except Exception:
             dec = {}
         if not dec.get("_reviewed", False):
-            raise RuntimeError(
+            raise StageError(
                 "revue obligatoire non faite : regarde analysis/contact/*.jpg et analysis/report.md, complète "
                 "edit/decisions.json puis mets \"_reviewed\": true (ou relance avec --ignore-review en "
                 "connaissance de cause).")
@@ -235,6 +235,10 @@ class Pipeline:
 
 class QCFailed(RuntimeError):
     pass
+
+
+class StageError(RuntimeError):
+    """Erreur bloquante attendue (message clair, sans trace Python)."""
 
 
 def parse_stages(a) -> list[str]:
@@ -292,6 +296,11 @@ def main(argv=None) -> int:
             except QCFailed as e:
                 summary.append((st, "À CORRIGER", time.time() - t0, str(e)))
                 rc = 2
+                break
+            except StageError as e:
+                print(f"ERREUR : {e}")
+                summary.append((st, "ÉCHEC", time.time() - t0, str(e)))
+                rc = 1
                 break
             except Exception as e:
                 traceback.print_exc()

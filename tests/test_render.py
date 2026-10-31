@@ -7,9 +7,7 @@ ils ne dépendent ni des rushs, ni des faux rushs de fixtures.
 """
 from __future__ import annotations
 
-import json
 import math
-import os
 import shutil
 import subprocess
 import sys

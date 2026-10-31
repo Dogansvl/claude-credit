@@ -14,7 +14,7 @@
   },
   "anchors": {
    "found": 0,
-   "total": 34
+   "total": 35
   },
   "fixtures": false,
   "conventions": "start/dur absolus alignés sur les images ; fx/overlays/silhouette relatifs à la shot ; voices/subtitles/cues/music/silence/src_audio absolus ; vitesse = speed × speed_ramp (smoothstep), 0 après freeze_after"
@@ -2897,9 +2897,17 @@
    "shot": "S3a"
   },
   {
+   "sfx": "whoosh_rev",
+   "dur": 0.45,
+   "gain_db": -14,
+   "t": 33.0833,
+   "params": {},
+   "shot": "S3a"
+  },
+  {
    "sfx": "impact_big",
    "gain_db": -2,
-   "t": 33.5333,
+   "t": 34.8333,
    "dur": null,
    "params": {},
    "shot": "S3a"
@@ -2907,7 +2915,7 @@
   {
    "sfx": "braam_long",
    "gain_db": -5,
-   "t": 33.5333,
+   "t": 34.8333,
    "dur": null,
    "params": {},
    "shot": "S3a"
@@ -3347,8 +3355,8 @@
   },
   {
    "kind": "riser",
-   "t0": 30.6333,
-   "t1": 34.6333,
+   "t0": 30.8833,
+   "t1": 34.9033,
    "gain_db": -15.0,
    "fade_in": 0.0,
    "fade_out": 0.0,

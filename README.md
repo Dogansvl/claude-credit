@@ -80,6 +80,10 @@ python run_all.py --quality final
 Les étapes déjà faites (proxies, analyse, shots déjà rendues) sont réutilisées grâce au cache : seul ce qui a
 changé est recalculé. Le résumé final indique chaque étape (OK / ÉCHEC / À CORRIGER) et le chemin du journal.
 
+**Durée et place** : la préversion prend de l'ordre de 10 à 20 minutes, la version finale de 30 minutes à plus
+d'une heure selon le PC (rendu image par image en pleine définition, puis encodage H.264 « slow »). Prévois
+environ 6 Go libres sur `C:` pour `edit_escape_tmp` (modèles, proxies, cache des shots, rendus).
+
 ### Lancer seulement certaines étapes
 
 ```bat

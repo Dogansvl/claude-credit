@@ -1,7 +1,7 @@
 """Pilote du titre 3D « C'EST QUI LUI ? » (Blender headless + recomposition Python).
 
 Produit :
-  assets/title/title_seq.mp4    1080x1920, 30 i/s, 150 images (5,0 s), H.264 CRF 12, yuv420p — plaque propre (sans grain)
+  assets/title/title_seq.mp4    1080x1920, 30 i/s, 150 images (5,0 s), H.264 CRF 12, yuv420p, plaque propre (sans grain)
   assets/title/title_meta.json  {"dur", "reveal", "text_box", "fps", ...}
   assets/title/cover_plate.png  image fixe 1080x1920 pour la couverture (titre en haut, contre-jour au centre/bas)
   assets/title/BodoniModa-Black-opsz28.ttf  instance statique (Blender ne gère pas les axes variables)
@@ -75,6 +75,7 @@ GRADE = dict(
     k_head=1.0, k_red=1.0, k_amb=2.0,          # surfaces par groupe de lumière
     k_fog_head=0.5, k_fog_red=1.15, k_fog_amb=1.1,   # diffusion du brouillard par groupe
     amb_ramp=(0.40, 0.30, 1.70),               # ambiance : facteur initial, début et fin de la montée (s)
+    amb_ramp2=(4.0, 1.60, 2.50),               # puis lumière froide de face x4 quand les phares sont passés
     haze=(0.0030, 0.0042, 0.0066),             # brume ambiante (clair de lune diffus) * (1 - T)
     haze_dyn=0.03,          # brume qui s'éclaire avec les phares (diffusion multiple approximée)
     bloom=0.10, bloom_thr=0.9,
@@ -389,6 +390,11 @@ def gains(g: dict, t: float | None) -> dict:
         k = a0 + (1 - a0) * u * u * (3 - 2 * u)
         g["k_amb"] *= k
         g["k_fog_amb"] *= k
+        # le titre « émerge » dans la lumière froide (lampadaire + lune) quand les phares ne l'éclairent plus,
+        # juste avant l'apparition de la ligne « INSPIRÉ DE FAITS RÉELS » (2,6 s)
+        a2, t2, t3 = g["amb_ramp2"]
+        u = min(1.0, max(0.0, (t - t2) / (t3 - t2)))
+        g["k_amb"] *= 1 + (a2 - 1) * u * u * (3 - 2 * u)
     return g
 
 
@@ -572,7 +578,8 @@ def encode(args) -> Path:
            "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709", "-color_range", "tv",
            "-r", str(FPS), "-movflags", "+faststart", "-an", str(dst)]
     subprocess.run(cmd, check=True)
-    probe = subprocess.run([find_ffmpeg().replace("ffmpeg", "ffprobe"), "-v", "error", "-count_frames",
+    ffm = Path(find_ffmpeg())
+    probe = subprocess.run([str(ffm.with_name(ffm.name.replace("ffmpeg", "ffprobe"))), "-v", "error", "-count_frames",
                             "-select_streams", "v:0", "-show_entries",
                             "stream=width,height,nb_read_frames,r_frame_rate,pix_fmt", "-of", "json", str(dst)],
                            capture_output=True, text=True)
@@ -638,8 +645,10 @@ def cover(args) -> Path:
     cv2.imwrite(str(dst), cv2.cvtColor(to_u8(img, seed=77), cv2.COLOR_RGB2BGR))
     (wd / "cover_meta.json").write_text(json.dumps({
         "text_box": st.get("box"),
-        "silhouette_slot": {"x": 0.5, "foot_y": 0.86, "height": 0.46,
-                            "note": "contre-jour des phares au centre/bas : silhouette sombre devant la lueur"}}))
+        # phares au centre (x ≈ 0,49, y ≈ 0,45) : la silhouette (tête vers 0,42·H, auréolée par les phares)
+        # s'y découpe en contre-jour, pieds sur les reflets de l'asphalte mouillé
+        "silhouette_slot": {"x": 0.49, "foot_y": 0.78, "height": 0.36,
+                            "note": "contre-jour des phares au centre : silhouette sombre devant la lueur"}}))
     log(f"couverture -> {dst} {st}")
     return dst
 
@@ -672,7 +681,8 @@ def main(argv=None) -> int:
     ap.add_argument("cmd", choices=["font", "render", "post", "encode", "meta", "cover", "contact", "all"])
     ap.add_argument("--pass", dest="pass_", choices=list(PASSES), default=None)
     ap.add_argument("--frames", default=f"1-{N_FRAMES}")
-    ap.add_argument("--time-limit", type=float, default=0, help="s ; arrête proprement après ce délai (reprendre ensuite)")
+    ap.add_argument("--time-limit", type=float, default=0,
+                    help="s ; arrête proprement après ce délai (reprendre ensuite)")
     ap.add_argument("--threads", type=int, default=3)
     ap.add_argument("--scale", type=int, default=None, help="render : surcharge du % de résolution (essais)")
     ap.add_argument("--samples", type=int, default=None, help="render : surcharge des échantillons (essais)")
