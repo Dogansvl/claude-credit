@@ -1583,7 +1583,7 @@ def _cover_zoom(x, y, pw, ph, ow, oh, zoom, center, t, dur):
     return x * s + tx, y * s + ty
 
 
-def _fallback_title(w, h, t, G) -> np.ndarray:
+def _fallback_title(w, h, t, G, y_center: float = 0.42) -> np.ndarray:
     """Carton titre de repli (si le titre 3D pré-rendu manque) : titre serif dans une brume froide."""
     from PIL import Image, ImageDraw
     yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
@@ -1596,7 +1596,7 @@ def _fallback_title(w, h, t, G) -> np.ndarray:
         f = G.font("bodoni", int(w * 0.16), 800)
     except Exception:
         f = _StubGfx.font("bodoni", int(w * 0.16))
-    d.multiline_text((w / 2, h * 0.42), "C'EST QUI\nLUI ?", font=f, fill=255, anchor="mm", align="center",
+    d.multiline_text((w / 2, h * y_center), "C'EST QUI\nLUI ?", font=f, fill=255, anchor="mm", align="center",
                      spacing=int(w * 0.02))
     a = (np.asarray(layer, np.float32) / 255.0)[..., None] * min(1.0, max(0.0, (t - 0.3) / 0.9))
     img = img * (1 - a) + np.array([0.86, 0.85, 0.82], np.float32) * a

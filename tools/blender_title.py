@@ -650,7 +650,7 @@ def setup_cover(rig):
     cam = rig["cam"]
     cam.location = Vector((0.0, -11.0, 1.05))
     aim(cam, Vector((0.0, 0.0, 1.05)))
-    cam.data.lens = 41.0
+    cam.data.lens = 38.0
     cam.data.dof.focus_distance = 11.0
     cam.data.dof.aperture_fstop = 4.0
     rig["car"].location = (0.35, 17.5, 0.70)

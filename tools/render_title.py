@@ -73,12 +73,12 @@ def is_interpolated(f: int) -> bool:
 GRADE = dict(
     exposure=2.2,           # multiplicateur linéaire avant la courbe
     k_head=1.0, k_red=1.0, k_amb=2.0,          # surfaces par groupe de lumière
-    k_fog_head=0.75, k_fog_red=1.15, k_fog_amb=1.1,  # diffusion du brouillard par groupe
+    k_fog_head=0.5, k_fog_red=1.15, k_fog_amb=1.1,   # diffusion du brouillard par groupe
     amb_ramp=(0.40, 0.30, 1.70),               # ambiance : facteur initial, début et fin de la montée (s)
     haze=(0.0030, 0.0042, 0.0066),             # brume ambiante (clair de lune diffus) * (1 - T)
-    haze_dyn=0.08,          # brume qui s'éclaire avec les phares (diffusion multiple approximée)
+    haze_dyn=0.03,          # brume qui s'éclaire avec les phares (diffusion multiple approximée)
     bloom=0.10, bloom_thr=0.9,
-    streak=0.05, streak_thr=2.5,               # traînée anamorphique bleutée des sources très vives (phares)
+    streak=0.02, streak_thr=2.5,               # traînée anamorphique bleutée des sources très vives (phares)
     black=0.0025,           # point noir (noirs écrasés, mais texture du brouillard conservée)
     shadow_tint=(0.90, 0.98, 1.10),
     sat=0.80,
@@ -265,8 +265,8 @@ def denoise_groups(ex: dict, crop=None) -> dict[str, np.ndarray]:
 
 
 # ----------------------------------------------------------------------------- suréchantillonnage guidé
-def jbu(lo: np.ndarray, lo_depth: np.ndarray, hi_depth: np.ndarray, sigma: float = 0.06,
-        radius: int = 2, offset=(0.0, 0.0), scale=None) -> np.ndarray:
+def jbu(lo: np.ndarray, lo_depth: np.ndarray, hi_depth: np.ndarray, sigma: float = 0.25,
+        radius: int = 3, offset=(0.0, 0.0), scale=None) -> np.ndarray:
     """Suréchantillonnage bilatéral joint : les valeurs basse définition (h,w,C) sont interpolées vers la
     grille de hi_depth (H',W') en ne mélangeant que des échantillons de profondeur voisine.
     offset/scale : position (y, x) du coin de la grille fine et rapport lo/hi (pour une fenêtre recadrée)."""
@@ -362,10 +362,22 @@ def to_u8(img: np.ndarray, seed: int) -> np.ndarray:
 
 
 # ----------------------------------------------------------------------------- recomposition
+def neutral_chroma(img: np.ndarray) -> np.ndarray:
+    """Le brouillard est quasi neutre et chaque groupe a une couleur de source fixe : on remplace la chrominance
+    par pixel (bruitée, artefacts colorés du débruitage en basse définition) par la chrominance moyenne du groupe."""
+    lum = 0.2126 * img[..., 0] + 0.7152 * img[..., 1] + 0.0722 * img[..., 2]
+    tot = float(lum.sum())
+    if tot <= 0:
+        return img
+    mean = img.reshape(-1, 3).sum(0) / tot                                  # couleur moyenne / luminance
+    return lum[..., None] * mean[None, None, :].astype(np.float32)
+
+
 def fog_terms(fx: dict) -> dict[str, np.ndarray]:
     t = oidn(np.repeat(fx["Emit"][..., :1], 3, -1), hdr=False)[..., :1]
-    return dict(T=np.clip(t, 0, 1), S_head=oidn(fx["Combined_head"]), S_red=oidn(fx["Combined_red"]),
-                S_amb=oidn(fx["Combined_amb"]), depth=fx["Depth"][..., 0])
+    return dict(T=np.clip(t, 0, 1), S_head=neutral_chroma(oidn(fx["Combined_head"])),
+                S_red=neutral_chroma(oidn(fx["Combined_red"])), S_amb=neutral_chroma(oidn(fx["Combined_amb"])),
+                depth=fx["Depth"][..., 0])
 
 
 def gains(g: dict, t: float | None) -> dict:
@@ -378,6 +390,17 @@ def gains(g: dict, t: float | None) -> dict:
         g["k_amb"] *= k
         g["k_fog_amb"] *= k
     return g
+
+
+def despeckle(img: np.ndarray, ratio: float = 4.0, floor: float = 0.05) -> np.ndarray:
+    """Supprime les lucioles résiduelles (reflets spéculaires isolés sur l'asphalte à faible échantillonnage) :
+    un pixel plus de `ratio` fois plus lumineux que la médiane 5x5 de son voisinage est ramené à ce plafond."""
+    import cv2
+    lum = (0.2126 * img[..., 0] + 0.7152 * img[..., 1] + 0.0722 * img[..., 2]).astype(np.float32)
+    med = cv2.medianBlur(np.ascontiguousarray(np.clip(lum, 0, 1e4)), 5)
+    cap = np.maximum(med * ratio, floor)
+    k = np.where(lum > cap, cap / np.maximum(lum, 1e-6), 1.0)[..., None]
+    return img * k
 
 
 def assemble(surf: dict[str, np.ndarray], fog_up: np.ndarray, g: dict, haze_dyn: np.ndarray) -> np.ndarray:
@@ -403,7 +426,7 @@ def composite_frame(wd: Path, f: int, g: dict = GRADE, cover: bool = False) -> t
     bx = read_exr(wd / ("cover_surf" if cover else "exr_bg") / name)
     bg = denoise_groups(bx)
     up = jbu(fog_stack, fog["depth"], bx["Depth"][..., 0])
-    lin_bg = assemble(bg, up, g, haze_dyn)
+    lin_bg = despeckle(assemble(bg, up, g, haze_dyn))
     if lin_bg.shape[:2] != (H, W):
         lin = cv2.resize(lin_bg, (W, H), interpolation=cv2.INTER_LANCZOS4)
         lin = np.maximum(lin, 0.0)
@@ -587,7 +610,9 @@ def meta(args) -> dict:
         "reveal_note": f"premier instant où la lisibilité mesurée dépasse {thr:.3f} (50 % du plateau final)",
         "text_box_start": stats[frames[0]]["box"],
         "text_box_end": end["box"],
-        "sub_anchor": [int((box[0] + box[2]) / 2), int(box[3] + 70)],
+        # centre optique du titre (480 px : il est décalé à gauche pour la zone sûre TikTok). gfx.draw_title_sub
+        # recentre sur W/2 toute ancre à moins de 6 % du centre : on ancre 6 px plus à gauche pour l'éviter.
+        "sub_anchor": [min(int((box[0] + box[2]) / 2), int(W / 2 - 0.061 * W)), int(box[3] + 70)],
         "font": FONT_STATIC.name,
         "plate": "propre (sans grain ni vignettage) : à finir avec gfx.film_finish",
     }
@@ -601,7 +626,8 @@ def meta(args) -> dict:
 
 
 def cover(args) -> Path:
-    """Plaque de couverture : rendu fixe haute qualité (surfaces pleine définition, brouillard 540x960)."""
+    """Plaque de couverture 1080x1920 : rendu fixe plus échantillonné (brouillard 33 %, fond 50 %, titre en pleine
+    définition), étalonnage GRADE_COVER (titre plus lumineux, brouillard plus sombre)."""
     import cv2
     wd = work_dir(args)
     for pass_, d, scale, spp in COVER_PASSES:

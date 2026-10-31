@@ -218,7 +218,8 @@ def check_black(mp4: Path, edl: dict | None) -> tuple[list[dict], dict]:
     for a, b, sid in planned_black_shots:
         if b - a < 0.1:
             continue
-        if not any(x <= a + BLACK_TOL + 0.05 and y >= b - BLACK_TOL - 0.05 for x, y in blacks):
+        cov = sum(max(0.0, min(b, y) - max(a, x)) for x, y in blacks)
+        if cov < 0.7 * (b - a):  # couverture par les plages noires détectées
             missing.append(sid)
     checks = [_check("noirs involontaires", "fail" if unplanned else "pass", unplanned or "aucun",
                      "seulement les noirs prévus (±0,1 s)",

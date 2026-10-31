@@ -88,7 +88,7 @@ def _load_rgb(p: Path, size) -> np.ndarray:
 def _fallback_plate(size, G) -> np.ndarray:
     """Plaque de repli : brume froide, faisceau de phares, titre serif."""
     W, H = size
-    img = R._fallback_title(W, H, 3.0, G)
+    img = R._fallback_title(W, H, 3.0, G, y_center=0.28)
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
     beam = np.exp(-(((xx / W - 0.5) / 0.35) ** 2 + ((yy / H - 0.72) / 0.18) ** 2)) * 0.22
     return np.clip(img + beam[..., None] * np.array([0.9, 0.95, 1.0], np.float32), 0, 1).astype(np.float32)
@@ -107,7 +107,7 @@ def make_cover(out: Path, edl: dict | None = None, size=FINAL_SIZE, log=print) -
         img = _fallback_plate(size, G)
     # emplacement de la silhouette : celui prévu par le titre (title_meta.json > cover > silhouette_slot),
     # sinon sous la boîte du titre
-    x, foot_y, height = 0.5, 0.79, 0.36
+    x, foot_y, height = 0.5, 0.83, 0.36
     meta_p = config.TITLE_DIR / "title_meta.json"
     try:
         meta = json.loads(meta_p.read_text(encoding="utf-8"))
@@ -117,7 +117,7 @@ def make_cover(out: Path, edl: dict | None = None, size=FINAL_SIZE, log=print) -
             x, foot_y, height = float(slot["x"]), float(slot["foot_y"]), float(slot["height"])
         elif box:
             bottom = float(box[3]) / config.H
-            height = min(0.40, max(0.22, foot_y - bottom - 0.05))
+            height = min(0.46, max(0.22, foot_y - bottom - 0.05))
     except Exception:
         pass
     sil = None
