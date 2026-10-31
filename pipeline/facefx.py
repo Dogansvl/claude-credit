@@ -35,7 +35,7 @@ except ModuleNotFoundError:  # exécution directe
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     import config  # noqa: E402
 
-VERSION = "facefx-3"
+VERSION = "facefx-5"
 FFMPEG = os.environ.get("ESCAPE_FFMPEG", "ffmpeg")
 FFPROBE = os.environ.get("ESCAPE_FFPROBE", "ffprobe")
 
@@ -175,6 +175,33 @@ def _detect_image(rgb: np.ndarray, num_faces: int = 6) -> list[np.ndarray]:
         res = _image_landmarker(num_faces).detect(_mp_image(rgb))
     h, w = rgb.shape[:2]
     return _result_lms(res, w, h)
+
+
+_CLAHE = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+
+
+def enhance_for_detection(rgb: np.ndarray) -> np.ndarray:
+    """Image servant UNIQUEMENT à la détection (les effets s'appliquent à l'original) : les rushs sont de
+    nuit (habitacle rouge, noir + éclairs). Dominante rouge extrême -> canal max en niveaux de gris ;
+    image sombre -> gamma ; puis CLAHE sur la luminance. Images normales : inchangées."""
+    small = rgb[::8, ::8].astype(np.float32)
+    m = small.mean((0, 1)) / 255.0
+    lum = float(m[0] * 0.2126 + m[1] * 0.7152 + m[2] * 0.0722)
+    red = m[0] > 2.2 * max(m[1], 1e-3) and m[0] > 2.2 * max(m[2], 1e-3)
+    if lum > 0.28 and not red:
+        return rgb
+    img = rgb
+    if red:
+        g = rgb.max(axis=2)
+        img = np.dstack([g, g, g])
+    lv = float(img[::8, ::8].mean()) / 255.0
+    if lv < 0.35:
+        gamma = float(np.clip(math.log(0.42) / math.log(max(lv, 1e-3)), 0.35, 1.0))
+        lut = (np.power(np.arange(256) / 255.0, gamma) * 255 + 0.5).astype(np.uint8)
+        img = cv2.LUT(img, lut)
+    lab = cv2.cvtColor(np.ascontiguousarray(img), cv2.COLOR_RGB2LAB)
+    lab[..., 0] = _CLAHE.apply(lab[..., 0])
+    return cv2.cvtColor(lab, cv2.COLOR_LAB2RGB)
 
 
 def _bbox(lm: np.ndarray) -> np.ndarray:
@@ -450,6 +477,11 @@ class FaceTrack:
             except Exception:
                 pass
         lms = detect_faces_image(rgb, num_faces, small_faces)
+        enh = enhance_for_detection(rgb)
+        if enh is not rgb and len(lms) < num_faces:   # image sombre / dominante rouge : seconde chance
+            lms2 = detect_faces_image(enh, num_faces, small_faces)
+            if len(lms2) > len(lms):
+                lms = lms2
         K = len(lms)
         lm = np.full((1, K, 478, 2), np.nan, np.float32)
         for k, a in enumerate(lms):
@@ -505,8 +537,18 @@ def _track_video(video_path, t0, t1, fps, max_faces, small_faces, key_every, wh)
     ring: list[np.ndarray] = []
     n = 0
     try:
-        for i, rgb in enumerate(read_frames(video_path, t0, t1, fps)):
+        use_enh = None
+        for i, raw in enumerate(read_frames(video_path, t0, t1, fps)):
             n = i + 1
+            # représentation pour la détection (originale ou rehaussée), choisie sur la 1re image puis
+            # réévaluée aux images clés tant qu'aucun visage n'est suivi
+            enh = enhance_for_detection(raw)
+            if enh is not raw and (use_enh is None or (i % key_every == 0 and not any(
+                    i - tr["last"] <= key_every for tr in tracks))):
+                n_o = len(detect_faces_image(raw, max_faces, False))
+                n_e = len(detect_faces_image(enh, max_faces, False))
+                use_enh = n_e > n_o if (n_e != n_o) else bool(use_enh)
+            rgb = enh if use_enh else raw
             ring.append(rgb)
             if len(ring) > key_every:
                 ring.pop(0)
