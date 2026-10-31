@@ -46,26 +46,34 @@ FONT_AXES = {"wght": 900, "opsz": 28}
 FPS, N_FRAMES, W, H = 30, 150, 1080, 1920
 SUB_T0 = 2.6     # apparition de « INSPIRÉ DE FAITS RÉELS — 30.10.2026 » (edit/edl_spec.py, S7a)
 
-# Réglages de rendu (mesurés : ~25-35 s/frame au total sur 4 CPU partagés)
+# Réglages de rendu (mesurés : ~25 s/frame au total, 3 threads, CPU partagé avec d'autres rendus)
 PASSES = {
-    "fog": dict(scale=25, samples=32, extra=["--fog-mode", "hetero", "--step-rate", "1.0"]),
-    "bg": dict(scale=50, samples=10, extra=[]),
-    "text": dict(scale=100, samples=10, extra=[]),
+    "fog": dict(scale=16, samples=16, extra=["--step-rate", "2.0"]),
+    "bg": dict(scale=34, samples=7, extra=[]),
+    "text": dict(scale=100, samples=6, extra=[]),
 }
-CHUNK = 5   # frames par appel Blender (chaque appel reste court)
+OIDN_THREADS = 2
+CHUNK = 15  # frames par appel Blender (chaque appel reste court : ~2-4 min)
 
 # Étalonnage (linéaire scène -> affichage)
 GRADE = dict(
     exposure=2.2,           # multiplicateur linéaire avant la courbe
-    k_head=1.0, k_red=1.0, k_amb=1.0,          # surfaces par groupe de lumière
-    k_fog_head=1.0, k_fog_red=1.15,            # diffusion du brouillard par groupe
+    k_head=1.0, k_red=1.0, k_amb=2.0,          # surfaces par groupe de lumière
+    k_fog_head=0.75, k_fog_red=1.15, k_fog_amb=1.1,  # diffusion du brouillard par groupe
+    amb_ramp=(0.40, 0.30, 1.70),               # ambiance : facteur initial, début et fin de la montée (s)
     haze=(0.0030, 0.0042, 0.0066),             # brume ambiante (clair de lune diffus) * (1 - T)
-    haze_dyn=0.35,          # brume qui s'éclaire avec les phares (diffusion multiple approximée)
+    haze_dyn=0.08,          # brume qui s'éclaire avec les phares (diffusion multiple approximée)
     bloom=0.10, bloom_thr=0.9,
+    streak=0.05, streak_thr=2.5,               # traînée anamorphique bleutée des sources très vives (phares)
     black=0.0025,           # point noir (noirs écrasés, mais texture du brouillard conservée)
     shadow_tint=(0.90, 0.98, 1.10),
     sat=0.80,
 )
+
+
+# Couverture : brouillard plus sombre, titre plus éclairé (doit rester lisible en vignette)
+GRADE_COVER = dict(GRADE, exposure=1.8, k_fog_head=0.45, k_head=1.4, k_amb=1.0, k_fog_amb=1.0, haze_dyn=0.05)
+COVER_PASSES = (("fog", "cover_fog", 33, 32), ("bg", "cover_surf", 50, 16), ("text", "cover_text", 100, 24))
 
 
 def work_dir(args) -> Path:
@@ -154,15 +162,21 @@ def run_blender(pass_: str, frames: list[int], out_dir: Path, mode: str = "seq",
         raise RuntimeError(f"Blender a échoué ({pass_}, frames {frames[0]}..{frames[-1]}) :\n{tail}")
 
 
-def render_pass(args, pass_: str, frames: list[int], t_start: float) -> bool:
-    """Rend les frames manquantes par paquets ; renvoie False si la limite de temps a interrompu."""
-    out = work_dir(args) / f"exr_{pass_}"
-    todo = [f for f in frames if not (out / f"f_{f:04d}.exr").exists()]
+def render_passes(args, passes: list[str], frames: list[int], t_start: float) -> bool:
+    """Rend les frames manquantes par paquets de CHUNK, toutes les passes d'un paquet à la suite (le post peut
+    suivre au fil de l'eau). Renvoie False si la limite de temps (--time-limit) a interrompu : relancer."""
+    wd = work_dir(args)
+    todo = [f for f in frames if any(not (wd / f"exr_{p}" / f"f_{f:04d}.exr").exists() for p in passes)]
     for i in range(0, len(todo), CHUNK):
-        if args.time_limit and time.time() - t_start > args.time_limit:
-            log(f"limite de temps atteinte : {len(todo) - i} frames {pass_} restantes")
-            return False
-        run_blender(pass_, todo[i:i + CHUNK], out, threads=args.threads)
+        chunk = todo[i:i + CHUNK]
+        for p in passes:
+            if args.time_limit and time.time() - t_start > args.time_limit:
+                log(f"limite de temps atteinte : reste {len(todo) - i} frames (relancer la même commande)")
+                return False
+            missing = [f for f in chunk if not (wd / f"exr_{p}" / f"f_{f:04d}.exr").exists()]
+            if missing:
+                run_blender(p, missing, wd / f"exr_{p}", threads=args.threads, scale=args.scale,
+                            samples=args.samples)
     return True
 
 
@@ -198,6 +212,7 @@ def oidn(color: np.ndarray, albedo: np.ndarray | None = None, normal: np.ndarray
         return cv2.bilateralFilter(color, 5, 0.05, 2.0)
     if _OIDN is None:
         _OIDN = pyoidn.Device(pyoidn.OIDN_DEVICE_TYPE_CPU)
+        _OIDN.set_int("numThreads", OIDN_THREADS)      # CPU partagé : ne pas étouffer le rendu Blender
         _OIDN.commit()
     out = np.zeros_like(color)
     flt = pyoidn.Filter(_OIDN, pyoidn.OIDN_FILTER_TYPE_RT)
@@ -289,9 +304,29 @@ def filmic(x: np.ndarray) -> np.ndarray:
     return np.clip(y, 0, 1)
 
 
+def streak(img: np.ndarray, thr: float, amount: float) -> np.ndarray:
+    """Traînée horizontale (optique anamorphique) autour des sources très vives : couleur de la source,
+    légèrement décalée vers le bleu acier."""
+    import cv2
+    if amount <= 0:
+        return img
+    h, w = img.shape[:2]
+    peak = img.max(-1, keepdims=True)
+    hi = np.ascontiguousarray(img * (np.maximum(peak - thr, 0.0) / np.maximum(peak, 1e-6)), dtype=np.float32)
+    small = cv2.resize(hi, (w // 4, h // 4), interpolation=cv2.INTER_AREA)
+    acc = np.zeros_like(small)
+    for sig, wgt in ((12, 0.5), (45, 0.35), (110, 0.15)):
+        acc += wgt * cv2.GaussianBlur(small, (0, 0), sigmaX=sig, sigmaY=0.6)
+    out = cv2.resize(acc, (w, h), interpolation=cv2.INTER_LINEAR)
+    lum = out.mean(-1, keepdims=True)
+    out = 0.6 * out + 0.4 * lum * np.array([0.55, 0.78, 1.0], np.float32)
+    return img + amount * out
+
+
 def grade(lin: np.ndarray, g: dict = GRADE) -> np.ndarray:
     """Linéaire scène -> sRGB affichage [0,1] : exposition, halo, courbe, noirs, teinte froide, saturation."""
     x = bloom(lin * g["exposure"], g["bloom_thr"], g["bloom"])
+    x = streak(x, g["streak_thr"], g["streak"])
     x = np.maximum(x - g["black"], 0.0)
     y = filmic(x)
     lum = (0.2126 * y[..., 0] + 0.7152 * y[..., 1] + 0.0722 * y[..., 2])[..., None]
@@ -315,15 +350,27 @@ def to_u8(img: np.ndarray, seed: int) -> np.ndarray:
 def fog_terms(fx: dict) -> dict[str, np.ndarray]:
     t = oidn(np.repeat(fx["Emit"][..., :1], 3, -1), hdr=False)[..., :1]
     return dict(T=np.clip(t, 0, 1), S_head=oidn(fx["Combined_head"]), S_red=oidn(fx["Combined_red"]),
-                depth=fx["Depth"][..., 0])
+                S_amb=oidn(fx["Combined_amb"]), depth=fx["Depth"][..., 0])
+
+
+def gains(g: dict, t: float | None) -> dict:
+    """Gains dépendant du temps : l'ambiance froide monte un peu après le passage des phares (l'œil s'habitue)."""
+    g = dict(g)
+    if t is not None:
+        a0, t0, t1 = g["amb_ramp"]
+        u = min(1.0, max(0.0, (t - t0) / (t1 - t0)))
+        k = a0 + (1 - a0) * u * u * (3 - 2 * u)
+        g["k_amb"] *= k
+        g["k_fog_amb"] *= k
+    return g
 
 
 def assemble(surf: dict[str, np.ndarray], fog_up: np.ndarray, g: dict, haze_dyn: np.ndarray) -> np.ndarray:
-    """fog_up : (H,W,7) = [T, S_head(3), S_red(3)] déjà suréchantillonné sur la grille des surfaces."""
+    """fog_up : (H,W,10) = [T, S_head(3), S_red(3), S_amb(3)] déjà suréchantillonné sur la grille des surfaces."""
     T = fog_up[..., :1]
-    S = g["k_fog_head"] * fog_up[..., 1:4] + g["k_fog_red"] * fog_up[..., 4:7]
+    S = g["k_fog_head"] * fog_up[..., 1:4] + g["k_fog_red"] * fog_up[..., 4:7] + g["k_fog_amb"] * fog_up[..., 7:10]
     L = (g["k_head"] * surf["head"] + g["k_red"] * surf["red"] + g["k_amb"] * surf["amb"]) * T
-    haze = np.array(g["haze"], np.float32) + haze_dyn
+    haze = np.array(g["haze"], np.float32) * g["k_fog_amb"] + haze_dyn
     return L + S + (1.0 - T) * haze
 
 
@@ -333,7 +380,8 @@ def composite_frame(wd: Path, f: int, g: dict = GRADE, cover: bool = False) -> t
     name = "cover.exr" if cover else f"f_{f:04d}.exr"
     fx = read_exr(wd / ("cover_fog" if cover else "exr_fog") / name)
     fog = fog_terms(fx)
-    fog_stack = np.concatenate([fog["T"], fog["S_head"], fog["S_red"]], -1)
+    g = gains(g, None if cover else (f - 1) / FPS)
+    fog_stack = np.concatenate([fog["T"], fog["S_head"], fog["S_red"], fog["S_amb"]], -1)
     s_mean = fog["S_head"].mean(axis=(0, 1))
     haze_dyn = g["haze_dyn"] * s_mean / max(float(s_mean.mean()), 1e-6) * float(s_mean.mean())
 
@@ -348,8 +396,9 @@ def composite_frame(wd: Path, f: int, g: dict = GRADE, cover: bool = False) -> t
         lin = lin_bg
     mask = (bx["IndexOB"][..., 0] > 0.5) if "IndexOB" in bx and bx["IndexOB"].shape[:2] == (H, W) else None
 
-    if not cover and (wd / "exr_text" / name).exists():
-        tx = read_exr(wd / "exr_text" / name)
+    text_exr = wd / ("cover_text" if cover else "exr_text") / name
+    if text_exr.exists():
+        tx = read_exr(text_exr)
         alpha = tx["Combined"][..., 3]
         ys, xs = np.nonzero(alpha > 0)
         if len(ys):
@@ -374,22 +423,25 @@ def composite_frame(wd: Path, f: int, g: dict = GRADE, cover: bool = False) -> t
 
 
 def text_stats(img: np.ndarray, mask: np.ndarray | None) -> dict:
-    """Lisibilité du titre : luminance du titre vs anneau de fond autour des lettres, part des lettres éclairées."""
+    """Lisibilité du titre (valeurs d'affichage sRGB) : contraste entre l'intérieur des lettres et un anneau de fond
+    autour d'elles, plus le contraste des contours (biseaux éclairés). Vaut pour des lettres claires sur fond sombre
+    comme pour une silhouette sombre devant la brume éclairée."""
     if mask is None or not mask.any():
         return {}
     import cv2
     lum = 0.2126 * img[..., 0] + 0.7152 * img[..., 1] + 0.0722 * img[..., 2]
     ys, xs = np.nonzero(mask)
     m8 = mask.astype(np.uint8)
-    ring = (cv2.dilate(m8, np.ones((25, 25), np.uint8)) > 0) & ~(cv2.dilate(m8, np.ones((7, 7), np.uint8)) > 0)
-    t = lum[mask]
-    b = lum[ring]
-    # contraste local : |Δ| moyen entre lettres et fond immédiat (lettres sombres sur brume claire = lisible aussi)
-    lit = float(np.mean(t > 0.16))
+    inner = cv2.erode(m8, np.ones((5, 5), np.uint8)) > 0
+    ring = (cv2.dilate(m8, np.ones((31, 31), np.uint8)) > 0) & ~(cv2.dilate(m8, np.ones((9, 9), np.uint8)) > 0)
+    edge = (cv2.dilate(m8, np.ones((5, 5), np.uint8)) > 0) & ~inner
+    t, b = lum[inner if inner.any() else mask], lum[ring]
+    gy, gx = np.gradient(cv2.GaussianBlur(lum, (0, 0), 1.0))
+    grad = np.hypot(gx, gy)
+    legib = abs(float(np.median(t)) - float(np.median(b))) + 2.0 * float(np.mean(grad[edge]))
     return dict(box=[int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1],
-                text_mean=round(float(t.mean()), 4), ring_mean=round(float(b.mean()), 4),
-                text_p90=round(float(np.percentile(t, 90)), 4), lit_frac=round(lit, 4),
-                contrast=round(abs(float(t.mean()) - float(b.mean())) + float(np.std(t)), 4))
+                text_med=round(float(np.median(t)), 4), ring_med=round(float(np.median(b)), 4),
+                edge_grad=round(float(np.mean(grad[edge])), 4), legib=round(legib, 4))
 
 
 def post(args, frames: list[int], t_start: float) -> bool:
@@ -450,10 +502,13 @@ def meta(args) -> dict:
     stats = {int(k): v for k, v in json.loads((wd / "stats.json").read_text()).items() if v}
     frames = sorted(stats)
     end = stats[frames[-1]]
-    plateau = float(np.median([stats[f]["contrast"] for f in frames if f >= 60]))
+    leg = {f: stats[f]["legib"] for f in frames}
+    plateau = float(np.median([leg[f] for f in frames if (f - 1) / FPS >= SUB_T0]))
+    thr = max(0.05, 0.5 * plateau)
     reveal = None
-    for f in frames:   # lisible = contraste ≥ 75 % du plateau ET ≥ 60 % des lettres éclairées
-        if stats[f]["contrast"] >= 0.75 * plateau and stats[f]["lit_frac"] >= 0.6:
+    for f in frames:   # lisible = lisibilité ≥ seuil et qui le reste (6 images suivantes ≥ 80 % du seuil)
+        nxt = [leg[k] for k in frames if f <= k < f + 6]
+        if leg[f] >= thr and min(nxt) >= 0.8 * thr:
             reveal = (f - 1) / FPS
             break
     sub_frames = [f for f in frames if (f - 1) / FPS >= SUB_T0]
@@ -467,6 +522,7 @@ def meta(args) -> dict:
         "frames": N_FRAMES,
         "size": [W, H],
         "text_box_note": "union des boîtes du titre (px, x0,y0,x1,y1) de t=2,6 s à la fin (travelling avant)",
+        "reveal_note": f"premier instant où la lisibilité mesurée dépasse {thr:.3f} (50 % du plateau final)",
         "text_box_start": stats[frames[0]]["box"],
         "text_box_end": end["box"],
         "sub_anchor": [int((box[0] + box[2]) / 2), int(box[3] + 70)],
@@ -486,10 +542,10 @@ def cover(args) -> Path:
     """Plaque de couverture : rendu fixe haute qualité (surfaces pleine définition, brouillard 540x960)."""
     import cv2
     wd = work_dir(args)
-    for pass_, d, scale, spp in (("fog", "cover_fog", 50, args.cover_fog_spp), ("bg", "cover_surf", 100, args.cover_spp)):
+    for pass_, d, scale, spp in COVER_PASSES:
         if not (wd / d / "cover.exr").exists():
             run_blender(pass_, [1], wd / d, mode="cover", samples=spp, scale=scale, threads=args.threads)
-    img, st = composite_frame(wd, 1, cover=True)
+    img, st = composite_frame(wd, 1, GRADE_COVER, cover=True)
     dst = TITLE_DIR / "cover_plate.png"
     cv2.imwrite(str(dst), cv2.cvtColor(to_u8(img, seed=77), cv2.COLOR_RGB2BGR))
     (wd / "cover_meta.json").write_text(json.dumps({
@@ -529,12 +585,12 @@ def main(argv=None) -> int:
     ap.add_argument("--pass", dest="pass_", choices=list(PASSES), default=None)
     ap.add_argument("--frames", default=f"1-{N_FRAMES}")
     ap.add_argument("--time-limit", type=float, default=0, help="s ; arrête proprement après ce délai (reprendre ensuite)")
-    ap.add_argument("--threads", type=int, default=0)
+    ap.add_argument("--threads", type=int, default=3)
+    ap.add_argument("--scale", type=int, default=None, help="render : surcharge du % de résolution (essais)")
+    ap.add_argument("--samples", type=int, default=None, help="render : surcharge des échantillons (essais)")
     ap.add_argument("--work", default=None, help="WORK_DIR (défaut : config.WORK_DIR)")
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--lookdev", action="store_true", help="post sans la passe text (aperçu rapide)")
-    ap.add_argument("--cover-spp", type=int, default=48)
-    ap.add_argument("--cover-fog-spp", type=int, default=64)
     args = ap.parse_args(argv)
     frames = parse_frames(args.frames)
     t0 = time.time()
@@ -542,9 +598,8 @@ def main(argv=None) -> int:
     if args.cmd == "font":
         make_font(force=args.force)
     elif args.cmd == "render":
-        for p in ([args.pass_] if args.pass_ else ["fog", "bg", "text"]):
-            if not render_pass(args, p, frames, t0):
-                return 3
+        if not render_passes(args, [args.pass_] if args.pass_ else ["fog", "bg", "text"], frames, t0):
+            return 3
     elif args.cmd == "post":
         return 0 if post(args, frames, t0) else 3
     elif args.cmd == "encode":
@@ -557,9 +612,8 @@ def main(argv=None) -> int:
         log(f"planche -> {contact(args, frames)}")
     elif args.cmd == "all":
         make_font()
-        for p in ("fog", "bg", "text"):
-            if not render_pass(args, p, frames, t0):
-                return 3
+        if not render_passes(args, ["fog", "bg", "text"], frames, t0):
+            return 3
         if not post(args, frames, t0):
             return 3
         encode(args)

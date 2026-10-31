@@ -1,0 +1,3912 @@
+{
+ "meta": {
+  "fps": 30,
+  "w": 1080,
+  "h": 1920,
+  "duration": 92.2,
+  "target": 92.0,
+  "built_with": {
+   "transcripts": false,
+   "voice_manifest": true,
+   "title_meta": false,
+   "analysis": false,
+   "decisions_reviewed": false
+  },
+  "anchors": {
+   "found": 0,
+   "total": 34
+  },
+  "fixtures": false,
+  "conventions": "start/dur absolus alignés sur les images ; fx/overlays/silhouette relatifs à la shot ; voices/subtitles/cues/music/silence/src_audio absolus ; vitesse = speed × speed_ramp (smoothstep), 0 après freeze_after"
+ },
+ "shots": [
+  {
+   "id": "S1a",
+   "section": 1,
+   "label": "accroche — silhouette dans les phares",
+   "kind": "clip",
+   "clip": "IMG_8346",
+   "src_in": 5.6,
+   "src_out": 7.9,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 0.0,
+   "dur": 2.3,
+   "frames": 69,
+   "camera": {
+    "zoom": [
+     1.0,
+     1.07
+    ],
+    "center": [
+     0.5,
+     0.45
+    ]
+   },
+   "grade": {
+    "preset": "cold"
+   },
+   "fx": [],
+   "overlays": [],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 1.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S1b",
+   "section": 1,
+   "label": "arrêt sur image + punch-in",
+   "kind": "freeze",
+   "freeze_src": {
+    "clip": "IMG_8346",
+    "t": 7.8667
+   },
+   "start": 2.3,
+   "dur": 0.9333,
+   "frames": 28,
+   "camera": {
+    "zoom": [
+     1.07,
+     1.42
+    ],
+    "punch": 0.22,
+    "center": [
+     0.5,
+     0.45
+    ]
+   },
+   "grade": {
+    "preset": "bleach"
+   },
+   "fx": [
+    {
+     "type": "glitch",
+     "t0": 0.0,
+     "t1": 0.07,
+     "amount": 1.0
+    },
+    {
+     "type": "rgb_split",
+     "t0": 0.0,
+     "t1": 0.9333,
+     "amount": 0.4
+    }
+   ],
+   "overlays": [],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S1c",
+   "section": 1,
+   "label": "noir",
+   "kind": "black",
+   "start": 3.2333,
+   "dur": 0.4667,
+   "frames": 14,
+   "fx": [],
+   "overlays": [],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S2a",
+   "section": 2,
+   "label": "carton faits réels",
+   "kind": "card",
+   "start": 3.7,
+   "dur": 2.3,
+   "frames": 69,
+   "fx": [],
+   "overlays": [
+    {
+     "type": "card",
+     "text": "INSPIRÉ DE FAITS RÉELS",
+     "t0": 0.25,
+     "t1": 2.15,
+     "style": "card"
+    }
+   ],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S2b",
+   "section": 2,
+   "label": "route brouillard feux rouges",
+   "kind": "clip",
+   "clip": "IMG_8336",
+   "src_in": 1.0,
+   "src_out": 3.6,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 6.0,
+   "dur": 2.6,
+   "frames": 78,
+   "camera": {
+    "zoom": [
+     1.0,
+     1.05
+    ],
+    "center": [
+     0.5,
+     0.5
+    ]
+   },
+   "grade": {
+    "preset": "cold"
+   },
+   "fx": [
+    {
+     "type": "fade_from_black",
+     "t0": 0.0,
+     "t1": 0.35
+    }
+   ],
+   "overlays": [
+    {
+     "type": "card",
+     "text": "30 OCTOBRE 2026",
+     "t0": 0.35,
+     "t1": 2.45,
+     "style": "card_over"
+    },
+    {
+     "type": "timecode",
+     "text": "20:40",
+     "date": "30.10.2026",
+     "t0": 0.0,
+     "t1": 2.6
+    }
+   ],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": -14.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S2c",
+   "section": 2,
+   "label": "voie rapide gyrophares",
+   "kind": "clip",
+   "clip": "IMG_8342",
+   "src_in": 1.0,
+   "src_out": 3.4,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 8.6,
+   "dur": 2.4,
+   "frames": 72,
+   "camera": {
+    "zoom": [
+     1.03,
+     1.0
+    ],
+    "center": [
+     0.5,
+     0.5
+    ]
+   },
+   "grade": {
+    "preset": "cold",
+    "keep_blue": true
+   },
+   "fx": [],
+   "overlays": [
+    {
+     "type": "timecode",
+     "text": "20:43",
+     "date": "30.10.2026",
+     "t0": 0.0,
+     "t1": 2.4
+    }
+   ],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": -14.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S2d",
+   "section": 2,
+   "label": "banquette arrière",
+   "kind": "clip",
+   "clip": "IMG_8343",
+   "src_in": 1.0,
+   "src_out": 3.4,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 11.0,
+   "dur": 2.4,
+   "frames": 72,
+   "camera": {
+    "zoom": [
+     1.0,
+     1.04
+    ],
+    "center": [
+     0.5,
+     0.45
+    ]
+   },
+   "grade": {
+    "preset": "cold"
+   },
+   "fx": [],
+   "overlays": [
+    {
+     "type": "timecode",
+     "text": "20:43",
+     "date": "30.10.2026",
+     "t0": 0.0,
+     "t1": 2.4
+    }
+   ],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": -16.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S2e",
+   "section": 2,
+   "label": "banquette arrière 2",
+   "kind": "clip",
+   "clip": "IMG_8345",
+   "src_in": 1.0,
+   "src_out": 2.9,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 13.4,
+   "dur": 1.9,
+   "frames": 57,
+   "camera": {
+    "zoom": [
+     1.0,
+     1.04
+    ],
+    "center": [
+     0.5,
+     0.45
+    ]
+   },
+   "grade": {
+    "preset": "cold"
+   },
+   "fx": [],
+   "overlays": [
+    {
+     "type": "timecode",
+     "text": "20:46",
+     "date": "30.10.2026",
+     "t0": 0.0,
+     "t1": 1.9
+    }
+   ],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": -16.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S2f",
+   "section": 2,
+   "label": "prénom GABRIEL",
+   "kind": "clip",
+   "clip": "IMG_8341",
+   "src_in": 1.8,
+   "src_out": 1.999,
+   "speed": 1.0,
+   "freeze_after": 0.2,
+   "start": 15.3,
+   "dur": 0.9,
+   "frames": 27,
+   "camera": {
+    "zoom": [
+     1.0,
+     1.06
+    ],
+    "center": "face"
+   },
+   "grade": {
+    "preset": "cold"
+   },
+   "fx": [],
+   "overlays": [
+    {
+     "type": "name",
+     "name": "GABRIEL",
+     "confirm": "name_gabriel",
+     "t0": 0.2,
+     "t1": 0.9,
+     "show": true
+    }
+   ],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": true,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S2g",
+   "section": 2,
+   "label": "prénom HUGO",
+   "kind": "clip",
+   "clip": "IMG_8357",
+   "src_in": 4.6,
+   "src_out": 4.799,
+   "speed": 1.0,
+   "freeze_after": 0.2,
+   "start": 16.2,
+   "dur": 0.9,
+   "frames": 27,
+   "camera": {
+    "zoom": [
+     1.0,
+     1.06
+    ],
+    "center": "face"
+   },
+   "grade": {
+    "preset": "cold"
+   },
+   "fx": [],
+   "overlays": [
+    {
+     "type": "name",
+     "name": "HUGO",
+     "confirm": "name_hugo",
+     "t0": 0.2,
+     "t1": 0.9,
+     "show": true
+    }
+   ],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": true,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S2h",
+   "section": 2,
+   "label": "prénom ARSÈNE",
+   "kind": "clip",
+   "clip": "IMG_8337",
+   "src_in": 1.5,
+   "src_out": 1.699,
+   "speed": 1.0,
+   "freeze_after": 0.2,
+   "start": 17.1,
+   "dur": 0.9,
+   "frames": 27,
+   "camera": {
+    "zoom": [
+     1.0,
+     1.06
+    ],
+    "center": "face"
+   },
+   "grade": {
+    "preset": "cold"
+   },
+   "fx": [],
+   "overlays": [
+    {
+     "type": "name",
+     "name": "ARSÈNE",
+     "confirm": "name_arsene",
+     "t0": 0.2,
+     "t1": 0.9,
+     "show": false
+    }
+   ],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": true,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S2i",
+   "section": 2,
+   "label": "prénom DOGAN (gel qui repart)",
+   "kind": "freeze",
+   "freeze_src": {
+    "clip": "IMG_8338",
+    "t": 0.4
+   },
+   "start": 18.0,
+   "dur": 0.9,
+   "frames": 27,
+   "camera": {
+    "zoom": [
+     1.06,
+     1.0
+    ],
+    "center": "face"
+   },
+   "grade": {
+    "preset": "night_red"
+   },
+   "fx": [],
+   "overlays": [
+    {
+     "type": "name",
+     "name": "DOGAN",
+     "confirm": "name_dogan",
+     "t0": 0.0,
+     "t1": 0.9,
+     "show": true
+    }
+   ],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S2j",
+   "section": 2,
+   "label": "« Tu sais quand il vient ? »",
+   "kind": "clip",
+   "clip": "IMG_8338",
+   "src_in": 0.4,
+   "src_out": 1.6,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 18.9,
+   "dur": 1.2,
+   "frames": 36,
+   "camera": {
+    "zoom": [
+     1.0,
+     1.03
+    ],
+    "center": "face"
+   },
+   "grade": {
+    "preset": "night_red"
+   },
+   "fx": [],
+   "overlays": [],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 2.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S2k",
+   "section": 2,
+   "label": "« Il vient directement, lui. »",
+   "kind": "clip",
+   "clip": "IMG_8338",
+   "src_in": 2.3,
+   "src_out": 3.9,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 20.1,
+   "dur": 1.6,
+   "frames": 48,
+   "camera": {
+    "zoom": [
+     1.03,
+     1.08
+    ],
+    "center": "face"
+   },
+   "grade": {
+    "preset": "night_red"
+   },
+   "fx": [],
+   "overlays": [],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 2.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.08
+   }
+  },
+  {
+   "id": "S2l",
+   "section": 2,
+   "label": "Dogan hurle, on l'agrippe",
+   "kind": "clip",
+   "clip": "IMG_8338",
+   "src_in": 4.6,
+   "src_out": 5.5,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 21.7,
+   "dur": 0.9,
+   "frames": 27,
+   "camera": {
+    "zoom": [
+     1.08,
+     1.16
+    ],
+    "center": "face"
+   },
+   "grade": {
+    "preset": "night_red"
+   },
+   "fx": [
+    {
+     "type": "head_tic",
+     "t0": 0.0,
+     "t1": 0.9,
+     "amount": 0.6
+    },
+    {
+     "type": "glitch",
+     "t0": 0.78,
+     "t1": 0.9,
+     "amount": 0.8
+    }
+   ],
+   "overlays": [],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 3.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.05
+   }
+  },
+  {
+   "id": "S2m",
+   "section": 2,
+   "label": "noir",
+   "kind": "black",
+   "start": 22.6,
+   "dur": 0.3333,
+   "frames": 10,
+   "fx": [],
+   "overlays": [],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S3a",
+   "section": 3,
+   "label": "8346 parking — LE plan",
+   "kind": "clip",
+   "clip": "IMG_8346",
+   "src_in": 0.0,
+   "src_out": 12.3,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 22.9333,
+   "dur": 12.3,
+   "frames": 369,
+   "camera": {
+    "zoom": [
+     1.0,
+     1.16
+    ],
+    "center": [
+     0.5,
+     0.45
+    ]
+   },
+   "grade": {
+    "preset": "cold"
+   },
+   "fx": [],
+   "overlays": [
+    {
+     "type": "timecode",
+     "text": "20:48",
+     "date": "30.10.2026",
+     "t0": 0.0,
+     "t1": 12.3
+    }
+   ],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 1.5,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S3b",
+   "section": 3,
+   "label": "mur vide, il a disparu",
+   "kind": "freeze",
+   "freeze_src": {
+    "clip": "IMG_8346",
+    "t": 12.2667
+   },
+   "start": 35.2333,
+   "dur": 2.0,
+   "frames": 60,
+   "camera": {
+    "zoom": [
+     1.16,
+     1.24
+    ],
+    "center": [
+     0.5,
+     0.45
+    ]
+   },
+   "grade": {
+    "preset": "cold"
+   },
+   "fx": [
+    {
+     "type": "fade_to_black",
+     "t0": 1.4,
+     "t1": 2.0
+    }
+   ],
+   "overlays": [
+    {
+     "type": "timecode",
+     "text": "20:48",
+     "date": "30.10.2026",
+     "t0": 0.0,
+     "t1": 2.0
+    }
+   ],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S3c",
+   "section": 3,
+   "label": "noir — lui ne les a plus quittés",
+   "kind": "black",
+   "start": 37.2333,
+   "dur": 2.7,
+   "frames": 81,
+   "fx": [
+    {
+     "type": "subliminal",
+     "t0": 1.685,
+     "frames": 3,
+     "what": "silhouette_negative",
+     "t1": 1.785
+    }
+   ],
+   "overlays": [],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S4a",
+   "section": 4,
+   "label": "accueil bleu — Identification terminée",
+   "kind": "clip",
+   "clip": "IMG_8347",
+   "src_in": 3.4,
+   "src_out": 7.9,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 39.9333,
+   "dur": 4.5,
+   "frames": 135,
+   "camera": {
+    "zoom": [
+     1.0,
+     1.05
+    ],
+    "center": "faces"
+   },
+   "grade": {
+    "preset": "blue"
+   },
+   "fx": [],
+   "overlays": [
+    {
+     "type": "timecode",
+     "text": "20:55",
+     "date": "30.10.2026",
+     "t0": 0.0,
+     "t1": 4.5
+    },
+    {
+     "type": "hud_faces",
+     "mode": "identify",
+     "t0": 0.45,
+     "step": 0.42,
+     "order": null,
+     "t1": 4.5,
+     "locks": [
+      0.45,
+      0.87,
+      1.29,
+      1.71
+     ]
+    }
+   ],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 2.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S4b",
+   "section": 4,
+   "label": "gel — l'entité a choisi",
+   "kind": "freeze",
+   "freeze_src": {
+    "clip": "IMG_8347",
+    "t": 7.8667
+   },
+   "start": 44.4333,
+   "dur": 1.5333,
+   "frames": 46,
+   "camera": {
+    "zoom": [
+     1.05,
+     1.12
+    ],
+    "center": "faces"
+   },
+   "grade": {
+    "preset": "blue"
+   },
+   "fx": [
+    {
+     "type": "glitch",
+     "t0": 0.0,
+     "t1": 0.1,
+     "amount": 1.0
+    },
+    {
+     "type": "black_eyes",
+     "t0": 0.15,
+     "t1": 1.5333,
+     "amount": 1.0,
+     "ramp": 0.5
+    },
+    {
+     "type": "rgb_split",
+     "t0": 0.0,
+     "t1": 1.5333,
+     "amount": 0.25
+    }
+   ],
+   "overlays": [
+    {
+     "type": "hud_faces",
+     "mode": "victim",
+     "t0": 0.0,
+     "order": null,
+     "t1": 1.5333
+    }
+   ],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S4c",
+   "section": 4,
+   "label": "cri face caméra",
+   "kind": "clip",
+   "clip": "IMG_8347",
+   "src_in": 10.7,
+   "src_out": 11.4,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 45.9667,
+   "dur": 0.7,
+   "frames": 21,
+   "camera": {
+    "zoom": [
+     1.1,
+     1.18
+    ],
+    "center": "face"
+   },
+   "grade": {
+    "preset": "blue"
+   },
+   "fx": [
+    {
+     "type": "negative",
+     "t0": 0.0,
+     "t1": 0.067
+    },
+    {
+     "type": "head_tic",
+     "t0": 0.0,
+     "t1": 0.7,
+     "amount": 0.8
+    }
+   ],
+   "overlays": [],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 2.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.05
+   }
+  },
+  {
+   "id": "S4d",
+   "section": 4,
+   "label": "toilettes sang — C'est quoi ça ?",
+   "kind": "clip",
+   "clip": "IMG_8348",
+   "src_in": 6.8,
+   "src_out": 9.0,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 46.6667,
+   "dur": 2.2,
+   "frames": 66,
+   "camera": {
+    "zoom": [
+     1.0,
+     1.06
+    ],
+    "center": [
+     0.5,
+     0.55
+    ]
+   },
+   "grade": {
+    "preset": "cold",
+    "red_accent": 1.0
+   },
+   "fx": [],
+   "overlays": [
+    {
+     "type": "timecode",
+     "text": "20:57",
+     "date": "30.10.2026",
+     "t0": 0.0,
+     "t1": 2.2
+    }
+   ],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 2.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S4e",
+   "section": 4,
+   "label": "sac mortuaire — narrateur organisateurs",
+   "kind": "clip",
+   "clip": "IMG_8348",
+   "src_in": 2.0,
+   "src_out": 6.0,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 48.8667,
+   "dur": 4.0,
+   "frames": 120,
+   "camera": {
+    "zoom": [
+     1.0,
+     1.13
+    ],
+    "center": [
+     0.5,
+     0.62
+    ]
+   },
+   "grade": {
+    "preset": "cold",
+    "red_accent": 1.0
+   },
+   "fx": [
+    {
+     "type": "subliminal",
+     "t0": 3.0,
+     "frames": 2,
+     "what": "silhouette",
+     "t1": 3.0667
+    }
+   ],
+   "overlays": [
+    {
+     "type": "timecode",
+     "text": "20:57",
+     "date": "30.10.2026",
+     "t0": 0.0,
+     "t1": 4.0
+    }
+   ],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": -12.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S4f",
+   "section": 4,
+   "label": "salle — portraits, silhouette dans le coin",
+   "kind": "clip",
+   "clip": "IMG_8349",
+   "src_in": 1.0,
+   "src_out": 2.7,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 52.8667,
+   "dur": 1.7,
+   "frames": 51,
+   "camera": {
+    "zoom": [
+     1.0,
+     1.04
+    ],
+    "center": [
+     0.5,
+     0.45
+    ]
+   },
+   "grade": {
+    "preset": "cold"
+   },
+   "fx": [
+    {
+     "type": "portrait_eyes",
+     "t0": 0.0,
+     "t1": 1.7,
+     "amount": 1.0
+    }
+   ],
+   "overlays": [
+    {
+     "type": "timecode",
+     "text": "21:00",
+     "date": "30.10.2026",
+     "t0": 0.0,
+     "t1": 1.7
+    }
+   ],
+   "silhouette": {
+    "slot": "room_corner_8349",
+    "x": 0.86,
+    "foot_y": 0.7,
+    "height": 0.4,
+    "blur": 2.0,
+    "darkness": 0.85,
+    "blend": "normal",
+    "occlude_persons": false,
+    "opacity": 0.6,
+    "t0": 0.25,
+    "t1": 1.45,
+    "fade_in": 0.0,
+    "space": "plate"
+   },
+   "audio": {
+    "src_gain_db": -10.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S4g",
+   "section": 4,
+   "label": "Gabriel terrifié",
+   "kind": "clip",
+   "clip": "IMG_8349",
+   "src_in": 7.6,
+   "src_out": 9.4,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 54.5667,
+   "dur": 1.8,
+   "frames": 54,
+   "camera": {
+    "zoom": [
+     1.0,
+     1.08
+    ],
+    "center": "face"
+   },
+   "grade": {
+    "preset": "cold"
+   },
+   "fx": [
+    {
+     "type": "head_tic",
+     "t0": 0.3,
+     "t1": 1.8,
+     "amount": 0.5
+    },
+    {
+     "type": "widen_eyes",
+     "t0": 0.6,
+     "t1": 1.8,
+     "amount": 0.6,
+     "ramp": 0.6
+    }
+   ],
+   "overlays": [
+    {
+     "type": "timecode",
+     "text": "21:00",
+     "date": "30.10.2026",
+     "t0": 0.0,
+     "t1": 1.8
+    }
+   ],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": -6.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S4h",
+   "section": 4,
+   "label": "piano — Dogan haut-de-forme",
+   "kind": "clip",
+   "clip": "IMG_8354",
+   "src_in": 1.0,
+   "src_out": 5.76,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 56.3667,
+   "dur": 5.0,
+   "frames": 150,
+   "camera": {
+    "zoom": [
+     1.0,
+     1.1
+    ],
+    "center": "face"
+   },
+   "grade": {
+    "preset": "cold",
+    "warm_highlights": 0.3
+   },
+   "fx": [
+    {
+     "type": "speed_ramp",
+     "t0": 3.8,
+     "t1": 5.0,
+     "to": 0.6
+    },
+    {
+     "type": "black_eyes",
+     "t0": 4.3,
+     "t1": 5.0,
+     "amount": 1.0,
+     "ramp": 0.5
+    }
+   ],
+   "overlays": [
+    {
+     "type": "timecode",
+     "text": "22:12",
+     "date": "30.10.2026",
+     "t0": 0.0,
+     "t1": 5.0
+    }
+   ],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": false,
+    "src_fx": [
+     {
+      "type": "pitch_drift",
+      "t0": 2.8,
+      "t1": 5.0,
+      "semitones": -0.8
+     },
+     {
+      "type": "slow_down",
+      "t0": 3.8,
+      "t1": 5.0,
+      "to": 0.7
+     }
+    ],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S4i",
+   "section": 4,
+   "label": "possession 1 (8340 yeux fixes)",
+   "kind": "clip",
+   "clip": "IMG_8340",
+   "src_in": 8.8,
+   "src_out": 9.3333,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 61.3667,
+   "dur": 0.5333,
+   "frames": 16,
+   "camera": {
+    "zoom": [
+     1.1,
+     1.2
+    ],
+    "center": "face"
+   },
+   "grade": {
+    "preset": "cold"
+   },
+   "fx": [
+    {
+     "type": "black_eyes",
+     "amount": 1.0,
+     "t0": 0.0,
+     "t1": 0.5333
+    },
+    {
+     "type": "head_tic",
+     "amount": 0.7,
+     "t0": 0.0,
+     "t1": 0.5333
+    }
+   ],
+   "overlays": [],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": true,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S4j",
+   "section": 4,
+   "label": "possession 2 (8344 sourire Gabriel)",
+   "kind": "clip",
+   "clip": "IMG_8344",
+   "src_in": 5.0,
+   "src_out": 5.5333,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 61.9,
+   "dur": 0.5333,
+   "frames": 16,
+   "camera": {
+    "zoom": [
+     1.1,
+     1.2
+    ],
+    "center": "face"
+   },
+   "grade": {
+    "preset": "cold"
+   },
+   "fx": [
+    {
+     "type": "stretch_smile",
+     "amount": 1.0,
+     "ramp": 0.3,
+     "t0": 0.0,
+     "t1": 0.5333
+    },
+    {
+     "type": "black_eyes",
+     "amount": 1.0,
+     "t0": 0.0,
+     "t1": 0.5333
+    }
+   ],
+   "overlays": [],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": true,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S4k",
+   "section": 4,
+   "label": "possession 3 (8339 selfie figé)",
+   "kind": "clip",
+   "clip": "IMG_8339",
+   "src_in": 1.5,
+   "src_out": 2.0333,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 62.4333,
+   "dur": 0.5333,
+   "frames": 16,
+   "camera": {
+    "zoom": [
+     1.1,
+     1.2
+    ],
+    "center": "face"
+   },
+   "grade": {
+    "preset": "cold"
+   },
+   "fx": [
+    {
+     "type": "melt",
+     "amount": 0.7,
+     "ramp": 0.5,
+     "t0": 0.0,
+     "t1": 0.5333
+    },
+    {
+     "type": "black_eyes",
+     "amount": 1.0,
+     "t0": 0.0,
+     "t1": 0.5333
+    },
+    {
+     "type": "negative",
+     "t0": 0.4,
+     "t1": 0.467
+    }
+   ],
+   "overlays": [],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": true,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S4l",
+   "section": 4,
+   "label": "possession 4 (8337 passager / 8341)",
+   "kind": "clip",
+   "clip": "IMG_8337",
+   "src_in": 1.5,
+   "src_out": 2.0333,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 62.9667,
+   "dur": 0.5333,
+   "frames": 16,
+   "camera": {
+    "zoom": [
+     1.1,
+     1.18
+    ],
+    "center": "face"
+   },
+   "grade": {
+    "preset": "cold"
+   },
+   "fx": [
+    {
+     "type": "demon_face",
+     "amount": 0.8,
+     "t0": 0.0,
+     "t1": 0.5333
+    },
+    {
+     "type": "head_tic",
+     "amount": 0.9,
+     "t0": 0.0,
+     "t1": 0.5333
+    }
+   ],
+   "overlays": [],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": true,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S4m",
+   "section": 4,
+   "label": "photo de groupe — regardez derrière eux",
+   "kind": "photo",
+   "photo": "IMG_8350",
+   "start": 63.5,
+   "dur": 5.6,
+   "frames": 168,
+   "camera": {
+    "zoom": [
+     1.0,
+     1.16
+    ],
+    "center": [
+     0.5,
+     0.45
+    ],
+    "parallax": 1.0
+   },
+   "grade": {
+    "preset": "cold",
+    "red_accent": 1.0
+   },
+   "fx": [],
+   "overlays": [
+    {
+     "type": "red_circles",
+     "targets": "faces",
+     "t0": 0.5,
+     "step": 0.38,
+     "draw": 0.32,
+     "t1": 5.6,
+     "draws": [
+      0.5,
+      0.88,
+      1.26,
+      1.64
+     ]
+    },
+    {
+     "type": "red_circles",
+     "targets": "silhouette",
+     "t0": 4.95,
+     "step": 0.0,
+     "draw": 0.28,
+     "frantic": true,
+     "t1": 5.6
+    },
+    {
+     "type": "timecode",
+     "text": "22:11",
+     "date": "30.10.2026",
+     "t0": 0.0,
+     "t1": 5.6
+    }
+   ],
+   "silhouette": {
+    "slot": "group_photo_bg",
+    "x": 0.5,
+    "foot_y": 0.6,
+    "height": 0.34,
+    "blur": 2.5,
+    "darkness": 0.9,
+    "blend": "normal",
+    "occlude_persons": true,
+    "opacity": 0.9,
+    "t0": 3.95,
+    "t1": 5.6,
+    "fade_in": 0.7,
+    "space": "photo"
+   },
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S4n",
+   "section": 4,
+   "label": "montage qui accélère",
+   "kind": "montage",
+   "start": 69.1,
+   "dur": 1.6667,
+   "frames": 50,
+   "grade": {
+    "preset": "cold"
+   },
+   "fx": [],
+   "overlays": [],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": true,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   },
+   "items": [
+    {
+     "start": 0.0,
+     "dur": 0.3,
+     "frames": 9,
+     "fx": [
+      "head_tic"
+     ],
+     "clip": "IMG_8346",
+     "src_in": 7.5
+    },
+    {
+     "start": 0.3,
+     "dur": 0.2667,
+     "frames": 8,
+     "fx": [],
+     "clip": "IMG_8348",
+     "src_in": 2.0
+    },
+    {
+     "start": 0.5667,
+     "dur": 0.2333,
+     "frames": 7,
+     "fx": [
+      "black_eyes"
+     ],
+     "clip": "IMG_8341",
+     "src_in": 1.8
+    },
+    {
+     "start": 0.8,
+     "dur": 0.2,
+     "frames": 6,
+     "fx": [],
+     "clip": "IMG_8347",
+     "src_in": 10.7
+    },
+    {
+     "start": 1.0,
+     "dur": 0.1667,
+     "frames": 5,
+     "fx": [
+      "stretch_smile",
+      "black_eyes"
+     ],
+     "clip": "IMG_8344",
+     "src_in": 5.0
+    },
+    {
+     "start": 1.1667,
+     "dur": 0.1333,
+     "frames": 4,
+     "fx": [
+      "black_eyes"
+     ],
+     "clip": "IMG_8340",
+     "src_in": 8.8
+    },
+    {
+     "start": 1.3,
+     "dur": 0.1,
+     "frames": 3,
+     "fx": [
+      "silhouette"
+     ],
+     "photo": "IMG_8350"
+    },
+    {
+     "start": 1.4,
+     "dur": 0.1,
+     "frames": 3,
+     "fx": [],
+     "clip": "IMG_8336",
+     "src_in": 2.0
+    },
+    {
+     "start": 1.5,
+     "dur": 0.1667,
+     "frames": 5,
+     "fx": [
+      "rgb_split"
+     ],
+     "clip": "IMG_8346",
+     "src_in": 7.5
+    }
+   ]
+  },
+  {
+   "id": "S4o",
+   "section": 4,
+   "label": "noir sec",
+   "kind": "black",
+   "start": 70.7667,
+   "dur": 0.5,
+   "frames": 15,
+   "fx": [],
+   "overlays": [],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S5a",
+   "section": 5,
+   "label": "Burger King chaud — tout était fini",
+   "kind": "clip",
+   "clip": "IMG_8355",
+   "src_in": 2.0,
+   "src_out": 5.6,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 71.2667,
+   "dur": 3.6,
+   "frames": 108,
+   "camera": {
+    "zoom": [
+     1.0,
+     1.04
+    ],
+    "center": [
+     0.5,
+     0.45
+    ]
+   },
+   "grade": {
+    "preset": "warm"
+   },
+   "fx": [
+    {
+     "type": "privacy_blur",
+     "t0": 0.0,
+     "t1": 3.6
+    }
+   ],
+   "overlays": [
+    {
+     "type": "timecode",
+     "text": "23:18",
+     "date": "30.10.2026",
+     "t0": 0.0,
+     "t1": 3.6
+    }
+   ],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": -3.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S5b",
+   "section": 5,
+   "label": "rires qui se déforment",
+   "kind": "clip",
+   "clip": "IMG_8356",
+   "src_in": 3.0,
+   "src_out": 5.75,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 74.8667,
+   "dur": 3.2,
+   "frames": 96,
+   "camera": {
+    "zoom": [
+     1.0,
+     1.1
+    ],
+    "center": "face"
+   },
+   "grade": {
+    "preset": "warm_to_cold",
+    "mix": [
+     0.0,
+     0.75
+    ]
+   },
+   "fx": [
+    {
+     "type": "privacy_blur",
+     "t0": 0.0,
+     "t1": 3.2
+    },
+    {
+     "type": "speed_ramp",
+     "t0": 1.2,
+     "t1": 3.2,
+     "to": 0.55
+    },
+    {
+     "type": "stretch_smile",
+     "t0": 1.8,
+     "t1": 3.2,
+     "amount": 0.8,
+     "ramp": 1.2
+    }
+   ],
+   "overlays": [
+    {
+     "type": "timecode",
+     "text": "23:24",
+     "date": "30.10.2026",
+     "t0": 0.0,
+     "t1": 3.2
+    }
+   ],
+   "silhouette": {
+    "slot": "bk_window_8356",
+    "x": 0.84,
+    "foot_y": 0.55,
+    "height": 0.3,
+    "blur": 3.0,
+    "darkness": 0.7,
+    "blend": "multiply",
+    "occlude_persons": true,
+    "opacity": 0.35,
+    "t0": 0.9,
+    "t1": 2.5,
+    "fade_in": 0.0,
+    "space": "plate"
+   },
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": false,
+    "src_fx": [
+     {
+      "type": "slow_down",
+      "t0": 1.2,
+      "t1": 3.2,
+      "to": 0.55
+     },
+     {
+      "type": "pitch_drift",
+      "t0": 1.2,
+      "t1": 3.2,
+      "semitones": -7
+     }
+    ],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S5c",
+   "section": 5,
+   "label": "gel sourire étiré yeux noirs",
+   "kind": "freeze",
+   "freeze_src": {
+    "clip": "IMG_8356",
+    "t": 5.7317
+   },
+   "start": 78.0667,
+   "dur": 1.4,
+   "frames": 42,
+   "camera": {
+    "zoom": [
+     1.1,
+     1.2
+    ],
+    "center": "face"
+   },
+   "grade": {
+    "preset": "warm_to_cold",
+    "mix": [
+     0.75,
+     1.0
+    ]
+   },
+   "fx": [
+    {
+     "type": "privacy_blur",
+     "t0": 0.0,
+     "t1": 1.4
+    },
+    {
+     "type": "stretch_smile",
+     "amount": 1.0,
+     "t0": 0.0,
+     "t1": 1.4
+    },
+    {
+     "type": "black_eyes",
+     "amount": 1.0,
+     "ramp": 0.6,
+     "t0": 0.0,
+     "t1": 1.4
+    },
+    {
+     "type": "melt",
+     "t0": 0.6,
+     "t1": 1.4,
+     "amount": 0.5,
+     "ramp": 0.8
+    }
+   ],
+   "overlays": [],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S5d",
+   "section": 5,
+   "label": "noir",
+   "kind": "black",
+   "start": 79.4667,
+   "dur": 0.4,
+   "frames": 12,
+   "fx": [],
+   "overlays": [],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S6a",
+   "section": 6,
+   "label": "parking 23:42 — Hugo, silhouette loin",
+   "kind": "clip",
+   "clip": "IMG_8357",
+   "src_in": 4.0,
+   "src_out": 5.3,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 79.8667,
+   "dur": 1.3,
+   "frames": 39,
+   "camera": {
+    "zoom": [
+     1.0,
+     1.02
+    ],
+    "center": "face"
+   },
+   "grade": {
+    "preset": "cold"
+   },
+   "fx": [
+    {
+     "type": "privacy_blur",
+     "t0": 0.0,
+     "t1": 1.3
+    }
+   ],
+   "overlays": [
+    {
+     "type": "timecode",
+     "text": "23:42",
+     "date": "30.10.2026",
+     "t0": 0.0,
+     "t1": 1.3
+    }
+   ],
+   "silhouette": {
+    "slot": "parking_8357_far",
+    "x": 0.28,
+    "foot_y": 0.6,
+    "height": 0.15,
+    "blur": 1.8,
+    "darkness": 0.9,
+    "blend": "normal",
+    "occlude_persons": true,
+    "opacity": 0.85,
+    "t0": 0.0,
+    "t1": 1.3,
+    "fade_in": 0.0,
+    "space": "plate"
+   },
+   "audio": {
+    "src_gain_db": -8.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S6b",
+   "section": 6,
+   "label": "silhouette plus proche",
+   "kind": "clip",
+   "clip": "IMG_8357",
+   "src_in": 5.3,
+   "src_out": 6.4,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 81.1667,
+   "dur": 1.1,
+   "frames": 33,
+   "camera": {
+    "zoom": [
+     1.03,
+     1.05
+    ],
+    "center": "face"
+   },
+   "grade": {
+    "preset": "cold"
+   },
+   "fx": [
+    {
+     "type": "privacy_blur",
+     "t0": 0.0,
+     "t1": 1.1
+    }
+   ],
+   "overlays": [
+    {
+     "type": "timecode",
+     "text": "23:42",
+     "date": "30.10.2026",
+     "t0": 0.0,
+     "t1": 1.1
+    }
+   ],
+   "silhouette": {
+    "slot": "parking_8357_mid",
+    "x": 0.31,
+    "foot_y": 0.68,
+    "height": 0.27,
+    "blur": 1.6,
+    "darkness": 0.92,
+    "blend": "normal",
+    "occlude_persons": true,
+    "opacity": 0.9,
+    "t0": 0.0,
+    "t1": 1.1,
+    "fade_in": 0.0,
+    "space": "plate"
+   },
+   "audio": {
+    "src_gain_db": -10.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S6c",
+   "section": 6,
+   "label": "silhouette juste derrière",
+   "kind": "clip",
+   "clip": "IMG_8357",
+   "src_in": 6.4,
+   "src_out": 7.3,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 82.2667,
+   "dur": 0.9,
+   "frames": 27,
+   "camera": {
+    "zoom": [
+     1.06,
+     1.08
+    ],
+    "center": "face"
+   },
+   "grade": {
+    "preset": "cold"
+   },
+   "fx": [
+    {
+     "type": "privacy_blur",
+     "t0": 0.0,
+     "t1": 0.9
+    }
+   ],
+   "overlays": [
+    {
+     "type": "timecode",
+     "text": "23:42",
+     "date": "30.10.2026",
+     "t0": 0.0,
+     "t1": 0.9
+    }
+   ],
+   "silhouette": {
+    "slot": "parking_8357_near",
+    "x": 0.27,
+    "foot_y": 0.86,
+    "height": 0.5,
+    "blur": 1.4,
+    "darkness": 0.95,
+    "blend": "normal",
+    "occlude_persons": true,
+    "opacity": 0.95,
+    "t0": 0.0,
+    "t1": 0.9,
+    "fade_in": 0.0,
+    "space": "plate"
+   },
+   "audio": {
+    "src_gain_db": -12.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S6d",
+   "section": 6,
+   "label": "silence total puis chuchotement",
+   "kind": "freeze",
+   "freeze_src": {
+    "clip": "IMG_8357",
+    "t": 7.2667
+   },
+   "start": 83.1667,
+   "dur": 2.0333,
+   "frames": 61,
+   "camera": {
+    "zoom": [
+     1.08,
+     1.13
+    ],
+    "center": "face"
+   },
+   "grade": {
+    "preset": "cold"
+   },
+   "fx": [
+    {
+     "type": "privacy_blur",
+     "t0": 0.0,
+     "t1": 2.0333
+    },
+    {
+     "type": "darken",
+     "t0": 1.0,
+     "t1": 2.0333,
+     "amount": 0.35
+    }
+   ],
+   "overlays": [
+    {
+     "type": "timecode",
+     "text": "23:42",
+     "date": "30.10.2026",
+     "t0": 0.0,
+     "t1": 2.0333
+    }
+   ],
+   "silhouette": {
+    "slot": "parking_8357_near",
+    "x": 0.27,
+    "foot_y": 0.86,
+    "height": 0.5,
+    "blur": 1.4,
+    "darkness": 0.95,
+    "blend": "normal",
+    "occlude_persons": true,
+    "opacity": 0.95,
+    "t0": 0.0,
+    "t1": 2.0333,
+    "fade_in": 0.0,
+    "space": "plate"
+   },
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S6e",
+   "section": 6,
+   "label": "SCREAMER",
+   "kind": "clip",
+   "clip": "IMG_8349",
+   "src_in": 15.0,
+   "src_out": 15.9333,
+   "speed": 1.0,
+   "freeze_after": null,
+   "start": 85.2,
+   "dur": 0.9333,
+   "frames": 28,
+   "camera": {
+    "zoom": [
+     1.0,
+     1.18
+    ],
+    "punch": 0.12,
+    "center": "face"
+   },
+   "grade": {
+    "preset": "bleach"
+   },
+   "fx": [
+    {
+     "type": "demon_face",
+     "amount": 1.0,
+     "t0": 0.0,
+     "t1": 0.9333
+    },
+    {
+     "type": "head_tic",
+     "amount": 1.0,
+     "t0": 0.0,
+     "t1": 0.9333
+    },
+    {
+     "type": "subliminal",
+     "t0": 0.27,
+     "frames": 2,
+     "what": "silhouette",
+     "t1": 0.3367
+    },
+    {
+     "type": "subliminal",
+     "t0": 0.63,
+     "frames": 2,
+     "what": "silhouette_negative",
+     "t1": 0.6967
+    }
+   ],
+   "overlays": [],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 6.0,
+    "mute_src": false,
+    "src_fx": [
+     {
+      "type": "scream_layer"
+     }
+    ],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S6f",
+   "section": 6,
+   "label": "noir",
+   "kind": "black",
+   "start": 86.1333,
+   "dur": 0.6,
+   "frames": 18,
+   "fx": [],
+   "overlays": [],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S7a",
+   "section": 7,
+   "label": "titre 3D brouillard + phares",
+   "kind": "title",
+   "start": 86.7333,
+   "dur": 5.0,
+   "frames": 150,
+   "fx": [],
+   "overlays": [
+    {
+     "type": "title_sub",
+     "text": "INSPIRÉ DE FAITS RÉELS — 30.10.2026",
+     "t0": 2.6,
+     "t1": 5.0
+    }
+   ],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  },
+  {
+   "id": "S7b",
+   "section": 7,
+   "label": "noir final",
+   "kind": "black",
+   "start": 91.7333,
+   "dur": 0.4667,
+   "frames": 14,
+   "fx": [],
+   "overlays": [],
+   "silhouette": null,
+   "audio": {
+    "src_gain_db": 0.0,
+    "mute_src": false,
+    "src_fx": [],
+    "mute_ranges": [],
+    "fade_in": 0.01,
+    "fade_out": 0.01
+   }
+  }
+ ],
+ "voices": [
+  {
+   "id": "N01",
+   "file": "assets/audio/voice/N01.wav",
+   "t_speech": 6.3,
+   "t_file": 6.239,
+   "dur": 5.496,
+   "speech_dur": 4.885,
+   "gain_db": 0.0,
+   "kind": "narrator",
+   "shot": "S2b",
+   "allow_in_silence": false,
+   "text": "Le 30 octobre 2026, quatre amis ont pris la route pour un escape game.",
+   "estimated": false
+  },
+  {
+   "id": "N02",
+   "file": "assets/audio/voice/N02.wav",
+   "t_speech": 11.35,
+   "t_file": 11.29,
+   "dur": 2.384,
+   "speech_dur": 1.774,
+   "gain_db": 0.0,
+   "kind": "narrator",
+   "shot": "S2d",
+   "allow_in_silence": false,
+   "text": "Ils se sont filmés toute la soirée.",
+   "estimated": false
+  },
+  {
+   "id": "N03",
+   "file": "assets/audio/voice/N03.wav",
+   "t_speech": 13.5,
+   "t_file": 13.44,
+   "dur": 2.324,
+   "speech_dur": 1.714,
+   "gain_db": 0.0,
+   "kind": "narrator",
+   "shot": "S2e",
+   "allow_in_silence": false,
+   "text": "Voici ce qu'ils ont filmé.",
+   "estimated": false
+  },
+  {
+   "id": "N04",
+   "file": "assets/audio/voice/N04.wav",
+   "t_speech": 35.5833,
+   "t_file": 35.5233,
+   "dur": 1.867,
+   "speech_dur": 1.257,
+   "gain_db": 0.0,
+   "kind": "narrator",
+   "shot": "S3b",
+   "allow_in_silence": false,
+   "text": "Ils ne l'ont jamais revu.",
+   "estimated": false
+  },
+  {
+   "id": "N05",
+   "file": "assets/audio/voice/N05.wav",
+   "t_speech": 37.4833,
+   "t_file": 37.4243,
+   "dur": 2.394,
+   "speech_dur": 1.785,
+   "gain_db": 0.0,
+   "kind": "narrator",
+   "shot": "S3c",
+   "allow_in_silence": false,
+   "text": "Lui ne les a plus jamais quittés.",
+   "estimated": false
+  },
+  {
+   "id": "E_IDENT",
+   "file": "assets/audio/voice/E_IDENT.wav",
+   "t_speech": 44.5833,
+   "t_file": 43.5313,
+   "dur": 3.9,
+   "speech_dur": 1.408,
+   "gain_db": 0.0,
+   "kind": "entity",
+   "shot": "S4b",
+   "allow_in_silence": false,
+   "text": "Identification terminée.",
+   "estimated": false
+  },
+  {
+   "id": "N06",
+   "file": "assets/audio/voice/N06.wav",
+   "t_speech": 49.0667,
+   "t_file": 49.0067,
+   "dur": 4.505,
+   "speech_dur": 3.894,
+   "gain_db": 0.0,
+   "kind": "narrator",
+   "shot": "S4e",
+   "allow_in_silence": false,
+   "text": "Les organisateurs jurent que cette pièce ne fait pas partie du jeu.",
+   "estimated": false
+  },
+  {
+   "id": "N07a",
+   "file": "assets/audio/voice/N07a.wav",
+   "t_speech": 56.6667,
+   "t_file": 56.6067,
+   "dur": 3.302,
+   "speech_dur": 2.692,
+   "gain_db": 0.0,
+   "kind": "narrator",
+   "shot": "S4h",
+   "allow_in_silence": false,
+   "text": "À 22h12, Dogan s'est mis au piano.",
+   "estimated": false
+  },
+  {
+   "id": "N07b",
+   "file": "assets/audio/voice/N07b.wav",
+   "t_speech": 59.7087,
+   "t_file": 59.6487,
+   "dur": 2.207,
+   "speech_dur": 1.597,
+   "gain_db": 0.0,
+   "kind": "narrator",
+   "shot": "S4h",
+   "allow_in_silence": false,
+   "text": "Il ne se souvient pas d'avoir joué.",
+   "estimated": false
+  },
+  {
+   "id": "E_DOGAN",
+   "file": "assets/audio/voice/E_DOGAN.wav",
+   "t_speech": 61.4167,
+   "t_file": 60.7637,
+   "dur": 2.297,
+   "speech_dur": 0.549,
+   "gain_db": 0.0,
+   "kind": "entity",
+   "shot": "S4i",
+   "allow_in_silence": false,
+   "text": "Dogan…",
+   "estimated": false
+  },
+  {
+   "id": "E_GABRIEL",
+   "file": "assets/audio/voice/E_GABRIEL.wav",
+   "t_speech": 61.95,
+   "t_file": 61.296,
+   "dur": 2.255,
+   "speech_dur": 0.55,
+   "gain_db": 0.0,
+   "kind": "entity",
+   "shot": "S4j",
+   "allow_in_silence": false,
+   "text": "Gabriel…",
+   "estimated": false
+  },
+  {
+   "id": "E_HUGO",
+   "file": "assets/audio/voice/E_HUGO.wav",
+   "t_speech": 62.4833,
+   "t_file": 61.8303,
+   "dur": 2.162,
+   "speech_dur": 0.411,
+   "gain_db": 0.0,
+   "kind": "entity",
+   "shot": "S4k",
+   "allow_in_silence": false,
+   "text": "Hugo…",
+   "estimated": false
+  },
+  {
+   "id": "E_ARSENE",
+   "file": "assets/audio/voice/E_ARSENE.wav",
+   "t_speech": 63.0167,
+   "t_file": 62.3637,
+   "dur": 2.409,
+   "speech_dur": 0.747,
+   "gain_db": 0.0,
+   "kind": "entity",
+   "shot": "S4l",
+   "allow_in_silence": false,
+   "text": "Arsène…",
+   "estimated": false
+  },
+  {
+   "id": "N08a",
+   "file": "assets/audio/voice/N08a.wav",
+   "t_speech": 63.85,
+   "t_file": 63.79,
+   "dur": 2.534,
+   "speech_dur": 1.924,
+   "gain_db": 0.0,
+   "kind": "narrator",
+   "shot": "S4m",
+   "allow_in_silence": false,
+   "text": "Sur la photo, ils sont quatre.",
+   "estimated": false
+  },
+  {
+   "id": "N08b",
+   "file": "assets/audio/voice/N08b.wav",
+   "t_speech": 66.224,
+   "t_file": 66.162,
+   "dur": 2.177,
+   "speech_dur": 1.565,
+   "gain_db": 0.0,
+   "kind": "narrator",
+   "shot": "S4m",
+   "allow_in_silence": false,
+   "text": "Regardez derrière eux.",
+   "estimated": false
+  },
+  {
+   "id": "N09a",
+   "file": "assets/audio/voice/N09a.wav",
+   "t_speech": 71.5667,
+   "t_file": 71.5067,
+   "dur": 2.949,
+   "speech_dur": 2.339,
+   "gain_db": 0.0,
+   "kind": "narrator",
+   "shot": "S5a",
+   "allow_in_silence": false,
+   "text": "À 23h, tout était fini.",
+   "estimated": false
+  },
+  {
+   "id": "N09b",
+   "file": "assets/audio/voice/N09b.wav",
+   "t_speech": 74.3057,
+   "t_file": 74.2457,
+   "dur": 1.222,
+   "speech_dur": 0.612,
+   "gain_db": 0.0,
+   "kind": "narrator",
+   "shot": "S5a",
+   "allow_in_silence": false,
+   "text": "Ils riaient.",
+   "estimated": false
+  },
+  {
+   "id": "E_CQL",
+   "file": "assets/audio/voice/E_CQL.wav",
+   "t_speech": 84.1667,
+   "t_file": 83.6827,
+   "dur": 1.563,
+   "speech_dur": 0.764,
+   "gain_db": 0.0,
+   "kind": "entity",
+   "shot": "S6d",
+   "allow_in_silence": true,
+   "text": "C'est qui lui ?",
+   "estimated": false
+  },
+  {
+   "id": "E_IDENT",
+   "file": "assets/audio/voice/E_IDENT.wav",
+   "t_speech": 90.6833,
+   "t_file": 89.6313,
+   "dur": 3.9,
+   "speech_dur": 1.408,
+   "gain_db": 0.0,
+   "kind": "entity",
+   "shot": "S7a",
+   "allow_in_silence": false,
+   "text": "Identification terminée.",
+   "estimated": false
+  }
+ ],
+ "subtitles": [
+  {
+   "start": 0.8,
+   "end": 2.2,
+   "text": "C'est qui lui ?",
+   "kind": "dialogue",
+   "shot": "S1a"
+  },
+  {
+   "start": 6.3,
+   "end": 7.6051,
+   "text": "Le 30 octobre 2026,",
+   "kind": "narrator",
+   "voice": "N01"
+  },
+  {
+   "start": 7.6451,
+   "end": 11.31,
+   "text": "quatre amis ont pris la route\npour un escape game.",
+   "kind": "narrator",
+   "voice": "N01"
+  },
+  {
+   "start": 11.35,
+   "end": 13.424,
+   "text": "Ils se sont filmés\ntoute la soirée.",
+   "kind": "narrator",
+   "voice": "N02"
+  },
+  {
+   "start": 13.5,
+   "end": 15.514,
+   "text": "Voici ce qu'ils ont filmé.",
+   "kind": "narrator",
+   "voice": "N03"
+  },
+  {
+   "start": 19.0,
+   "end": 20.0,
+   "text": "Tu sais quand il vient ?",
+   "kind": "dialogue",
+   "shot": "S2j"
+  },
+  {
+   "start": 20.15,
+   "end": 21.6,
+   "text": "Il vient directement, lui.",
+   "kind": "dialogue",
+   "shot": "S2k"
+  },
+  {
+   "start": 23.2333,
+   "end": 25.3333,
+   "text": "T'as entendu le bruit ?",
+   "kind": "dialogue",
+   "shot": "S3a"
+  },
+  {
+   "start": 26.1333,
+   "end": 28.3333,
+   "text": "Je crois qu'il y a un gars là.",
+   "kind": "dialogue",
+   "shot": "S3a"
+  },
+  {
+   "start": 29.3333,
+   "end": 30.7333,
+   "text": "C'est qui lui ?",
+   "kind": "dialogue",
+   "shot": "S3a"
+  },
+  {
+   "start": 33.5333,
+   "end": 34.8333,
+   "text": "Oh putain !",
+   "kind": "dialogue",
+   "shot": "S3a"
+  },
+  {
+   "start": 35.5833,
+   "end": 37.1403,
+   "text": "Ils ne l'ont jamais revu.",
+   "kind": "narrator",
+   "voice": "N04"
+  },
+  {
+   "start": 37.4833,
+   "end": 39.5683,
+   "text": "Lui ne les a plus jamais quittés.",
+   "kind": "narrator",
+   "voice": "N05"
+  },
+  {
+   "start": 40.7333,
+   "end": 44.1333,
+   "text": "Identification terminée.",
+   "kind": "dialogue",
+   "shot": "S4a"
+  },
+  {
+   "start": 44.5833,
+   "end": 46.2913,
+   "text": "Identification terminée.",
+   "kind": "entity",
+   "voice": "E_IDENT"
+  },
+  {
+   "start": 47.4667,
+   "end": 48.6667,
+   "text": "C'est quoi ça ?",
+   "kind": "dialogue",
+   "shot": "S4d"
+  },
+  {
+   "start": 49.0667,
+   "end": 53.2607,
+   "text": "Les organisateurs jurent que cette\npièce ne fait pas partie du jeu.",
+   "kind": "narrator",
+   "voice": "N06"
+  },
+  {
+   "start": 56.6667,
+   "end": 59.6587,
+   "text": "À 22h12, Dogan s'est mis au piano.",
+   "kind": "narrator",
+   "voice": "N07a"
+  },
+  {
+   "start": 59.7087,
+   "end": 61.3767,
+   "text": "Il ne se souvient\npas d'avoir joué.",
+   "kind": "narrator",
+   "voice": "N07b"
+  },
+  {
+   "start": 61.4167,
+   "end": 61.91,
+   "text": "Dogan…",
+   "kind": "entity",
+   "voice": "E_DOGAN"
+  },
+  {
+   "start": 61.95,
+   "end": 62.4433,
+   "text": "Gabriel…",
+   "kind": "entity",
+   "voice": "E_GABRIEL"
+  },
+  {
+   "start": 62.4833,
+   "end": 62.9767,
+   "text": "Hugo…",
+   "kind": "entity",
+   "voice": "E_HUGO"
+  },
+  {
+   "start": 63.0167,
+   "end": 63.81,
+   "text": "Arsène…",
+   "kind": "entity",
+   "voice": "E_ARSENE"
+  },
+  {
+   "start": 63.85,
+   "end": 66.074,
+   "text": "Sur la photo, ils sont quatre.",
+   "kind": "narrator",
+   "voice": "N08a"
+  },
+  {
+   "start": 66.224,
+   "end": 68.089,
+   "text": "Regardez derrière eux.",
+   "kind": "narrator",
+   "voice": "N08b"
+  },
+  {
+   "start": 71.5667,
+   "end": 74.2057,
+   "text": "À 23h, tout était fini.",
+   "kind": "narrator",
+   "voice": "N09a"
+  },
+  {
+   "start": 74.3057,
+   "end": 75.2177,
+   "text": "Ils riaient.",
+   "kind": "narrator",
+   "voice": "N09b"
+  },
+  {
+   "start": 84.1667,
+   "end": 85.2307,
+   "text": "C'est qui lui ?",
+   "kind": "entity",
+   "voice": "E_CQL"
+  },
+  {
+   "start": 90.6833,
+   "end": 92.2,
+   "text": "Identification terminée.",
+   "kind": "entity",
+   "voice": "E_IDENT"
+  }
+ ],
+ "cues": [
+  {
+   "t": 2.3,
+   "sfx": "impact_big",
+   "gain_db": -1,
+   "dur": null,
+   "params": {},
+   "shot": "S1b"
+  },
+  {
+   "t": 2.3,
+   "sfx": "braam",
+   "gain_db": -5,
+   "dur": null,
+   "params": {},
+   "shot": "S1b"
+  },
+  {
+   "t": 2.3,
+   "sfx": "freeze_thump",
+   "gain_db": -6,
+   "dur": null,
+   "params": {},
+   "shot": "S1b"
+  },
+  {
+   "t": 2.45,
+   "sfx": "tinnitus",
+   "dur": 0.8,
+   "gain_db": -24,
+   "params": {},
+   "shot": "S1b"
+  },
+  {
+   "t": 3.2333,
+   "sfx": "sub_drop",
+   "gain_db": -6,
+   "dur": null,
+   "params": {},
+   "shot": "S1c"
+  },
+  {
+   "t": 3.7,
+   "sfx": "reverse_swell",
+   "dur": 1.2,
+   "gain_db": -18,
+   "params": {},
+   "shot": "S2a"
+  },
+  {
+   "t": 15.15,
+   "sfx": "vhs_click",
+   "gain_db": -10,
+   "dur": null,
+   "params": {},
+   "shot": "S2e"
+  },
+  {
+   "t": 15.3,
+   "sfx": "whoosh_rev",
+   "dur": 0.25,
+   "gain_db": -16,
+   "params": {},
+   "shot": "S2f"
+  },
+  {
+   "t": 15.5,
+   "sfx": "freeze_thump",
+   "gain_db": -8,
+   "dur": null,
+   "params": {},
+   "shot": "S2f"
+  },
+  {
+   "t": 16.2,
+   "sfx": "whoosh_rev",
+   "dur": 0.25,
+   "gain_db": -16,
+   "params": {},
+   "shot": "S2g"
+  },
+  {
+   "t": 16.4,
+   "sfx": "freeze_thump",
+   "gain_db": -8,
+   "dur": null,
+   "params": {},
+   "shot": "S2g"
+  },
+  {
+   "t": 17.1,
+   "sfx": "whoosh_rev",
+   "dur": 0.25,
+   "gain_db": -16,
+   "params": {},
+   "shot": "S2h"
+  },
+  {
+   "t": 17.3,
+   "sfx": "freeze_thump",
+   "gain_db": -8,
+   "dur": null,
+   "params": {},
+   "shot": "S2h"
+  },
+  {
+   "t": 18.0,
+   "sfx": "freeze_thump",
+   "gain_db": -8,
+   "dur": null,
+   "params": {},
+   "shot": "S2i"
+  },
+  {
+   "t": 21.7,
+   "sfx": "impact_hit",
+   "gain_db": -4,
+   "dur": null,
+   "params": {},
+   "shot": "S2l"
+  },
+  {
+   "t": 21.7,
+   "sfx": "glitch_short",
+   "gain_db": -14,
+   "dur": null,
+   "params": {},
+   "shot": "S2l"
+  },
+  {
+   "sfx": "reverse_swell",
+   "dur": 0.9,
+   "gain_db": -12,
+   "t": 28.4333,
+   "params": {},
+   "shot": "S3a"
+  },
+  {
+   "sfx": "impact_big",
+   "gain_db": -2,
+   "t": 33.5333,
+   "dur": null,
+   "params": {},
+   "shot": "S3a"
+  },
+  {
+   "sfx": "braam_long",
+   "gain_db": -5,
+   "t": 33.5333,
+   "dur": null,
+   "params": {},
+   "shot": "S3a"
+  },
+  {
+   "t": 38.9183,
+   "sfx": "impact_sub",
+   "gain_db": -3,
+   "dur": null,
+   "params": {},
+   "shot": "S3c"
+  },
+  {
+   "t": 38.9183,
+   "sfx": "sub_drop",
+   "gain_db": -8,
+   "dur": null,
+   "params": {},
+   "shot": "S3c"
+  },
+  {
+   "t": 40.1833,
+   "sfx": "scan_sweep",
+   "gain_db": -14,
+   "dur": null,
+   "params": {},
+   "shot": "S4a"
+  },
+  {
+   "t": 40.3833,
+   "sfx": "hud_lock",
+   "gain_db": -11.0,
+   "dur": null,
+   "params": {},
+   "shot": "S4a",
+   "generated": true
+  },
+  {
+   "t": 40.8033,
+   "sfx": "hud_lock",
+   "gain_db": -11.0,
+   "dur": null,
+   "params": {},
+   "shot": "S4a",
+   "generated": true
+  },
+  {
+   "t": 41.2233,
+   "sfx": "hud_lock",
+   "gain_db": -11.0,
+   "dur": null,
+   "params": {},
+   "shot": "S4a",
+   "generated": true
+  },
+  {
+   "t": 41.6433,
+   "sfx": "hud_lock",
+   "gain_db": -11.0,
+   "dur": null,
+   "params": {},
+   "shot": "S4a",
+   "generated": true
+  },
+  {
+   "t": 44.4333,
+   "sfx": "glitch_long",
+   "gain_db": -12,
+   "dur": null,
+   "params": {},
+   "shot": "S4b"
+  },
+  {
+   "t": 44.4333,
+   "sfx": "impact_sub",
+   "gain_db": -10,
+   "dur": null,
+   "params": {},
+   "shot": "S4b"
+  },
+  {
+   "t": 45.9667,
+   "sfx": "impact_hit",
+   "gain_db": -4,
+   "dur": null,
+   "params": {},
+   "shot": "S4c"
+  },
+  {
+   "t": 46.6667,
+   "sfx": "drip",
+   "dur": 3.0,
+   "gain_db": -20,
+   "params": {},
+   "shot": "S4d"
+  },
+  {
+   "t": 52.8667,
+   "sfx": "whoosh_rev",
+   "dur": 0.5,
+   "gain_db": -16,
+   "params": {},
+   "shot": "S4f"
+  },
+  {
+   "t": 53.1667,
+   "sfx": "creak",
+   "gain_db": -16,
+   "dur": null,
+   "params": {},
+   "shot": "S4f"
+  },
+  {
+   "t": 61.3667,
+   "sfx": "glitch_short",
+   "gain_db": -12,
+   "dur": null,
+   "params": {},
+   "shot": "S4i"
+  },
+  {
+   "t": 61.9,
+   "sfx": "glitch_short",
+   "gain_db": -12,
+   "dur": null,
+   "params": {},
+   "shot": "S4j"
+  },
+  {
+   "t": 62.4333,
+   "sfx": "glitch_short",
+   "gain_db": -12,
+   "dur": null,
+   "params": {},
+   "shot": "S4k"
+  },
+  {
+   "t": 62.9667,
+   "sfx": "glitch_short",
+   "gain_db": -12,
+   "dur": null,
+   "params": {},
+   "shot": "S4l"
+  },
+  {
+   "t": 63.4667,
+   "sfx": "whoosh",
+   "dur": 0.4,
+   "gain_db": -14,
+   "params": {},
+   "shot": "S4l"
+  },
+  {
+   "t": 64.0,
+   "sfx": "marker_scribble",
+   "gain_db": -14,
+   "dur": null,
+   "params": {},
+   "shot": "S4m"
+  },
+  {
+   "t": 64.38,
+   "sfx": "marker_scribble",
+   "gain_db": -14,
+   "dur": null,
+   "params": {},
+   "shot": "S4m"
+  },
+  {
+   "t": 64.76,
+   "sfx": "marker_scribble",
+   "gain_db": -14,
+   "dur": null,
+   "params": {},
+   "shot": "S4m"
+  },
+  {
+   "t": 65.14,
+   "sfx": "marker_scribble",
+   "gain_db": -14,
+   "dur": null,
+   "params": {},
+   "shot": "S4m"
+  },
+  {
+   "t": 68.05,
+   "sfx": "braam",
+   "gain_db": -4,
+   "dur": null,
+   "params": {},
+   "shot": "S4m"
+  },
+  {
+   "t": 68.05,
+   "sfx": "impact_sub",
+   "gain_db": -8,
+   "dur": null,
+   "params": {},
+   "shot": "S4m"
+  },
+  {
+   "t": 68.45,
+   "sfx": "marker_scribble",
+   "gain_db": -10,
+   "dur": null,
+   "params": {},
+   "shot": "S4m"
+  },
+  {
+   "t": 69.1,
+   "sfx": "riser",
+   "dur": 1.65,
+   "gain_db": -8,
+   "params": {},
+   "shot": "S4n"
+  },
+  {
+   "t": 69.4,
+   "sfx": "impact_hit",
+   "gain_db": -14.0,
+   "dur": null,
+   "params": {},
+   "shot": "S4n",
+   "generated": true
+  },
+  {
+   "t": 69.6667,
+   "sfx": "impact_hit",
+   "gain_db": -14.0,
+   "dur": null,
+   "params": {},
+   "shot": "S4n",
+   "generated": true
+  },
+  {
+   "t": 69.9,
+   "sfx": "impact_hit",
+   "gain_db": -14.0,
+   "dur": null,
+   "params": {},
+   "shot": "S4n",
+   "generated": true
+  },
+  {
+   "t": 70.1,
+   "sfx": "impact_hit",
+   "gain_db": -14.0,
+   "dur": null,
+   "params": {},
+   "shot": "S4n",
+   "generated": true
+  },
+  {
+   "t": 70.2667,
+   "sfx": "impact_hit",
+   "gain_db": -14.0,
+   "dur": null,
+   "params": {},
+   "shot": "S4n",
+   "generated": true
+  },
+  {
+   "t": 70.4,
+   "sfx": "impact_hit",
+   "gain_db": -14.0,
+   "dur": null,
+   "params": {},
+   "shot": "S4n",
+   "generated": true
+  },
+  {
+   "t": 70.5,
+   "sfx": "impact_hit",
+   "gain_db": -14.0,
+   "dur": null,
+   "params": {},
+   "shot": "S4n",
+   "generated": true
+  },
+  {
+   "t": 70.6,
+   "sfx": "impact_hit",
+   "gain_db": -14.0,
+   "dur": null,
+   "params": {},
+   "shot": "S4n",
+   "generated": true
+  },
+  {
+   "t": 78.0667,
+   "sfx": "reverse_swell",
+   "dur": 1.4,
+   "gain_db": -8,
+   "params": {},
+   "shot": "S5c"
+  },
+  {
+   "t": 79.4467,
+   "sfx": "sub_drop",
+   "gain_db": -8,
+   "dur": null,
+   "params": {},
+   "shot": "S5c"
+  },
+  {
+   "t": 81.1667,
+   "sfx": "tinnitus",
+   "dur": 2.0,
+   "gain_db": -30,
+   "ramp_to_db": -17,
+   "params": {},
+   "shot": "S6b"
+  },
+  {
+   "t": 85.2,
+   "sfx": "screamer_stack",
+   "gain_db": 0.0,
+   "dur": null,
+   "params": {},
+   "shot": "S6e"
+  },
+  {
+   "t": 85.2,
+   "sfx": "impact_big",
+   "gain_db": 0.0,
+   "dur": null,
+   "params": {},
+   "shot": "S6e"
+  },
+  {
+   "t": 87.0833,
+   "sfx": "car_pass",
+   "gain_db": -10,
+   "dur": null,
+   "params": {},
+   "shot": "S7a"
+  },
+  {
+   "t": 87.9333,
+   "sfx": "impact_sub",
+   "gain_db": -6,
+   "dur": null,
+   "params": {},
+   "shot": "S7a"
+  },
+  {
+   "t": 90.2833,
+   "sfx": "piano_note",
+   "gain_db": -6,
+   "dur": null,
+   "params": {},
+   "shot": "S7a"
+  }
+ ],
+ "music": [
+  {
+   "kind": "drone_low",
+   "t0": 0.0,
+   "t1": 3.6333,
+   "gain_db": -24.0,
+   "fade_in": 0.4,
+   "fade_out": 0.3,
+   "duck": 0.0,
+   "automation": [],
+   "params": {}
+  },
+  {
+   "kind": "drone_low",
+   "t0": 3.7,
+   "t1": 18.9,
+   "gain_db": -17.0,
+   "fade_in": 1.8,
+   "fade_out": 0.4,
+   "duck": 7.0,
+   "automation": [],
+   "params": {
+    "seed": 2
+   }
+  },
+  {
+   "kind": "music_box_leitmotif",
+   "t0": 6.2,
+   "t1": 18.9,
+   "gain_db": -27.0,
+   "fade_in": 1.0,
+   "fade_out": 0.3,
+   "duck": 5.0,
+   "automation": [],
+   "params": {}
+  },
+  {
+   "kind": "drone_low",
+   "t0": 18.9,
+   "t1": 21.15,
+   "gain_db": -27.0,
+   "fade_in": 0.0,
+   "fade_out": 0.25,
+   "duck": 0.0,
+   "automation": [],
+   "params": {
+    "seed": 3
+   }
+  },
+  {
+   "kind": "drone_tension",
+   "t0": 22.9333,
+   "t1": 35.2333,
+   "gain_db": -30.0,
+   "fade_in": 0.0,
+   "fade_out": 0.0,
+   "duck": 4.0,
+   "automation": [
+    [
+     22.9333,
+     -30.0
+    ],
+    [
+     35.2333,
+     -13.0
+    ]
+   ],
+   "params": {}
+  },
+  {
+   "kind": "heartbeat",
+   "t0": 24.9333,
+   "t1": 34.6333,
+   "gain_db": -15.0,
+   "fade_in": 0.0,
+   "fade_out": 0.0,
+   "duck": 0.0,
+   "automation": [],
+   "params": {
+    "bpm_start": 62,
+    "bpm_end": 118
+   }
+  },
+  {
+   "kind": "riser",
+   "t0": 30.6333,
+   "t1": 34.6333,
+   "gain_db": -15.0,
+   "fade_in": 0.0,
+   "fade_out": 0.0,
+   "duck": 0.0,
+   "automation": [],
+   "params": {}
+  },
+  {
+   "kind": "drone_low",
+   "t0": 34.6333,
+   "t1": 39.9333,
+   "gain_db": -16.0,
+   "fade_in": 0.0,
+   "fade_out": 0.6,
+   "duck": 6.0,
+   "automation": [],
+   "params": {
+    "seed": 5,
+    "darker": true
+   }
+  },
+  {
+   "kind": "clock_tick",
+   "t0": 39.9333,
+   "t1": 56.3667,
+   "gain_db": -24.0,
+   "fade_in": 0.0,
+   "fade_out": 0.0,
+   "duck": 0.0,
+   "automation": [],
+   "params": {
+    "bpm": 60
+   }
+  },
+  {
+   "kind": "drone_low",
+   "t0": 39.9333,
+   "t1": 67.4,
+   "gain_db": -18.0,
+   "fade_in": 0.6,
+   "fade_out": 0.05,
+   "duck": 6.0,
+   "automation": [],
+   "params": {
+    "seed": 7
+   }
+  },
+  {
+   "kind": "drone_tension",
+   "t0": 46.6667,
+   "t1": 56.3667,
+   "gain_db": -24.0,
+   "fade_in": 0.5,
+   "fade_out": 0.4,
+   "duck": 5.0,
+   "automation": [],
+   "params": {}
+  },
+  {
+   "kind": "drone_tension",
+   "t0": 61.3667,
+   "t1": 63.5,
+   "gain_db": -17.0,
+   "fade_in": 0.0,
+   "fade_out": 0.0,
+   "duck": 0.0,
+   "automation": [],
+   "params": {
+    "seed": 9
+   }
+  },
+  {
+   "kind": "drone_low",
+   "t0": 68.0,
+   "t1": 70.7667,
+   "gain_db": -15.0,
+   "fade_in": 0.0,
+   "fade_out": 0.02,
+   "duck": 0.0,
+   "automation": [],
+   "params": {
+    "seed": 11,
+    "darker": true
+   }
+  },
+  {
+   "kind": "warm_pad",
+   "t0": 71.2667,
+   "t1": 76.4667,
+   "gain_db": -22.0,
+   "fade_in": 0.6,
+   "fade_out": 0.8,
+   "duck": 4.0,
+   "automation": [],
+   "params": {}
+  },
+  {
+   "kind": "drone_low",
+   "t0": 76.0667,
+   "t1": 79.4667,
+   "gain_db": -18.0,
+   "fade_in": 1.5,
+   "fade_out": 0.02,
+   "duck": 0.0,
+   "automation": [],
+   "params": {
+    "seed": 13,
+    "darker": true
+   }
+  },
+  {
+   "kind": "wind",
+   "t0": 79.8667,
+   "t1": 83.1667,
+   "gain_db": -26.0,
+   "fade_in": 0.3,
+   "fade_out": 0.02,
+   "duck": 0.0,
+   "automation": [],
+   "params": {}
+  },
+  {
+   "kind": "heartbeat",
+   "t0": 79.8667,
+   "t1": 83.1667,
+   "gain_db": -14.0,
+   "fade_in": 0.0,
+   "fade_out": 0.0,
+   "duck": 0.0,
+   "automation": [],
+   "params": {
+    "bpm_start": 58,
+    "bpm_end": 40
+   }
+  },
+  {
+   "kind": "wind",
+   "t0": 86.7333,
+   "t1": 92.2,
+   "gain_db": -22.0,
+   "fade_in": 0.2,
+   "fade_out": 0.6,
+   "duck": 0.0,
+   "automation": [],
+   "params": {}
+  },
+  {
+   "kind": "drone_low",
+   "t0": 86.7333,
+   "t1": 92.2,
+   "gain_db": -19.0,
+   "fade_in": 0.6,
+   "fade_out": 0.6,
+   "duck": 0.0,
+   "automation": [],
+   "params": {
+    "seed": 17
+   }
+  }
+ ],
+ "silence": [
+  [
+   83.1667,
+   85.2
+  ]
+ ],
+ "src_audio": [
+  {
+   "clip": "IMG_8346",
+   "src_in": 5.6,
+   "src_out": 7.9,
+   "t": 0.0,
+   "dur": 2.3,
+   "speed": 1.0,
+   "gain_db": 1.0,
+   "fade_in": 0.01,
+   "fade_out": 0.01,
+   "src_fx": [],
+   "mute_ranges": [],
+   "shot": "S1a"
+  },
+  {
+   "clip": "IMG_8336",
+   "src_in": 1.0,
+   "src_out": 3.6,
+   "t": 6.0,
+   "dur": 2.6,
+   "speed": 1.0,
+   "gain_db": -14.0,
+   "fade_in": 0.01,
+   "fade_out": 0.01,
+   "src_fx": [],
+   "mute_ranges": [],
+   "shot": "S2b"
+  },
+  {
+   "clip": "IMG_8342",
+   "src_in": 1.0,
+   "src_out": 3.4,
+   "t": 8.6,
+   "dur": 2.4,
+   "speed": 1.0,
+   "gain_db": -14.0,
+   "fade_in": 0.01,
+   "fade_out": 0.01,
+   "src_fx": [],
+   "mute_ranges": [],
+   "shot": "S2c"
+  },
+  {
+   "clip": "IMG_8343",
+   "src_in": 1.0,
+   "src_out": 3.4,
+   "t": 11.0,
+   "dur": 2.4,
+   "speed": 1.0,
+   "gain_db": -16.0,
+   "fade_in": 0.01,
+   "fade_out": 0.01,
+   "src_fx": [],
+   "mute_ranges": [],
+   "shot": "S2d"
+  },
+  {
+   "clip": "IMG_8345",
+   "src_in": 1.0,
+   "src_out": 2.9,
+   "t": 13.4,
+   "dur": 1.9,
+   "speed": 1.0,
+   "gain_db": -16.0,
+   "fade_in": 0.01,
+   "fade_out": 0.01,
+   "src_fx": [],
+   "mute_ranges": [],
+   "shot": "S2e"
+  },
+  {
+   "clip": "IMG_8338",
+   "src_in": 0.4,
+   "src_out": 1.6,
+   "t": 18.9,
+   "dur": 1.2,
+   "speed": 1.0,
+   "gain_db": 2.0,
+   "fade_in": 0.01,
+   "fade_out": 0.01,
+   "src_fx": [],
+   "mute_ranges": [],
+   "shot": "S2j"
+  },
+  {
+   "clip": "IMG_8338",
+   "src_in": 2.3,
+   "src_out": 3.9,
+   "t": 20.1,
+   "dur": 1.6,
+   "speed": 1.0,
+   "gain_db": 2.0,
+   "fade_in": 0.01,
+   "fade_out": 0.08,
+   "src_fx": [],
+   "mute_ranges": [],
+   "shot": "S2k"
+  },
+  {
+   "clip": "IMG_8338",
+   "src_in": 4.6,
+   "src_out": 5.5,
+   "t": 21.7,
+   "dur": 0.9,
+   "speed": 1.0,
+   "gain_db": 3.0,
+   "fade_in": 0.01,
+   "fade_out": 0.05,
+   "src_fx": [],
+   "mute_ranges": [],
+   "shot": "S2l"
+  },
+  {
+   "clip": "IMG_8346",
+   "src_in": 0.0,
+   "src_out": 12.3,
+   "t": 22.9333,
+   "dur": 12.3,
+   "speed": 1.0,
+   "gain_db": 1.5,
+   "fade_in": 0.01,
+   "fade_out": 0.01,
+   "src_fx": [],
+   "mute_ranges": [],
+   "shot": "S3a"
+  },
+  {
+   "clip": "IMG_8347",
+   "src_in": 3.4,
+   "src_out": 7.9,
+   "t": 39.9333,
+   "dur": 4.5,
+   "speed": 1.0,
+   "gain_db": 2.0,
+   "fade_in": 0.01,
+   "fade_out": 0.01,
+   "src_fx": [],
+   "mute_ranges": [],
+   "shot": "S4a"
+  },
+  {
+   "clip": "IMG_8347",
+   "src_in": 10.7,
+   "src_out": 11.4,
+   "t": 45.9667,
+   "dur": 0.7,
+   "speed": 1.0,
+   "gain_db": 2.0,
+   "fade_in": 0.01,
+   "fade_out": 0.05,
+   "src_fx": [],
+   "mute_ranges": [],
+   "shot": "S4c"
+  },
+  {
+   "clip": "IMG_8348",
+   "src_in": 6.8,
+   "src_out": 9.0,
+   "t": 46.6667,
+   "dur": 2.2,
+   "speed": 1.0,
+   "gain_db": 2.0,
+   "fade_in": 0.01,
+   "fade_out": 0.01,
+   "src_fx": [],
+   "mute_ranges": [],
+   "shot": "S4d"
+  },
+  {
+   "clip": "IMG_8348",
+   "src_in": 2.0,
+   "src_out": 6.0,
+   "t": 48.8667,
+   "dur": 4.0,
+   "speed": 1.0,
+   "gain_db": -12.0,
+   "fade_in": 0.01,
+   "fade_out": 0.01,
+   "src_fx": [],
+   "mute_ranges": [],
+   "shot": "S4e"
+  },
+  {
+   "clip": "IMG_8349",
+   "src_in": 1.0,
+   "src_out": 2.7,
+   "t": 52.8667,
+   "dur": 1.7,
+   "speed": 1.0,
+   "gain_db": -10.0,
+   "fade_in": 0.01,
+   "fade_out": 0.01,
+   "src_fx": [],
+   "mute_ranges": [],
+   "shot": "S4f"
+  },
+  {
+   "clip": "IMG_8349",
+   "src_in": 7.6,
+   "src_out": 9.4,
+   "t": 54.5667,
+   "dur": 1.8,
+   "speed": 1.0,
+   "gain_db": -6.0,
+   "fade_in": 0.01,
+   "fade_out": 0.01,
+   "src_fx": [],
+   "mute_ranges": [],
+   "shot": "S4g"
+  },
+  {
+   "clip": "IMG_8354",
+   "src_in": 1.0,
+   "src_out": 5.76,
+   "t": 56.3667,
+   "dur": 5.0,
+   "speed": 1.0,
+   "gain_db": 0.0,
+   "fade_in": 0.01,
+   "fade_out": 0.01,
+   "src_fx": [
+    {
+     "type": "pitch_drift",
+     "t0": 2.8,
+     "t1": 5.0,
+     "semitones": -0.8
+    },
+    {
+     "type": "slow_down",
+     "t0": 3.8,
+     "t1": 5.0,
+     "to": 0.7
+    }
+   ],
+   "mute_ranges": [],
+   "shot": "S4h"
+  },
+  {
+   "clip": "IMG_8355",
+   "src_in": 2.0,
+   "src_out": 5.6,
+   "t": 71.2667,
+   "dur": 3.6,
+   "speed": 1.0,
+   "gain_db": -3.0,
+   "fade_in": 0.01,
+   "fade_out": 0.01,
+   "src_fx": [],
+   "mute_ranges": [],
+   "shot": "S5a"
+  },
+  {
+   "clip": "IMG_8356",
+   "src_in": 3.0,
+   "src_out": 5.75,
+   "t": 74.8667,
+   "dur": 3.2,
+   "speed": 1.0,
+   "gain_db": 0.0,
+   "fade_in": 0.01,
+   "fade_out": 0.01,
+   "src_fx": [
+    {
+     "type": "slow_down",
+     "t0": 1.2,
+     "t1": 3.2,
+     "to": 0.55
+    },
+    {
+     "type": "pitch_drift",
+     "t0": 1.2,
+     "t1": 3.2,
+     "semitones": -7
+    }
+   ],
+   "mute_ranges": [],
+   "shot": "S5b"
+  },
+  {
+   "clip": "IMG_8357",
+   "src_in": 4.0,
+   "src_out": 5.3,
+   "t": 79.8667,
+   "dur": 1.3,
+   "speed": 1.0,
+   "gain_db": -8.0,
+   "fade_in": 0.01,
+   "fade_out": 0.01,
+   "src_fx": [],
+   "mute_ranges": [],
+   "shot": "S6a"
+  },
+  {
+   "clip": "IMG_8357",
+   "src_in": 5.3,
+   "src_out": 6.4,
+   "t": 81.1667,
+   "dur": 1.1,
+   "speed": 1.0,
+   "gain_db": -10.0,
+   "fade_in": 0.01,
+   "fade_out": 0.01,
+   "src_fx": [],
+   "mute_ranges": [],
+   "shot": "S6b"
+  },
+  {
+   "clip": "IMG_8357",
+   "src_in": 6.4,
+   "src_out": 7.3,
+   "t": 82.2667,
+   "dur": 0.9,
+   "speed": 1.0,
+   "gain_db": -12.0,
+   "fade_in": 0.01,
+   "fade_out": 0.01,
+   "src_fx": [],
+   "mute_ranges": [],
+   "shot": "S6c"
+  },
+  {
+   "clip": "IMG_8349",
+   "src_in": 15.0,
+   "src_out": 15.9333,
+   "t": 85.2,
+   "dur": 0.9333,
+   "speed": 1.0,
+   "gain_db": 6.0,
+   "fade_in": 0.01,
+   "fade_out": 0.01,
+   "src_fx": [
+    {
+     "type": "scream_layer"
+    }
+   ],
+   "mute_ranges": [],
+   "shot": "S6e"
+  }
+ ],
+ "checks": {
+  "duration_ok": true,
+  "duration": 92.2,
+  "voice_voice": [
+   [
+    "E_DOGAN",
+    "E_GABRIEL",
+    0.0157
+   ],
+   [
+    "E_GABRIEL",
+    "E_HUGO",
+    0.0167
+   ]
+  ],
+  "voice_dialogue": [],
+  "voice_silence": [],
+  "voice_tail_beyond_end": [
+   [
+    "E_IDENT",
+    1.3313
+   ]
+  ],
+  "subtitles_format": []
+ },
+ "warnings": [
+  "aucune analyse (transcriptions, visages...) : EDL construite sur les replis du brief",
+  "edit/decisions.json pas encore revu (_reviewed=false) : identités/instants à vérifier sur les planches contact",
+  "ancre « c est qui lui » (IMG_8346) pas de transcription : timecodes approximatifs du brief",
+  "auto person_center:IMG_8346:6.0-9.5 indisponible (pas d'analyse) : repli [0.5, 0.45]",
+  "auto flash_peak:IMG_8341:1.3-2.3 indisponible (pas d'analyse) : repli 1.8",
+  "S2h : identité « ARSÈNE » non confirmée → gel sans prénom",
+  "ancre « tu sais quand il vient » (IMG_8338) pas de transcription : timecodes approximatifs du brief",
+  "ancre « il vient directement lui » (IMG_8338) pas de transcription : timecodes approximatifs du brief",
+  "auto audio_peak:IMG_8338:4.3-7.6:-0.12 indisponible (pas d'analyse) : repli 4.6",
+  "ancre « t as entendu le bruit » (IMG_8346) pas de transcription : timecodes approximatifs du brief",
+  "ancre « oh putain » (IMG_8346) pas de transcription : timecodes approximatifs du brief",
+  "ancre « je crois qu il y a un gars » (IMG_8346) pas de transcription : timecodes approximatifs du brief",
+  "ancre « je crois qu il y a un gars la » (IMG_8346) pas de transcription : timecodes approximatifs du brief",
+  "ancre « identification terminee » (IMG_8347) pas de transcription : timecodes approximatifs du brief",
+  "auto audio_peak:IMG_8347:9.8-12.2:-0.15 indisponible (pas d'analyse) : repli 10.7",
+  "ancre « c est quoi ca » (IMG_8348) pas de transcription : timecodes approximatifs du brief",
+  "auto face_largest:IMG_8349:7.0-13.0 indisponible (pas d'analyse) : repli 7.6",
+  "auto face_largest:IMG_8340:8.5-11.5 indisponible (pas d'analyse) : repli 8.8",
+  "auto face_largest:IMG_8344:4.5-7.5 indisponible (pas d'analyse) : repli 5.0",
+  "auto face_largest:IMG_8339:0.5-4.0 indisponible (pas d'analyse) : repli 1.5",
+  "auto face_largest:IMG_8337:0.5-4.0 indisponible (pas d'analyse) : repli 1.5",
+  "auto person_peak:IMG_8346:6.0-9.5 indisponible (pas d'analyse) : repli 7.5",
+  "auto audio_peak:IMG_8349:14.3-16.8:-0.10 indisponible (pas d'analyse) : repli 15.0",
+  "assets/title/title_meta.json absent : révélation du titre supposée à 1.2 s",
+  "sous-titres qui se chevauchent : « Dogan… » raccourci de 0.36 s (« Gabriel… » à 61.95 s)",
+  "sous-titres qui se chevauchent : « Gabriel… » raccourci de 0.36 s (« Hugo… » à 62.48 s)",
+  "le fichier E_IDENT dépasse la fin du film de 1.33 s (traîne coupée)"
+ ]
+}

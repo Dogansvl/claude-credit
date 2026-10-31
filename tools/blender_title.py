@@ -1,27 +1,27 @@
 """Titre 3D « C'EST QUI LUI ? » : scène Blender (Cycles CPU), exécutée en mode headless.
 
-Lancé par tools/render_title.py (ne pas appeler à la main sauf pour déboguer) :
-    blender -b --factory-startup -P tools/blender_title.py -- --font F.ttf --out DIR --pass surf --frames 1-150
+Lancé par tools/render_title.py (appel direct seulement pour déboguer) :
+    blender -b --factory-startup -noaudio -P tools/blender_title.py -- --font F.ttf --out DIR --pass surf --frames 1-150
 
-Rendu en DEUX passes (budget CPU : le brouillard volumétrique pleine définition coûterait ~10x trop cher) :
-  --pass surf : surfaces seules (sans volume), pleine définition, peu d'échantillons. EXR multicouche :
-                groupes de lumière (head / red / amb), Denoising Albedo/Normal (débruitage OIDN en post),
-                Depth (guide du suréchantillonnage), IndexOB (masque du titre).
-  --pass fog  : brouillard seul, basse définition, beaucoup d'échantillons. Toutes les surfaces deviennent
-                des occultants émissifs blancs d'intensité 1 : la passe Emit = transmittance caméra->surface T,
-                les groupes de lumière = diffusion du volume S par source (phares / feux rouges).
-Recomposition (render_title.py) : image = Σ surf_g·T + Σ S_g + (1−T)·brume ; T et S sont suréchantillonnés
-par un filtre bilatéral joint guidé par la profondeur pleine définition -> bords du titre nets.
+Rendu en PASSES séparées (budget CPU : le brouillard volumétrique pleine définition coûterait ~10x trop cher) :
+  --pass surf : surfaces seules (sans volume). EXR multicouche : groupes de lumière (head / red / amb),
+                Denoising Albedo/Normal (débruitage OIDN en post), Depth (guide du suréchantillonnage), IndexOB.
+  --pass text : comme surf, mais seulement dans un cadre autour du titre (render border) : bords nets en pleine déf.
+  --pass fog  : brouillard seul, basse définition. Toutes les surfaces deviennent des occultants émissifs blancs
+                d'intensité 1 : la passe Emit = transmittance caméra->surface T, les groupes de lumière = diffusion
+                du volume S par source (phares / feux rouges), avec les ombres volumétriques des lettres.
+Recomposition (render_title.py) : image = Σ surf_g·T + Σ S_g + (1−T)·brume.
 
 Scène (mètres, Z vers le haut, la caméra regarde vers +Y) :
-  - texte extrudé + biseau, matériau charbon / métal vieilli, debout à y=0 ;
-  - sol d'asphalte mouillé (flaques miroir, lignes de places), mur de béton, piliers et poutres de parking ;
-  - brouillard (Principled Volume, anisotropie 0,6, couche plus dense au sol, bruit qui dérive) ;
-  - deux phares (spots) d'une voiture hors champ à gauche qui tourne : le faisceau balaie le titre de gauche
-    à droite, puis la lueur rouge de feux arrière monte dans le brouillard, derrière le titre ;
-  - lent travelling avant de la caméra (léger arc latéral pour la parallaxe).
---mode cover : image fixe de couverture (titre en haut, phares de face au fond = contre-jour pour la silhouette).
---layout OUT.json : aucun rendu ; écrit la boîte projetée du titre pour chaque frame demandée.
+  - titre extrudé + biseau (Bodoni Moda Black), métal vieilli / charbon, posé sur le sol à y=0 ;
+  - asphalte mouillé (rugosité variable, sans flaques à bord dur), lignes de places, mur de béton au fond, poteaux ;
+  - brouillard Principled Volume (anisotropie 0,6), plus dense au sol, volutes qui dérivent ;
+  - une voiture hors champ à l'avant-gauche tourne à droite : ses phares balaient la face du titre de gauche à
+    droite (révélation), passent devant l'objectif puis s'éloignent ; ses feux arrière rouges restent ensuite
+    allumés au fond à droite, derrière le titre, dans le brouillard ;
+  - lent travelling avant de la caméra avec un léger arc latéral (parallaxe).
+--mode cover : image fixe (titre haut, bien éclairé ; phares de face au fond = contre-jour pour la silhouette).
+--layout OUT.json : aucun rendu ; écrit la boîte projetée du titre pour les frames demandées.
 """
 from __future__ import annotations
 
@@ -34,14 +34,19 @@ from pathlib import Path
 
 import bpy
 from bpy_extras.object_utils import world_to_camera_view
-from mathutils import Euler, Vector
+from mathutils import Vector
 
 FPS = 30
 N_FRAMES = 150
 TEXT_BODY = "C’EST QUI\nLUI ?"   # apostrophe typographique, espace fine avant « ? »
-HEAD_COLOR = (0.90, 0.95, 1.00)          # blanc chaud légèrement bleuté (LED / xénon)
-RED = (1.0, 0.035, 0.015)
-FOG_DENSITY = 0.05
+TITLE_W = 3.95                              # largeur de la ligne « C'EST QUI » (m)
+HEAD_COLOR = (0.93, 0.96, 1.00)             # blanc chaud légèrement bleuté (xénon / LED)
+RED = (1.0, 0.030, 0.012)
+FOG_DENSITY = 0.085
+NEAR_FOG = 0.15                             # densité relative du brouillard près de la caméra
+CAM_Z = 0.55                                # caméra basse : l'asphalte mouillé reflète presque comme un miroir
+HEAD_W = 2400.0                             # W par phare (spot)
+TAIL_W = 30.0                               # W par feu arrière (point)
 
 
 # ----------------------------------------------------------------------------- arguments
@@ -51,19 +56,17 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--font", required=True)
     p.add_argument("--out", help="dossier de sortie des EXR")
     p.add_argument("--pass", dest="pass_", choices=["surf", "text", "fog", "beauty"], default="surf")
-    p.add_argument("--border-margin", type=int, default=30, help="passe text : marge (px) autour du titre")
+    p.add_argument("--border-margin", type=int, default=34, help="passe text : marge (px) autour du titre")
     p.add_argument("--frames", default="1-150", help="'a-b' ou liste '1,40,80' (frames Blender, 1..150)")
     p.add_argument("--mode", choices=["seq", "cover"], default="seq")
     p.add_argument("--width", type=int, default=1080)
     p.add_argument("--height", type=int, default=1920)
     p.add_argument("--scale", type=int, default=100, help="pourcentage de résolution")
     p.add_argument("--samples", type=int, default=12)
-    p.add_argument("--fog-mode", choices=["hetero", "homog"], default="hetero")
     p.add_argument("--step-rate", type=float, default=1.0, help="pas du ray-marching volumique (grand = rapide)")
-    p.add_argument("--bounces", type=int, default=3)
     p.add_argument("--threads", type=int, default=0)
     p.add_argument("--title-cx", type=float, default=480 / 1080, help="centre horizontal visé du titre (fraction)")
-    p.add_argument("--title-cy", type=float, default=0.43, help="centre vertical visé du titre (fraction, depuis le haut)")
+    p.add_argument("--title-cy", type=float, default=0.405, help="centre vertical visé (fraction depuis le haut)")
     p.add_argument("--layout", help="écrit la boîte projetée du titre par frame (JSON) sans rendre")
     p.add_argument("--save-blend", help="sauvegarde la scène (.blend) pour inspection")
     p.add_argument("--skip-existing", action="store_true")
@@ -154,6 +157,11 @@ class NodeBuilder:
         self.link(fac, r.inputs["Fac"])
         return r.outputs["Color"]
 
+    def noise(self, vec, scale: float, detail: float = 1.0, rough: float = 0.55):
+        n = self.add("ShaderNodeTexNoise", Scale=scale, Detail=detail, Roughness=rough)
+        self.link(vec, n.inputs["Vector"])
+        return n.outputs["Fac"]
+
 
 def new_material(name: str):
     mat = bpy.data.materials.new(name)
@@ -172,24 +180,27 @@ def emission_material(name: str, color, strength: float, sampling: str = "NONE")
     return mat, em
 
 
-# ----------------------------------------------------------------------------- matériaux (shaders volontairement légers)
+# ----------------------------------------------------------------------------- matériaux
 def mat_aged_metal():
-    """Charbon / métal vieilli : base très sombre, plaques métalliques usées, rugosité marbrée, piqûres."""
+    """Charbon / métal vieilli : base très sombre, plaques de métal usé, rugosité marbrée, rayures fines."""
     mat, nb = new_material("AgedCharcoalMetal")
     tc = nb.add("ShaderNodeTexCoord")
-    big = nb.add("ShaderNodeTexNoise", Scale=2.4, Detail=2.0, Roughness=0.6)
-    nb.link(tc.outputs["Object"], big.inputs["Vector"])
-    fine = nb.add("ShaderNodeTexNoise", Scale=42.0, Detail=1.0, Roughness=0.6)
-    nb.link(tc.outputs["Object"], fine.inputs["Vector"])
-    patina = nb.ramp(big.outputs["Fac"], 0.40, 0.64)
+    big = nb.noise(tc.outputs["Object"], 1.6, 2.0, 0.6)
+    patina = nb.ramp(big, 0.38, 0.66)                                    # 0 = charbon, 1 = métal usé
+    mp = nb.add("ShaderNodeMapping")
+    mp.inputs["Scale"].default_value = (30.0, 1.2, 30.0)                 # rayures horizontales (brossé)
+    nb.link(tc.outputs["Object"], mp.inputs["Vector"])
+    brushed = nb.noise(mp.outputs["Vector"], 6.0, 1.0, 0.5)
+    fine = nb.noise(tc.outputs["Object"], 55.0, 1.0, 0.6)
     base = nb.add("ShaderNodeMix", _data_type="RGBA")
-    base.inputs["A"].default_value = (0.018, 0.018, 0.020, 1)   # charbon
-    base.inputs["B"].default_value = (0.080, 0.075, 0.070, 1)   # métal usé
+    base.inputs["A"].default_value = (0.030, 0.030, 0.033, 1)           # charbon
+    base.inputs["B"].default_value = (0.20, 0.19, 0.18, 1)              # acier usé (F0 sombre)
     nb.link(patina, base.inputs["Factor"])
-    metal = nb.math("MULTIPLY", patina, 0.9)
-    rough = nb.math("MULTIPLY_ADD", fine.outputs["Fac"], 0.30, 0.24)    # 0.24..0.54
-    bump = nb.add("ShaderNodeBump", Strength=0.28, Distance=0.004)
-    nb.link(fine.outputs["Fac"], bump.inputs["Height"])
+    metal = nb.math("MULTIPLY_ADD", patina, 0.55, 0.40)                  # 0.40..0.95
+    rough = nb.math("MULTIPLY_ADD", brushed, 0.22, 0.20)                 # 0.20..0.42
+    rough = nb.math("MULTIPLY_ADD", fine, 0.12, rough)
+    bump = nb.add("ShaderNodeBump", Strength=0.22, Distance=0.003)
+    nb.link(nb.math("ADD", fine, nb.math("MULTIPLY", brushed, 0.5)), bump.inputs["Height"])
     bsdf = nb.add("ShaderNodeBsdfPrincipled")
     nb.link(base.outputs["Result"], bsdf.inputs["Base Color"])
     nb.link(metal, bsdf.inputs["Metallic"])
@@ -201,23 +212,18 @@ def mat_aged_metal():
 
 
 def mat_wet_asphalt():
-    """Asphalte mouillé : granulat fin + flaques quasi miroir qui reflètent phares, titre et feux rouges."""
+    """Asphalte mouillé : film d'eau continu (rugosité 0,06..0,30 en variation douce), granulat fin."""
     mat, nb = new_material("WetAsphalt")
     tc = nb.add("ShaderNodeTexCoord")
-    puddle = nb.add("ShaderNodeTexNoise", Scale=0.75, Detail=2.0, Roughness=0.6)
-    nb.link(tc.outputs["Object"], puddle.inputs["Vector"])
-    water = nb.ramp(puddle.outputs["Fac"], 0.53, 0.60)                 # 1 = flaque (~30 %)
-    dry = nb.math("SUBTRACT", 1.0, water)
-    grain = nb.add("ShaderNodeTexNoise", Scale=160.0, Detail=1.0, Roughness=0.6)
-    nb.link(tc.outputs["Object"], grain.inputs["Vector"])
+    wet = nb.ramp(nb.noise(tc.outputs["Object"], 0.35, 2.0, 0.55), 0.35, 0.70)     # 1 = plus mouillé
+    grain = nb.noise(tc.outputs["Object"], 140.0, 1.0, 0.6)
     col = nb.add("ShaderNodeMix", _data_type="RGBA")
-    col.inputs["A"].default_value = (0.030, 0.030, 0.032, 1)
-    col.inputs["B"].default_value = (0.010, 0.010, 0.012, 1)
-    nb.link(water, col.inputs["Factor"])
-    rough = nb.math("MULTIPLY_ADD", dry, 0.24, 0.05)
-    rough = nb.math("MULTIPLY_ADD", grain.outputs["Fac"], nb.math("MULTIPLY", dry, 0.16), rough)
-    bump = nb.add("ShaderNodeBump", Strength=0.30, Distance=0.002)
-    nb.link(nb.math("MULTIPLY", grain.outputs["Fac"], dry), bump.inputs["Height"])
+    col.inputs["A"].default_value = (0.040, 0.040, 0.042, 1)
+    col.inputs["B"].default_value = (0.016, 0.016, 0.018, 1)
+    nb.link(wet, col.inputs["Factor"])
+    rough = nb.math("MULTIPLY_ADD", wet, -0.24, 0.30)                    # 0.30 sec -> 0.06 flaque
+    bump = nb.add("ShaderNodeBump", Strength=0.18, Distance=0.002)
+    nb.link(nb.math("MULTIPLY", grain, nb.math("SUBTRACT", 1.0, wet)), bump.inputs["Height"])
     bsdf = nb.add("ShaderNodeBsdfPrincipled")
     nb.link(col.outputs["Result"], bsdf.inputs["Base Color"])
     nb.link(rough, bsdf.inputs["Roughness"])
@@ -231,14 +237,12 @@ def mat_paint():
     """Peinture de marquage usée (lignes de places)."""
     mat, nb = new_material("ParkingPaint")
     tc = nb.add("ShaderNodeTexCoord")
-    wear = nb.add("ShaderNodeTexNoise", Scale=3.0, Detail=2.0, Roughness=0.7)
-    nb.link(tc.outputs["Object"], wear.inputs["Vector"])
-    w = nb.ramp(wear.outputs["Fac"], 0.42, 0.58)
+    w = nb.ramp(nb.noise(tc.outputs["Object"], 3.0, 2.0, 0.7), 0.40, 0.60)
     col = nb.add("ShaderNodeMix", _data_type="RGBA")
     col.inputs["A"].default_value = (0.03, 0.03, 0.03, 1)
-    col.inputs["B"].default_value = (0.42, 0.41, 0.38, 1)
+    col.inputs["B"].default_value = (0.36, 0.35, 0.32, 1)
     nb.link(w, col.inputs["Factor"])
-    bsdf = nb.add("ShaderNodeBsdfPrincipled", Roughness=0.35)
+    bsdf = nb.add("ShaderNodeBsdfPrincipled", Roughness=0.25)
     nb.link(col.outputs["Result"], bsdf.inputs["Base Color"])
     out = nb.add("ShaderNodeOutputMaterial")
     nb.link(bsdf.outputs["BSDF"], out.inputs["Surface"])
@@ -250,11 +254,9 @@ def mat_concrete(name: str, base: float):
     mat, nb = new_material(name)
     tc = nb.add("ShaderNodeTexCoord")
     mp = nb.add("ShaderNodeMapping")
-    mp.inputs["Scale"].default_value = (1.0, 1.0, 0.15)            # coulures verticales (axe local Z)
+    mp.inputs["Scale"].default_value = (1.0, 1.0, 0.15)
     nb.link(tc.outputs["Object"], mp.inputs["Vector"])
-    streak = nb.add("ShaderNodeTexNoise", Scale=3.0, Detail=2.0, Roughness=0.6)
-    nb.link(mp.outputs["Vector"], streak.inputs["Vector"])
-    dirt = nb.ramp(streak.outputs["Fac"], 0.25, 0.80)
+    dirt = nb.ramp(nb.noise(mp.outputs["Vector"], 3.0, 2.0, 0.6), 0.25, 0.80)
     col = nb.add("ShaderNodeMix", _data_type="RGBA")
     col.inputs["A"].default_value = (base * 0.45, base * 0.44, base * 0.42, 1)
     col.inputs["B"].default_value = (base, base * 0.98, base * 0.94, 1)
@@ -266,36 +268,35 @@ def mat_concrete(name: str, base: float):
     return mat
 
 
-def mat_fog(density: float, hetero: bool, step_rate: float):
-    """Brouillard : bruit 3D lent qui dérive (vent de gauche à droite) + couche plus dense près du sol."""
+def mat_fog(density: float, step_rate: float):
+    """Brouillard : volutes (2 échelles de bruit) qui dérivent lentement + couche plus dense près du sol."""
     mat, nb = new_material("Fog")
     vol = nb.add("ShaderNodeVolumePrincipled")
-    vol.inputs["Color"].default_value = (0.80, 0.84, 0.90, 1)
+    vol.inputs["Color"].default_value = (0.86, 0.89, 0.93, 1)
     vol.inputs["Anisotropy"].default_value = 0.6
     vol.inputs["Absorption Color"].default_value = (0.0, 0.0, 0.0, 1)
-    mp = None
-    if hetero:
-        tc = nb.add("ShaderNodeTexCoord")
-        mp = nb.add("ShaderNodeMapping")
-        nb.link(tc.outputs["Object"], mp.inputs["Vector"])
-        noise = nb.add("ShaderNodeTexNoise", Scale=0.33, Detail=1.5, Roughness=0.55)
-        nb.link(mp.outputs["Vector"], noise.inputs["Vector"])
-        sep = nb.add("ShaderNodeSeparateXYZ")
-        nb.link(tc.outputs["Object"], sep.inputs["Vector"])
-        zw = nb.math("ADD", sep.outputs["Z"], 5.9)                     # z monde (centre du cube à 5,9 m)
-        layer = nb.math("EXPONENT", nb.math("MULTIPLY", zw, -0.55))
-        layer = nb.math("MULTIPLY_ADD", layer, 1.2, 0.40)             # 1,6 au sol -> 0,4 en hauteur
-        wisp = nb.math("MULTIPLY_ADD", noise.outputs["Fac"], 3.2, -1.15)
-        wisp = nb.math("MAXIMUM", wisp, 0.05)
-        dens = nb.math("MULTIPLY", nb.math("MULTIPLY", wisp, layer), density)
-        nb.link(dens, vol.inputs["Density"])
-    else:
-        vol.inputs["Density"].default_value = density * 0.55
+    geo = nb.add("ShaderNodeNewGeometry")
+    mp = nb.add("ShaderNodeMapping")                                     # dérive (animée par frame)
+    nb.link(geo.outputs["Position"], mp.inputs["Vector"])
+    big = nb.noise(mp.outputs["Vector"], 0.16, 1.0, 0.5)
+    mid = nb.noise(mp.outputs["Vector"], 0.55, 1.0, 0.5)
+    wisp = nb.math("ADD", nb.math("MULTIPLY", big, 0.65), nb.math("MULTIPLY", mid, 0.35))
+    wisp = nb.math("MULTIPLY_ADD", wisp, 3.4, -1.25)                     # contraste des volutes
+    wisp = nb.math("MAXIMUM", wisp, 0.10)
+    sep = nb.add("ShaderNodeSeparateXYZ")
+    nb.link(geo.outputs["Position"], sep.inputs["Vector"])
+    layer = nb.math("EXPONENT", nb.math("MULTIPLY", sep.outputs["Z"], -0.62))
+    layer = nb.math("MULTIPLY_ADD", layer, 1.55, 0.20)                   # 1,75 au sol -> 0,2 en hauteur
+    # brouillard plus léger entre la caméra et le titre (voile limité : silhouette nette devant le banc de brume)
+    near = nb.math("MULTIPLY_ADD", nb.math("MINIMUM", nb.math("MAXIMUM", nb.math("MULTIPLY_ADD", sep.outputs["Y"],
+                   1 / 5.0, 3 / 5.0), 0.0), 1.0), 1.0 - NEAR_FOG, NEAR_FOG)    # NEAR_FOG si y <= -3 m -> 1 si y >= 2 m
+    dens = nb.math("MULTIPLY", nb.math("MULTIPLY", nb.math("MULTIPLY", wisp, layer), near), density)
+    nb.link(dens, vol.inputs["Density"])
     out = nb.add("ShaderNodeOutputMaterial")
     nb.link(vol.outputs["Volume"], out.inputs["Volume"])
     mat.cycles.volume_sampling = "MULTIPLE_IMPORTANCE"
     mat.cycles.volume_interpolation = "LINEAR"
-    mat.cycles.homogeneous_volume = not hetero
+    mat.cycles.homogeneous_volume = False
     mat.cycles.volume_step_rate = step_rate
     return mat, mp
 
@@ -306,29 +307,36 @@ def link(obj):
     return obj
 
 
-def build_text(font_path: str, size: float) -> bpy.types.Object:
+def build_text(font_path: str) -> bpy.types.Object:
+    """Texte extrudé + biseau, converti en maillage, mis à l'échelle pour que la 1re ligne fasse TITLE_W."""
     font = bpy.data.fonts.load(font_path)
     cu = bpy.data.curves.new("TitleCurve", type="FONT")
     cu.body = TEXT_BODY
     cu.font = font
-    cu.size = size
+    cu.size = 1.0
     cu.align_x = "CENTER"
-    cu.align_y = "CENTER"
-    cu.space_line = 0.86
-    cu.space_word = 0.82
-    cu.extrude = 0.075
-    cu.bevel_depth = 0.011
+    cu.align_y = "BOTTOM_BASELINE"
+    cu.space_line = 0.84
+    cu.space_character = 1.02
+    cu.extrude = 0.085
+    cu.bevel_depth = 0.014
     cu.bevel_resolution = 3
-    cu.resolution_u = 10
+    cu.resolution_u = 12
     tmp = link(bpy.data.objects.new("TitleTmp", cu))
     dg = bpy.context.evaluated_depsgraph_get()
     mesh = bpy.data.meshes.new_from_object(tmp.evaluated_get(dg))
     bpy.data.objects.remove(tmp)
+    xs = [v.co.x for v in mesh.vertices]
+    ys = [v.co.y for v in mesh.vertices]
+    k = TITLE_W / (max(xs) - min(xs))
+    cx, ymin = (max(xs) + min(xs)) / 2, min(ys)
+    for v in mesh.vertices:                                  # origine : centre-bas du titre
+        v.co = Vector(((v.co.x - cx) * k, (v.co.y - ymin) * k, v.co.z * k))
     mesh.use_auto_smooth = True
     mesh.auto_smooth_angle = math.radians(35)
     mesh.polygons.foreach_set("use_smooth", [True] * len(mesh.polygons))
     obj = link(bpy.data.objects.new("Title", mesh))
-    obj.rotation_euler = (math.radians(90), 0, 0)   # debout, face à -Y
+    obj.rotation_euler = (math.radians(90), 0, 0)             # debout, face à -Y
     obj.pass_index = 1
     obj.data.materials.append(mat_aged_metal())
     return obj
@@ -362,6 +370,8 @@ def add_light(name, kind, color, radius, group, size_deg=None, blend=None):
     ld.color = color
     if kind == "SUN":
         ld.angle = radius
+    elif kind == "AREA":
+        ld.size = radius
     else:
         ld.shadow_soft_size = radius
     if kind == "SPOT":
@@ -377,63 +387,62 @@ def aim(obj, target: Vector):
     obj.rotation_euler = (target - obj.location).to_track_quat("-Z", "Y").to_euler()
 
 
-# ----------------------------------------------------------------------------- animation (temps en s)
-# La voiture entre sur le parking DERRIÈRE le titre et tourne sur sa gauche (vue de dessus : sens trigo),
-# sur un arc de rayon CAR_R autour de CAR_C. Cap θ (degrés, 0 = +X) : d'abord vers la gauche (titre dans le
-# noir), puis face caméra (faisceaux à travers les lettres = révélation), puis vers la droite, enfin de dos :
-# il ne reste que la lueur rouge des feux arrière derrière le titre et la tache des phares sur le mur du fond.
-CAR_C = (-2.0, 9.0)
-CAR_R = 2.5
-HEAD_T = [0.0, 0.40, 0.75, 1.20, 2.20, 3.50, 5.00]
-HEAD_DEG = [-172.0, -150.0, -100.0, -42.0, 8.0, 62.0, 88.0]
+# ----------------------------------------------------------------------------- voitures (lumières seules)
+def build_lamp_pair(prefix: str, kind: str, color, group: str, sep: float, lens_dims, size_deg=None, blend=None):
+    """Paire de feux (phares = spots, feux arrière = points) + optiques émissives, sous un pivot (empty).
+    Repère local du pivot : avant de la voiture = +Y, sol = z 0."""
+    piv = link(bpy.data.objects.new(prefix, None))
+    lamps, ems = [], []
+    for sx in (-1, 1):
+        lp = add_light(f"{prefix}{sx}", kind, color, 0.07 if kind == "SPOT" else 0.06, group, size_deg, blend)
+        lp.parent = piv
+        lp.location = (sep / 2 * sx, 0.0, 0.0)
+        if kind == "SPOT":
+            lp.rotation_euler = (math.radians(87.0), 0.0, math.radians(-3.0 * sx))   # légèrement plongeants
+        lamps.append(lp)
+        m, em = emission_material(f"{prefix}Lens{sx}", color, 0.0)
+        lens = add_box(f"{prefix}Lens{sx}", lens_dims, (sep / 2 * sx, -0.03 if kind == "SPOT" else 0.03, 0.0), m)
+        lens.parent, lens.visible_shadow, lens.lightgroup = piv, False, group
+        ems.append(em)
+    return piv, lamps, ems
+
+
+# La voiture (lumières seules : dans le brouillard on ne voit que ses feux) arrive au fond, derrière le titre, et
+# fait un demi-tour par la gauche (cap θ en degrés, 0 = +X, 90 = +Y = s'éloigne de la caméra) :
+#   phares d'abord tournés vers la gauche (hors champ) -> vers l'objectif (faisceaux à travers les lettres,
+#   éblouissement, révélation ~1,1 s) -> vers la droite -> elle s'arrête dos à nous, derrière le titre à droite :
+#   il ne reste que ses feux arrière rouges dans le brouillard (coup de frein vers 3,4 s : « il attend »).
+POS_T = [0.00, 0.40, 1.10, 2.20, 3.00, 3.55, 5.00]
+POS_X = [-6.4, -5.3, -3.0, -0.3, 1.8, 2.5, 2.5]
+POS_Y = [11.4, 10.8, 10.0, 9.7, 10.6, 11.4, 11.4]
+HEAD_T = [0.00, 0.40, 0.80, 1.15, 1.60, 2.20, 2.90, 3.55, 5.00]
+HEAD_DEG = [-178.0, -168.0, -132.0, -92.0, -52.0, -12.0, 48.0, 94.0, 96.0]
+CAM_REF = (0.0, -10.0)                    # position approximative de la caméra (orientation des feux)
+
+
+def car_path(t: float) -> tuple[float, float, float]:
+    """Position (x, y) au sol et cap (rad) de l'avant de la voiture à l'instant t (clés monotones par morceaux)."""
+    return pchip(POS_T, POS_X, t), pchip(POS_T, POS_Y, t), math.radians(pchip(HEAD_T, HEAD_DEG, t))
+
+
+def facing(x: float, y: float, th: float, sign: float) -> float:
+    """0..1 : à quel point l'avant (sign=+1) ou l'arrière (sign=-1) de la voiture est tourné vers la caméra."""
+    dx, dy = CAM_REF[0] - x, CAM_REF[1] - y
+    c = sign * (math.cos(th) * dx + math.sin(th) * dy) / max(1e-6, math.hypot(dx, dy))
+    return smoothstep(0.0, 0.85, c)
 
 
 def seq_state(t: float) -> dict:
-    th = math.radians(pchip(HEAD_T, HEAD_DEG, t))
-    px = CAR_C[0] + CAR_R * math.cos(th - math.pi / 2)
-    py = CAR_C[1] + CAR_R * math.sin(th - math.pi / 2)
-    return dict(car=(px, py, th),
-                head=smoothstep(0.0, 0.35, t),
-                red=0.55 + 0.45 * smoothstep(3.0, 4.2, t),      # feux de position puis freinage
-                cam_u=smoothstep(-0.6, 5.6, t))
-
-
-def build_car():
-    """Voiture stylisée (masse sombre dans le brouillard) : 2 phares (spots + optiques émissives),
-    2 feux arrière (points rouges + optiques). Repère local : avant = +Y, sol = z 0."""
-    car = link(bpy.data.objects.new("Car", None))
-    paint, nb = new_material("CarPaint")
-    bsdf = nb.add("ShaderNodeBsdfPrincipled", Roughness=0.28)
-    bsdf.inputs["Base Color"].default_value = (0.012, 0.012, 0.014, 1)
-    bsdf.inputs["Coat Weight"].default_value = 0.6
-    o = nb.add("ShaderNodeOutputMaterial")
-    nb.link(bsdf.outputs["BSDF"], o.inputs["Surface"])
-    for name, dims, loc in (("CarBody", (1.82, 4.40, 0.72), (0, 0, 0.62)),
-                            ("CarCabin", (1.50, 2.20, 0.52), (0, -0.25, 1.24))):
-        b = add_box(name, dims, loc, paint)
-        b.parent = car
-    heads, head_em, tails, tail_em = [], [], [], []
-    for sx in (-1, 1):
-        sp = add_light(f"Head{sx}", "SPOT", HEAD_COLOR, 0.06, "head", 40, 0.5)
-        sp.parent = car
-        sp.location = (0.62 * sx, 2.27, 0.72)
-        sp.rotation_euler = (math.radians(86.0), 0.0, math.radians(-2.0 * sx))
-        heads.append(sp)
-        m, em = emission_material(f"HeadLens{sx}", HEAD_COLOR, 0.0)
-        lens = add_box(f"HeadLens{sx}", (0.34, 0.05, 0.13), (0.62 * sx, 2.215, 0.72), m)
-        lens.parent, lens.visible_shadow, lens.lightgroup = car, False, "head"
-        head_em.append(em)
-        tl = add_light(f"Tail{sx}", "POINT", RED, 0.05, "red")
-        tl.parent = car
-        tl.location = (0.70 * sx, -2.30, 0.86)
-        tails.append(tl)
-        m, em = emission_material(f"TailLens{sx}", RED, 0.0)
-        lens = add_box(f"TailLens{sx}", (0.32, 0.05, 0.10), (0.70 * sx, -2.215, 0.86), m)
-        lens.parent, lens.visible_shadow, lens.lightgroup = car, False, "red"
-        tail_em.append(em)
-    car["head_em"], car["tail_em"] = len(head_em), len(tail_em)
-    build_car.head_em, build_car.tail_em = head_em, tail_em
-    return car, heads, tails
+    x, y, th = car_path(t)
+    on = smoothstep(0.10, 0.45, t)                                       # la voiture débouche dans le champ
+    front, rear = facing(x, y, th, 1.0), facing(x, y, th, -1.0)
+    brake = 1.0 + 1.1 * math.exp(-((t - 3.45) / 0.40) ** 2)
+    glare = smoothstep(0.55, 0.97, (math.cos(th) * (CAM_REF[0] - x) + math.sin(th) * (CAM_REF[1] - y))
+                       / math.hypot(CAM_REF[0] - x, CAM_REF[1] - y))
+    red_on = smoothstep(1.25, 2.40, t)
+    return dict(car=(x, y, th), head=on, head_lens=on * front,
+                red=red_on * (0.08 + 0.92 * rear) * brake, red_lens=red_on * rear * brake,
+                glare=on * glare, cam_u=t / (N_FRAMES / FPS))
 
 
 # ----------------------------------------------------------------------------- scène
@@ -454,7 +463,7 @@ def build_scene(args) -> dict:
     cyc.use_denoising = False                    # OIDN appliqué en post (render_title.py)
     cyc.seed = 7
     cyc.use_animated_seed = False                # bruit fixe à l'écran -> débruitage stable dans le temps
-    cyc.max_bounces = args.bounces
+    cyc.max_bounces = 3
     cyc.diffuse_bounces = 1
     cyc.glossy_bounces = 1
     cyc.transmission_bounces = 0
@@ -463,9 +472,9 @@ def build_scene(args) -> dict:
     cyc.caustics_reflective = False
     cyc.caustics_refractive = False
     cyc.blur_glossy = 1.0
-    cyc.sample_clamp_indirect = 4.0
+    cyc.sample_clamp_indirect = 3.0
     cyc.volume_step_rate = args.step_rate
-    cyc.volume_max_steps = 192
+    cyc.volume_max_steps = 160
     cyc.filter_width = 1.5
     if args.threads > 0:
         scn.render.threads_mode = "FIXED"
@@ -484,51 +493,59 @@ def build_scene(args) -> dict:
     scn.world = world
 
     cover = args.mode == "cover"
-    title = build_text(args.font, size=1.05)
-    title.location = (0.0, 0.0, 2.45 if cover else 1.08)
+    title = build_text(args.font)
+    title.location = (0.0, 0.0, 2.45 if cover else 0.0)
 
-    # --- décor : sol, marquage, mur, piliers, poutres
-    add_plane("Ground", (90, 90), (0, 10, 0), (0, 0, 0), mat_wet_asphalt())
+    # --- décor : sol, marquage, mur, poteaux
+    add_plane("Ground", (120, 120), (0, 20, 0), (0, 0, 0), mat_wet_asphalt())
     paint = mat_paint()
-    for i, x in enumerate((-6.5, -3.9, -1.3, 1.3, 3.9, 6.5)):
-        add_plane(f"Line{i}", (0.13, 5.6), (x, 6.9, 0.004), (0, 0, 0), paint)
+    for i, x in enumerate((-7.5, -5.0, 5.0, 7.5)):
+        add_plane(f"Line{i}", (0.12, 5.0), (x, 3.0, 0.003), (0, 0, 0), paint)
+    add_plane("Stop", (16.0, 0.14), (0, 5.6, 0.003), (0, 0, 0), paint)
     # mur du fond (rappel du mur tagué de 8346), loin dans le brouillard ; lampadaires éteints
-    add_plane("Wall", (80, 14), (0, 19.0, 7.0), (math.radians(90), 0, 0), mat_concrete("Concrete", 0.34))
-    pole = mat_concrete("PoleMetal", 0.10)
-    for i, (px, py) in enumerate([(-4.6, 6.5), (6.2, 11.0), (-9.5, 13.0)]):
-        add_box(f"Pole{i}", (0.14, 0.14, 6.5), (px, py, 3.25), pole)
-        add_box(f"PoleArm{i}", (1.3, 0.12, 0.10), (px + 0.6, py, 6.4), pole)
+    add_plane("Wall", (110, 16), (0, 26.0, 8.0), (math.radians(90), 0, 0), mat_concrete("Concrete", 0.30))
+    pole = mat_concrete("PoleMetal", 0.08)
+    for i, (px, py, hgt) in enumerate([(-6.0, 5.0, 7.0), (6.8, 11.0, 7.5), (-9.5, 16.0, 7.5), (2.2, 19.0, 7.5)]):
+        add_box(f"Pole{i}", (0.16, 0.16, hgt), (px, py, hgt / 2), pole)
+        add_box(f"PoleArm{i}", (1.4, 0.12, 0.10), (px + 0.65, py, hgt - 0.1), pole)
 
     # --- lumières
-    moon = add_light("Moon", "SUN", (0.55, 0.66, 1.0), math.radians(10), "amb")
-    moon.data.energy = 0.12
-    moon.rotation_euler = Vector((0.35, 0.80, -0.50)).to_track_quat("-Z", "Y").to_euler()  # avant-gauche, haut
-    moon.visible_volume_scatter = False          # la brume ambiante est ajoutée analytiquement en post
-    car, heads, tails = build_car()
+    # lune voilée en contre-jour haut (lueur froide du brouillard derrière le titre, liseré sur les biseaux)
+    moon = add_light("Moon", "SUN", (0.55, 0.66, 1.0), math.radians(12), "amb")
+    moon.data.energy = 0.22
+    moon.rotation_euler = Vector((0.35, -0.75, -0.55)).to_track_quat("-Z", "Y").to_euler()
+    # lampadaire lointain, avant-gauche, froid : faible lumière de face (le titre reste « presque invisible »)
+    lamp = add_light("StreetLamp", "SPOT", (0.70, 0.82, 1.0), 0.4, "amb", 70.0, 1.0)
+    lamp.location = Vector((-7.5, -6.0, 7.5))
+    aim(lamp, Vector((0.0, 0.0, 0.6)))
+    lamp.data.energy = 900.0
+    car, heads, head_em = build_lamp_pair("Head", "SPOT", HEAD_COLOR, "head", 1.30, (0.34, 0.05, 0.13), 38.0, 0.55)
+    tail, tails, tail_em = build_lamp_pair("Tail", "POINT", RED, "red", 1.40, (0.30, 0.05, 0.09))
+    tail.parent = car
+    tail.location = (0.0, -4.35, 0.14)                              # arrière de la voiture, feux tournés vers -Y
+    tail.rotation_euler = (0.0, 0.0, math.radians(180.0))
 
     cam_data = bpy.data.cameras.new("Cam")
     cam_data.lens = 35.0
     cam_data.sensor_fit = "AUTO"
     cam_data.sensor_width = 36.0
     cam_data.clip_start = 0.1
-    cam_data.clip_end = 200
+    cam_data.clip_end = 250
     cam_data.dof.use_dof = True
     cam_data.dof.aperture_fstop = 2.8
     cam = link(bpy.data.objects.new("Cam", cam_data))
     scn.camera = cam
 
-    rig = dict(scene=scn, title=title, car=car, heads=heads, tails=tails, cam=cam,
-               cover=cover, fog_map=None, pass_=args.pass_, margin=args.border_margin,
-               head_em=build_car.head_em, tail_em=build_car.tail_em)
+    rig = dict(scene=scn, title=title, car=car, heads=heads, head_em=head_em, tail=tail, tails=tails,
+               tail_em=tail_em, cam=cam, cover=cover, fog_map=None, pass_=args.pass_, margin=args.border_margin)
     if cover:
         setup_cover(rig)
     else:
         calibrate_shift(rig, args.title_cx, args.title_cy, ref_frame=N_FRAMES)
 
-    # --- passe
     if args.pass_ in ("fog", "beauty"):
-        fog_mat, rig["fog_map"] = mat_fog(FOG_DENSITY, args.fog_mode == "hetero", args.step_rate)
-        add_box("FogVolume", (64, 32, 12), (0, 9.0, 5.9), fog_mat)    # commence 3,6 m devant la caméra
+        fog_mat, rig["fog_map"] = mat_fog(FOG_DENSITY, args.step_rate)
+        add_box("FogVolume", (80, 48, 9), (0, 9.0, 4.5), fog_mat)     # englobe la caméra (pas de bord visible)
     if args.pass_ == "fog":
         make_occluders(scn)
     configure_passes(scn, args.pass_)
@@ -536,15 +553,44 @@ def build_scene(args) -> dict:
 
 
 def make_occluders(scn):
-    """Passe brouillard : toute surface = émetteur blanc d'intensité 1, sans éclairer la scène.
-    La passe Emit vaut alors exactement la transmittance du brouillard entre la caméra et la surface."""
-    occ, _ = emission_material("Occluder", (1.0, 1.0, 1.0), 1.0, sampling="NONE")
+    """Passe brouillard. Chaque surface garde son matériau + une émission blanche d'intensité 1 (non échantillonnée
+    comme lumière) : la passe Emit (émission vue directement) vaut la transmittance T caméra->surface.
+    Les lampes n'éclairent plus directement les surfaces (déjà dans la passe surf) : les groupes de lumière ne
+    contiennent que la diffusion du volume, vue directement OU via un rebond (brouillard reflété par l'asphalte
+    mouillé et le métal, lueur du brouillard qui éclaire la face des lettres)."""
+    done = set()
     for ob in scn.objects:
         if ob.type == "MESH" and ob.name != "FogVolume":
-            ob.data.materials.clear()
-            ob.data.materials.append(occ)
             ob.lightgroup = ""
+            ob.visible_shadow = "Lens" not in ob.name
+            for slot in ob.material_slots:
+                mat = slot.material
+                if mat is None or mat.name in done:
+                    continue
+                done.add(mat.name)
+                nt = mat.node_tree
+                out = next(n for n in nt.nodes if n.type == "OUTPUT_MATERIAL")
+                src = out.inputs["Surface"].links[0].from_socket if out.inputs["Surface"].links else None
+                em = nt.nodes.new("ShaderNodeEmission")
+                em.inputs["Color"].default_value = (1, 1, 1, 1)
+                em.inputs["Strength"].default_value = 1.0
+                if src is None or src.node.type == "EMISSION":
+                    nt.links.new(em.outputs["Emission"], out.inputs["Surface"])
+                else:
+                    add = nt.nodes.new("ShaderNodeAddShader")
+                    nt.links.new(src, add.inputs[0])
+                    nt.links.new(em.outputs["Emission"], add.inputs[1])
+                    nt.links.new(add.outputs["Shader"], out.inputs["Surface"])
+                mat.cycles.emission_sampling = "NONE"
+        elif ob.type == "LIGHT":
+            ob.visible_diffuse = False
+            ob.visible_glossy = False
+            ob.visible_transmission = False
     scn.world.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.0
+    scn.cycles.max_bounces = 1
+    scn.cycles.diffuse_bounces = 0                 # coût : seul le reflet spéculaire (asphalte, métal) est gardé
+    scn.cycles.glossy_bounces = 1
+    scn.cycles.volume_bounces = 0
 
 
 def configure_passes(scn, pass_: str):
@@ -564,55 +610,67 @@ def configure_passes(scn, pass_: str):
     scn.render.use_sequencer = False
 
 
+def place_camera(rig, u: float):
+    """Travelling avant lent (ease-in-out doux) avec léger arc latéral ; u = 0..1 sur les 5 s."""
+    e = u * u * (3 - 2 * u) * 0.35 + u * 0.65
+    cam = rig["cam"]
+    cam.location = Vector((-0.38 + 0.50 * e, -10.6 + 1.35 * e, CAM_Z - 0.04 * e))
+    look = Vector((0.06 * e, 0.0, CAM_Z + 0.25))
+    aim(cam, look)
+    cam.data.dof.focus_distance = (Vector((cam.location.x, 0.0, cam.location.z)) - cam.location).length
+
+
 def apply_seq_frame(rig, f: int):
     """Place voiture / caméra / brouillard pour la frame f (1..150)."""
     t = (f - 1) / FPS
     s = seq_state(t)
     px, py, th = s["car"]
-    rig["car"].location = (px, py, 0.0)
-    rig["car"].rotation_euler = (0.0, 0.0, th - math.pi / 2)    # avant de la voiture = +Y local
+    rig["car"].location = (px, py, 0.70)
+    rig["car"].rotation_euler = (0.0, 0.0, th - math.pi / 2)     # avant (+Y local) dans la direction du cap
     for sp in rig["heads"]:
-        sp.data.energy = 3200.0 * s["head"]
-    for tl in rig["tails"]:
-        tl.data.energy = 60.0 * s["red"]
-    for em in rig["tail_em"]:
-        em.inputs["Strength"].default_value = 30.0 * s["red"]
+        sp.data.energy = HEAD_W * s["head"]
     for em in rig["head_em"]:
-        em.inputs["Strength"].default_value = 160.0 * s["head"]
-    u = s["cam_u"]
-    cam = rig["cam"]
-    cam.location = Vector((-0.30 + 0.42 * u, -10.6 + 1.05 * u, 1.62 - 0.06 * u))
-    look = Vector((0.10 * u, 0.0, 1.05))
-    aim(cam, look)
-    cam.data.dof.focus_distance = (cam.location - look).length
-    if rig["fog_map"] is not None:      # dérive lente du brouillard
-        rig["fog_map"].inputs["Location"].default_value = (-0.11 * t, 0.0, 0.025 * t)
+        em.inputs["Strength"].default_value = 160.0 * s["head_lens"]
+    for tl in rig["tails"]:
+        tl.data.energy = TAIL_W * s["red"]
+    for em in rig["tail_em"]:
+        em.inputs["Strength"].default_value = 45.0 * s["red_lens"]
+    place_camera(rig, s["cam_u"])
+    if rig["fog_map"] is not None:      # dérive lente du brouillard (vent de gauche à droite)
+        rig["fog_map"].inputs["Location"].default_value = (-0.16 * t, -0.05 * t, 0.03 * t)
 
 
 def setup_cover(rig):
-    """Couverture : titre en haut, éclairé de face ; voiture face caméra au fond, phares dans le brouillard
-    (contre-jour au centre/bas : la silhouette incrustée plus tard s'y découpera en noir)."""
+    """Couverture : titre en haut, bien éclairé (clé froide de face + liseré rouge par l'arrière) ; voiture au fond,
+    face caméra : la lueur des phares dans le brouillard, au centre, sert de contre-jour à la silhouette qui sera
+    incrustée au centre/bas (pieds sur les reflets de l'asphalte mouillé)."""
     cam = rig["cam"]
-    cam.location = Vector((0.0, -10.4, 1.30))
-    aim(cam, Vector((0.0, 0.0, 1.75)))
-    cam.data.lens = 30.0
-    cam.data.dof.focus_distance = 10.45
-    rig["car"].location = (0.0, 10.5, 0.0)
-    rig["car"].rotation_euler = (0.0, 0.0, math.radians(180.0))   # face caméra
+    cam.location = Vector((0.0, -11.0, 1.05))
+    aim(cam, Vector((0.0, 0.0, 1.05)))
+    cam.data.lens = 41.0
+    cam.data.dof.focus_distance = 11.0
+    cam.data.dof.aperture_fstop = 4.0
+    rig["car"].location = (0.35, 17.5, 0.70)
+    rig["car"].rotation_euler = (0.0, 0.0, math.radians(180.0))    # face caméra
     for sp in rig["heads"]:
-        sp.data.energy = 2600.0
+        sp.data.energy = 1500.0
     for em in rig["head_em"]:
         em.inputs["Strength"].default_value = 120.0
+    # accent rouge : feux arrière d'une voiture garée au fond à gauche
+    tail = rig["tail"]
+    tail.parent = None
+    tail.location = (-3.3, 10.0, 0.84)
+    tail.rotation_euler = (0.0, 0.0, math.radians(172.0))
     for tl in rig["tails"]:
-        tl.data.energy = 0.0
-    key = add_light("CoverKey", "SPOT", HEAD_COLOR, 0.25, "head", 30, 0.6)
-    key.location = Vector((-4.5, -7.5, 4.2))
-    aim(key, Vector((0.4, 0.0, 2.45)))
-    key.data.energy = 2600.0
-    red = add_light("CoverRed", "POINT", RED, 0.1, "red")
-    red.location = Vector((4.2, 4.0, 0.9))
-    red.data.energy = 90.0
-    calibrate_shift(rig, 0.5, 0.25, ref_frame=None)
+        tl.data.energy = 22.0
+    for em in rig["tail_em"]:
+        em.inputs["Strength"].default_value = 40.0
+    key = add_light("CoverKey", "SPOT", HEAD_COLOR, 0.35, "head", 30, 0.7)
+    key.location = Vector((-4.0, -8.5, 6.5))
+    aim(key, Vector((0.2, 0.0, rig["title"].location.z + 0.75)))
+    key.data.energy = 1500.0
+    key.visible_volume_scatter = False                              # pas de cône parasite devant le titre
+    calibrate_shift(rig, 0.47, 0.235, ref_frame=None)
 
 
 # ----------------------------------------------------------------------------- cadrage
@@ -672,12 +730,19 @@ def main():
                 apply_seq_frame(rig, f)
             bpy.context.view_layer.update()
             boxes[str(f)] = [round(v, 1) for v in title_box_px(rig)]
-            if not rig["cover"]:
-                lamps = [(tuple(round(c, 2) for c in sp.matrix_world.translation),
-                          tuple(round(c, 2) for c in (sp.matrix_world.to_3x3() @ Vector((0, 0, -1)))))
-                         for sp in rig["heads"]]
-                boxes[str(f)] = boxes[str(f)] + [lamps]
-        Path(args.layout).write_text(json.dumps({"mode": args.mode, "boxes": boxes}, indent=1))
+            if not rig["cover"]:                 # contrôle de composition : feux projetés (px) et état
+                W, H = scn.render.resolution_x, scn.render.resolution_y
+                proj = {}
+                for key in ("car", "tail"):
+                    co = world_to_camera_view(scn, rig["cam"], rig[key].matrix_world.translation)
+                    proj[key] = [round(co.x * W), round((1 - co.y) * H), round(co.z, 1)]
+                st = seq_state((f - 1) / FPS)
+                proj["state"] = {k: (round(v, 2) if isinstance(v, float) else [round(c, 2) for c in v])
+                                 for k, v in st.items()}
+                boxes[str(f)] = boxes[str(f)] + [proj]
+        Path(args.layout).write_text(json.dumps({"mode": args.mode, "boxes": boxes,
+                                                 "shift": [rig["cam"].data.shift_x, rig["cam"].data.shift_y]},
+                                                indent=1))
         print(f"[title] layout -> {args.layout}")
         return
     if args.save_blend:
