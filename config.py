@@ -14,6 +14,14 @@ from pathlib import Path
 
 IS_WINDOWS = sys.platform.startswith("win")
 
+# Console Windows redirigée (cp1252) : jamais de plantage sur « → », « ≠ », « è »… (print des modules)
+for _st in (sys.stdout, sys.stderr):
+    if _st is not None and (getattr(_st, "encoding", "") or "").lower().replace("-", "") != "utf8":
+        try:
+            _st.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError, OSError):
+            pass
+
 _DEFAULT_RUSH = (
     r"C:\Users\dogan\OneDrive\Bureau\Documents\Photos, Souvenirs et Voyages\Montages\Escape game horreur"
     if IS_WINDOWS
@@ -21,11 +29,25 @@ _DEFAULT_RUSH = (
 )
 _DEFAULT_WORK = r"C:\Users\dogan\edit_escape_tmp" if IS_WINDOWS else "/home/user/edit_escape_tmp"
 
+REPO = Path(__file__).resolve().parent
+
 RUSH_DIR = Path(os.environ.get("ESCAPE_RUSH_DIR", _DEFAULT_RUSH))
 WORK_DIR = Path(os.environ.get("ESCAPE_WORK_DIR", _DEFAULT_WORK))
-OUT_DIR = Path(os.environ.get("ESCAPE_OUT_DIR", str(RUSH_DIR / "MONTAGE_CEST_QUI_LUI")))
 
-REPO = Path(__file__).resolve().parent
+
+def _inside(child: Path, parent: Path) -> bool:
+    try:
+        child.resolve().relative_to(parent.resolve())
+        return True
+    except (ValueError, OSError):
+        return False
+
+
+# Livrables : à côté des rushs (brief) ; mais si les rushs sont DANS le dépôt (flux cloud : <dépôt>/rushs),
+# jamais dans le dépôt (vidéo > 15 Mo) → dossier de travail.
+_DEFAULT_OUT = (WORK_DIR if _inside(RUSH_DIR, REPO) else RUSH_DIR) / "MONTAGE_CEST_QUI_LUI"
+OUT_DIR = Path(os.environ.get("ESCAPE_OUT_DIR", str(_DEFAULT_OUT)))
+
 ASSETS = REPO / "assets"
 FONTS_DIR = ASSETS / "fonts"
 VOICE_DIR = ASSETS / "audio" / "voice"
@@ -64,11 +86,18 @@ TARGET_LUFS = -14.0
 TARGET_TP = -1.0
 
 # Words/phrases that must NEVER be audible (shooting instructions). Normalised, accent-free, lowercase.
+# Recherche par MOTS ENTIERS (pipeline.analyze.match_blacklist) : « souris » ne touche pas « sourire ».
 INSTRUCTION_BLACKLIST = [
     "fais genre", "fait genre", "fais comme si", "fais semblant", "fait semblant",
     "vas y filme", "filme moi", "t'es possede", "tes possede", "regarde la camera",
     "action", "coupe", "on refait", "recommence",
+    "vas y", "fais le", "fais la", "souris", "crie", "bouge pas", "reste comme ca", "on la refait",
+    "regarde moi", "c est bon", "t as filme", "attends",
 ]
+# Mots courants de la liste : on coupe le MOT seul (± 0,12 s), pas tout l'énoncé qui le contient
+# (les vraies consignes « fais genre… » emportent tout l'énoncé).
+INSTRUCTION_WORDS_ONLY = ["vas y", "fais le", "fais la", "souris", "crie", "bouge pas", "regarde moi", "c est bon",
+                          "attends"]
 
 
 def ensure_dirs() -> None:

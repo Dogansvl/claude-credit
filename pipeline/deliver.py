@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -47,7 +48,10 @@ def mux(video: Path, mix: Path, out: Path, quality: str, log=print) -> dict:
     vf.append("format=yuv420p")
     crf, preset = ("16", "slow") if quality == "final" else ("20", "fast")
     out.parent.mkdir(parents=True, exist_ok=True)
-    tmp = out.with_name(out.stem + ".tmp" + out.suffix)
+    # fichier temporaire dans le dossier de travail (hors OneDrive : pas de synchro d'un fichier à moitié écrit),
+    # puis déplacement vers les livrables
+    config.RENDER_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = config.RENDER_DIR / (out.stem + ".tmp" + out.suffix)
     cmd = [R._ffmpeg(), "-y", "-v", "error", "-nostdin", "-i", str(video), "-i", str(mix),
            "-map", "0:v:0", "-map", "1:a:0", "-frames:v", str(n),
            "-vf", ",".join(vf), "-r", str(config.FPS),
@@ -57,14 +61,20 @@ def mux(video: Path, mix: Path, out: Path, quality: str, log=print) -> dict:
            "-c:a", "aac", "-b:a", "320k", "-ar", "48000", "-ac", "2",
            "-movflags", "+faststart", "-t", f"{dur:.6f}", str(tmp)]
     t0 = time.time()
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
     if r.returncode != 0:
         tmp.unlink(missing_ok=True)
         raise RuntimeError(f"mux échoué : {r.stderr[-1200:]}")
     n2 = R.count_frames(tmp)
     if n2 != n:
         raise RuntimeError(f"mux : {n2} images au lieu de {n}")
-    os.replace(tmp, out)
+    try:
+        os.replace(tmp, out)            # même volume : renommage atomique
+    except OSError:
+        part = out.with_name(out.stem + ".part" + out.suffix)
+        shutil.copyfile(tmp, part)      # autre volume : copie complète puis renommage
+        os.replace(part, out)
+        tmp.unlink(missing_ok=True)
     log(f"[deliver] {out.name} : {n} images, {dur:.2f} s ({time.time() - t0:.0f} s)")
     return {"file": str(out), "frames": n, "duration": round(dur, 3), "size": list(target)}
 
@@ -166,7 +176,7 @@ def write_lisezmoi(out: Path, duration: float) -> Path:
         f"Son : voix off neuronale ({_voice_backend()}), vraies répliques des rushs, piano réel de IMG_8354, "
         "sound design 100 % synthétisé ; master à −14 LUFS et −1 dBTP.",
         "Sous-titres incrustés dans la zone sûre TikTok/Instagram ; aucun flash de plus de 3 par seconde.",
-        "Vérifié automatiquement (durée, format, loudness, ASR, noirs, flashs) ; les originaux n'ont pas été touchés.",
+        "Contrôle qualité automatique : voir le rapport (cette ligne est mise à jour par le contrôle).",
     ]
     out.write_text("\n".join(lines[:5]) + "\n", encoding="utf-8")
     return out

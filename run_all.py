@@ -7,7 +7,7 @@
     python run_all.py --stage voices               # (option) régénère les voix off
     python run_all.py --stage title                # (option) re-rend le titre 3D (Blender, ~1 h)
 
-Étapes : models, ingest, analyze, edl, voices (option), title (option), render, mix, deliver, qc.
+Étapes : models, ingest, analyze, voices (option), title (option), edl, render, mix, deliver, qc.
 (`models` télécharge les modèles manquants dans MODELS_DIR ; instantané s'ils sont déjà là.)
 Journal complet : WORK_DIR/logs/run_<date>.log. Arrêt à la première erreur bloquante.
 """
@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import inspect
 import json
+import os
 import subprocess
 import sys
 import time
@@ -27,7 +28,8 @@ sys.path.insert(0, str(ROOT))
 
 import config  # noqa: E402
 
-STAGES = ["models", "ingest", "analyze", "edl", "voices", "title", "render", "mix", "deliver", "qc"]
+# voices / title AVANT edl : l'EDL lit les durées réelles des voix (manifeste) et l'instant de révélation du titre
+STAGES = ["models", "ingest", "analyze", "voices", "title", "edl", "render", "mix", "deliver", "qc"]
 DEFAULT = ["models", "ingest", "analyze", "edl", "render", "mix", "deliver", "qc"]
 
 # Modèles (fichier, URL, taille exacte en octets). Les modèles de transcription sherpa-onnx sont
@@ -50,6 +52,27 @@ MODELS = [
     ("midas_small.onnx", "https://github.com/isl-org/MiDaS/releases/download/v2_1/model-small.onnx", 66764249),
 ]
 PIPER_VOICES = ["tom-medium", "upmc-medium", "gilles-low", "siwis-medium"]  # étape « voices » seulement
+
+
+def _console_utf8() -> None:
+    """Console Windows (cp1252/cp850) : UTF-8 avec remplacement, jamais de plantage sur « → », « ≠ », « è »…"""
+    for st in (sys.stdout, sys.stderr):
+        try:
+            st.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError, OSError):
+            pass
+
+
+def check_tools() -> list[str]:
+    """ffmpeg / ffprobe trouvables ? Renvoie la liste des problèmes (message clair, en français)."""
+    import shutil
+    probs = []
+    for var, exe in (("ESCAPE_FFMPEG", "ffmpeg"), ("ESCAPE_FFPROBE", "ffprobe")):
+        cmd = os.environ.get(var, exe)
+        if shutil.which(cmd) is None and not Path(cmd).is_file():
+            probs.append(f"{exe} introuvable (ni dans le PATH ni via {var}). Windows : « winget install Gyan.FFmpeg », "
+                         f"puis FERME et ROUVRE le terminal ; ou indique le chemin complet dans {var}.")
+    return probs
 
 
 class Tee:
@@ -273,6 +296,13 @@ def main(argv=None) -> int:
     ap.add_argument("--ignore-review", action="store_true", help="autorise le final sans revue de decisions.json")
     a = ap.parse_args(argv)
     stages = parse_stages(a)
+    _console_utf8()
+    if set(stages) - {"models", "voices", "title"}:
+        probs = check_tools()
+        if probs:
+            for pr in probs:
+                print("ERREUR : " + pr)
+            return 1
 
     config.ensure_dirs()
     logdir = config.WORK_DIR / "logs"

@@ -107,7 +107,7 @@ NARRATOR_FX = {
     "upmc-jessica": dict(semitones=-1.0, exciter_db=-26.0),
 }
 # Compression temporelle maximale admise (rubberband, formants préservés) pour tenir une fenêtre
-TEMPO_MAX = {"narrator": 1.10, "name": 1.45, "ident": 1.25, "cql": 1.20}
+TEMPO_MAX = {"narrator": 1.10, "name": 1.25, "ident": 1.25, "cql": 1.20}
 
 
 def narrator_fx(backend) -> dict:
@@ -450,7 +450,7 @@ def voice_windows(spec_path: Path | None = None, decisions_path: Path | None = N
 
 def margin_for(vid: str) -> float:
     if vid.startswith("E_") and BY_ID[vid].get("preset") == "name":
-        return 0.0  # flashs de 0,55 s : le murmure finit quand le suivant commence
+        return -0.15  # flashs de ~0,6 s : le murmure peut mordre 0,15 s sur le flash suivant (moins compressé)
     if vid.startswith("E_"):
         return 0.08
     return 0.15

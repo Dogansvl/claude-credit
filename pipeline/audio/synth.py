@@ -927,7 +927,19 @@ def _piano_variant(name: str, dur, seed, source):
         y = None
     if y is None:
         y = music_box_leitmotif(None, seed, source="fallback")
+        if name == "reverse":
+            y = y[::-1].copy()
     n = _n(dur) if dur is not None else len(y)
+    if name == "reverse":
+        # le repère finit sur l'attaque inversée (l'aspiration qui culmine) : on coupe juste après ce
+        # sommet, puis on garde les n DERNIERS échantillons (complétés par du silence au début)
+        y = dsp.as_stereo(y)
+        env = np.max(np.abs(y), axis=1)
+        k0 = max(0, len(y) - _n(0.6))
+        pk = k0 + int(np.argmax(env[k0:])) if len(y) else 0
+        y = y[:min(len(y), pk + _n(0.004))]
+        y = y[-n:] if len(y) >= n else np.concatenate([np.zeros((n - len(y), 2), np.float32), y])
+        return _finish(y, n, peak=-1.0, fi=min(0.3, n / SR * 0.2), fo=0.003, hp=30)
     return _finish(y, n, peak=-1.0, fo=min(0.5, n / SR * 0.2), hp=30)
 
 

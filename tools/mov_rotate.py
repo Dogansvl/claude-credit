@@ -15,6 +15,8 @@ def boxes(buf, start, end):
         i += size
 
 def patch(path):
+    if _under_rushes(path):
+        raise PermissionError(f"refus d'écrire dans les rushs originaux : {path}")
     buf = bytearray(open(path, "rb").read())
     done = 0
     for typ, i, hdr, size in boxes(buf, 0, len(buf)):
@@ -44,6 +46,23 @@ def patch(path):
     open(path, "wb").write(buf)
     return done
 
+def _under_rushes(path) -> bool:
+    """Vrai si le fichier est dans le dossier des rushs ORIGINAUX (config.RUSH_DIR) : interdit d'y écrire."""
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+    import config
+    try:
+        Path(path).resolve().relative_to(config.RUSH_DIR.resolve())
+        return True
+    except (ValueError, OSError):
+        return False
+
+
 if __name__ == "__main__":
     for p in sys.argv[1:]:
+        if _under_rushes(p):
+            sys.exit(f"REFUS : {p} est dans le dossier des rushs originaux (lecture seule). "
+                     "Cet outil ne sert qu'aux faux rushs de test.")
         print(p, patch(p))

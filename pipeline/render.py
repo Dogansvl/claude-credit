@@ -50,8 +50,12 @@ FLASH_TYPES = ("negative", "subliminal")
 MAX_FLASHES_PER_S = 3
 FACE_FX = ("black_eyes", "stretch_smile", "melt", "widen_eyes", "demon_face", "head_tic", "portrait_eyes")
 SUB_FADE_S = 0.12
-DEFAULT_JOBS = 2
-OCC_STEP = {"preview": 4, "final": 2}  # pas de recalcul du masque d'occlusion des personnes (images)
+# processus de rendu par défaut : un cœur laissé libre (4 CPU → 3 processus), au plus 4
+DEFAULT_JOBS = max(1, min(4, (os.cpu_count() or 4) - 1))
+OCC_STEP = {"preview": 3, "final": 3}  # masque d'occlusion des personnes recalculé toutes les 3 images (0,1 s),
+#                                        même grille en preview et en final → cache disque partagé
+LANCZOS_MIN_ZOOM = 1.12  # final : Lanczos pour les vrais agrandissements ; en dessous, bicubique (écart invisible
+#                          sous le grain, warpAffine Lanczos 8x8 ≈ 4× plus coûteux)
 
 
 # ---------------------------------------------------------------------------
@@ -83,7 +87,7 @@ def _ffprobe() -> str:
 
 def ffprobe_json(path: Path, *args: str) -> dict:
     cmd = [_ffprobe(), "-v", "error", "-of", "json", *args, str(path)]
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
     if r.returncode != 0:
         raise RuntimeError(f"ffprobe a échoué sur {path} : {r.stderr.strip()[-500:]}")
     return json.loads(r.stdout or "{}")
@@ -316,7 +320,9 @@ class _StubGfx:  # STUB
         return out
 
 
-class _StubFace:  # STUB
+class _StubFace:  # boîte seule (analyse 5 i/s, boîte manuelle) : pas de points du maillage
+    box_only = True
+
     def __init__(self, bbox, score=0.9):
         self.bbox = tuple(float(v) for v in bbox)
         self.score = score
@@ -503,8 +509,10 @@ class Encoder:
         self.proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=self._logf)
 
     def write(self, img: np.ndarray):
-        u8 = np.clip(img * 255.0 + 0.5, 0, 255).astype(np.uint8)
-        self.proc.stdin.write(np.ascontiguousarray(u8).tobytes())
+        buf = np.multiply(img, 255.0, dtype=np.float32)
+        buf += 0.5
+        np.clip(buf, 0, 255, out=buf)
+        self.proc.stdin.write(np.ascontiguousarray(buf.astype(np.uint8)).tobytes())
         self.n += 1
 
     def close(self) -> int:
@@ -636,10 +644,25 @@ def ensure_silhouette(edl: dict, log=print) -> dict | None:
         STUBS_USED.add("silhouette")
     t_range = tuple(float(v) for v in (src.get("t_range") or (6.0, 9.5)))
     log(f"[render] détourage de la silhouette ({clip} {t_range[0]:.1f}–{t_range[1]:.1f} s)…")
-    meta = sil_mod.extract(str(proxy), t_range, str(out_dir), hint_center=src.get("hint_center"))
-    meta = {k: (str(v) if isinstance(v, Path) else v) for k, v in dict(meta).items()}
     out_dir.mkdir(parents=True, exist_ok=True)
-    meta_p.write_text(json.dumps(meta, indent=1, ensure_ascii=False, default=str), encoding="utf-8")
+    failed = False
+    try:
+        meta = sil_mod.extract(str(proxy), t_range, str(out_dir), hint_center=src.get("hint_center"))
+    except Exception as e:
+        failed = True  # le détourage ne doit jamais arrêter le film : silhouette procédurale, signalée
+        log(f"[render] ⚠ silhouette.extract a échoué ({type(e).__name__}: {e}) : silhouette procédurale")
+        proc = getattr(sil_mod, "_procedural_result", None)
+        try:
+            meta = proc(Path(out_dir), key, f"extract a échoué : {e}") if callable(proc) else None
+        except Exception:
+            meta = None
+        if meta is None:
+            meta = _stub_silhouette().extract(str(proxy), t_range, str(out_dir))
+        meta = dict(meta)
+        meta["method"] = f"procedural (extract a échoué : {type(e).__name__})"
+    meta = {k: (str(v) if isinstance(v, Path) else v) for k, v in dict(meta).items()}
+    if not failed:  # un repli après échec n'est pas mis en cache (nouvel essai au prochain rendu)
+        meta_p.write_text(json.dumps(meta, indent=1, ensure_ascii=False, default=str), encoding="utf-8")
     log(f"[render] silhouette : méthode {meta.get('method')}, {meta.get('still')}")
     return meta
 
@@ -721,6 +744,21 @@ def _faces_list(obj) -> list:
     return []
 
 
+def _mesh_faces(faces: list) -> list:
+    """Visages avec un vrai maillage (les boîtes seules ne servent qu'au floutage / au cadrage)."""
+    return [f for f in faces or [] if not getattr(f, "box_only", False)]
+
+
+def _dec_value(key: str, field: str):
+    """decisions.json[key][field] si rempli (sinon None)."""
+    v = (_decisions().get(key) or {})
+    return v.get(field) if isinstance(v, dict) else None
+
+
+def _clip_num(clip: str | None) -> str:
+    return str(clip or "").replace("IMG_", "")
+
+
 def main_faces(faces: list) -> list:
     """Sujets principaux : visages dont la hauteur ≥ 50 % du plus grand (4 au plus)."""
     if not faces:
@@ -764,8 +802,9 @@ class Camera:
             M = np.float32([[M[0, 0] / rx, 0, M[0, 2] + M[0, 0] * (0.5 / rx - 0.5)],
                             [0, M[1, 1] / ry, M[1, 2] + M[1, 1] * (0.5 / ry - 0.5)]])
             img = pre
+        lanczos = self.lanczos and self.s * min(w / self.ow, h / self.oh) >= LANCZOS_MIN_ZOOM
         return cv2.warpAffine(img, M, (self.ow, self.oh),
-                              flags=cv2.INTER_LANCZOS4 if self.lanczos else cv2.INTER_CUBIC,
+                              flags=cv2.INTER_LANCZOS4 if lanczos else cv2.INTER_CUBIC,
                               borderMode=cv2.BORDER_REFLECT101)
 
     def pt(self, x, y):
@@ -909,9 +948,31 @@ class ShotRenderer:
             return []
         return [_StubFace(f["bbox"], f.get("score", 0.5)) for f in faces[k] if "bbox" in f]
 
-    def apply_face_fx(self, img, faces, t, fi):
+    def analysis_persons(self, clip: str | None = None, t_src: float | None = None) -> list:
+        """Boîtes des personnes de l'analyse (persons.json, 5 i/s, px proxy) au plus près de l'instant source."""
+        clip = clip or self.cur_clip()
+        if t_src is None:
+            t_src = (self.__dict__.get("_cur_src") or (None, 0.0))[1]
+        cache = self.__dict__.setdefault("_anap", {})
+        if clip not in cache:
+            try:
+                d = json.loads((config.ANALYSIS_DIR / f"{clip}.persons.json").read_text(encoding="utf-8"))
+                cache[clip] = (np.asarray(d.get("t", []), float), d.get("persons", []))
+            except Exception:
+                cache[clip] = (np.zeros(0), [])
+        ts, pers = cache[clip]
+        if len(ts) == 0:
+            return []
+        k = int(np.argmin(np.abs(ts - t_src)))
+        if abs(ts[k] - t_src) > 0.25:
+            return []
+        return [q["bbox"] for q in pers[k] if q.get("score", 0) >= 0.3 and "bbox" in q]
+
+    def apply_face_fx(self, img, faces, t, fi, box=None):
+        """Effets visages. Sans maillage sur cette image : visage connu le plus proche dans la shot (déjà
+        substitué par l'appelant), sinon `box` (analyse / boîte manuelle) avec facefx.<effet>_from_box s'il existe."""
         FF = facefx()
-        main = main_faces(faces)
+        main = main_faces(_mesh_faces(faces))
         for fx in self.fx:
             typ = fx.get("type")
             if typ not in FACE_FX or not _active(fx, t, self.dur):
@@ -926,14 +987,48 @@ class ShotRenderer:
             if typ == "head_tic":
                 img = self.safe(typ, fn, img, main[0] if main else None, fi, a)
             elif typ == "portrait_eyes":
-                img = self.safe(typ, fn, img, faces, t, a)
-            else:
+                img = self.portrait_eyes(img, fn, faces, t, a)
+            elif main:
                 for f in main:
                     if typ in ("melt", "demon_face"):
                         img = self.safe(typ, fn, img, f, a, t)
                     else:
                         img = self.safe(typ, fn, img, f, a)
+            else:
+                fb = getattr(FF, f"{typ}_from_box", None)
+                if box is not None and callable(fb):
+                    img = self.safe(f"{typ}_from_box", fb, img, box, a, t) if typ in ("melt", "demon_face") \
+                        else self.safe(f"{typ}_from_box", fb, img, box, a)
+                else:
+                    self.warn(f"{typ} : aucun visage (ni maillage, ni boîte exploitable) sur une partie de la shot")
         return img
+
+    def portrait_eyes(self, img, fn, faces, t, a):
+        """Yeux des TABLEAUX seulement : visages proches des yeux indiqués dans decisions
+        (portrait_eyes_<clip>.eyes), sinon visages sans corps détecté ; abstention en cas de doute."""
+        faces = _mesh_faces(faces)
+        eyes = _dec_value(f"portrait_eyes_{_clip_num(self.cur_clip())}", "eyes")
+        if isinstance(eyes, list) and eyes:
+            pts = [(float(e[0]) * SRC_W, float(e[1]) * SRC_H) for e in eyes]
+            sel = [f for f in faces if any(f.bbox[0] - 0.1 * (f.bbox[2] - f.bbox[0]) <= x <= f.bbox[2] + 0.1 *
+                                           (f.bbox[2] - f.bbox[0]) and f.bbox[1] <= y <= f.bbox[3] for x, y in pts)]
+            at = getattr(facefx(), "portrait_eyes_at", None)
+            if not sel and callable(at):
+                return self.safe("portrait_eyes_at", at, img, eyes, t, a)
+        else:
+            persons = self.analysis_persons()
+            sel = []
+            for f in faces:
+                fh = f.bbox[3] - f.bbox[1]
+                cx, cy = (f.bbox[0] + f.bbox[2]) / 2, (f.bbox[1] + f.bbox[3]) / 2
+                body = any(b[0] <= cx <= b[2] and b[1] - 0.2 * fh <= cy <= b[1] + 0.45 * (b[3] - b[1])
+                           and (b[3] - b[1]) >= 2.6 * fh for b in persons)
+                if not body:
+                    sel.append(f)
+        if not sel:
+            self.warn("portrait_eyes : aucun visage de tableau identifié avec certitude → effet non appliqué")
+            return img
+        return self.safe("portrait_eyes", fn, img, sel, t, a)
 
     # --- silhouette ---------------------------------------------------------
     def apply_silhouette(self, img, t, fi, slot=None, opacity_mul=1.0):
@@ -964,17 +1059,54 @@ class ShotRenderer:
             cache = self.__dict__.setdefault("_occ", {})
             occ = cache.get(key)
             if occ is None:
-                try:
-                    occ = S.person_mask(img)
+                disk = self.occ_disk_path(img) if not static else None
+                if disk is not None and disk.exists():
+                    occ = self.occ_load(disk, img.shape)
+                if occ is None:
+                    try:
+                        occ = S.person_mask(img)
+                        if disk is not None:
+                            self.occ_save(disk, occ)
+                    except Exception as e:
+                        self.warn(f"person_mask a échoué ({e})")
+                if occ is not None:
                     if not static:
                         cache.clear()
                     cache[key] = occ
-                except Exception as e:
-                    self.warn(f"person_mask a échoué ({e})")
         return self.safe("silhouette.composite", S.composite, img, rgba,
                          _num(sl.get("x"), 0.5), _num(sl.get("foot_y"), 0.7), _num(sl.get("height"), 0.3),
                          opacity=op, blur=_num(sl.get("blur"), 1.5), darkness=_num(sl.get("darkness"), 0.9),
                          blend=sl.get("blend", "normal") or "normal", frame_idx=fi, occluder_mask=occ)
+
+    def occ_disk_path(self, img) -> Path | None:
+        """Cache disque du masque des personnes d'une image source (partagé preview/final : même image proxy)."""
+        cur = self.__dict__.get("_cur_src")
+        if not cur or not cur[0] or img.shape[:2] != (SRC_H, SRC_W):
+            return None
+        j = fidx(cur[1])
+        b = (j // OCC_STEP["final"]) * OCC_STEP["final"]
+        S = silhouette_mod()
+        ver = _hash([getattr(S, "VERSION", "?"), _file_sig(config.proxy_path(cur[0]))])[:8]
+        return config.CACHE_DIR / "person_mask" / f"{cur[0]}_{ver}" / f"{b:05d}.png"
+
+    @staticmethod
+    def occ_load(p: Path, shape) -> np.ndarray | None:
+        import cv2
+        m = cv2.imread(str(p), cv2.IMREAD_UNCHANGED)
+        if m is None or m.shape[:2] != shape[:2]:
+            return None
+        return m.astype(np.float32) / 255.0
+
+    @staticmethod
+    def occ_save(p: Path, occ) -> None:
+        import cv2
+        try:
+            p.parent.mkdir(parents=True, exist_ok=True)
+            tmp = p.with_name(p.stem + f".{os.getpid()}.tmp.png")
+            cv2.imwrite(str(tmp), np.clip(np.asarray(occ, np.float32) * 255 + 0.5, 0, 255).astype(np.uint8))
+            os.replace(tmp, p)
+        except Exception:
+            pass
 
     def subliminal_image(self, what: str) -> np.ndarray:
         """Image subliminale plein cadre : silhouette noire sur mur éclairé (ou son négatif)."""
@@ -996,8 +1128,8 @@ class ShotRenderer:
             ys, xs = np.nonzero(a > 0.1)
             if len(ys):
                 crop = rgba[ys.min():ys.max() + 1, xs.min():xs.max() + 1].astype(np.float32) / 255.0
-                # grande, mais sans agrandir à l'excès une découpe de petite taille (flou)
-                hh = int(min(H * 0.8, max(H * 0.5, 3.5 * crop.shape[0])))
+                # plein cadre : silhouette à ~0,8 × la hauteur de l'image
+                hh = int(H * 0.8)
                 ww = max(2, int(crop.shape[1] * hh / crop.shape[0]))
                 if ww > W * 0.95:
                     ww = int(W * 0.95)
@@ -1031,6 +1163,48 @@ class ShotRenderer:
         elif mix is not None:
             kw["mix"] = _num(mix, 0.0)
         return self.safe(f"grade {preset}", self.G.grade, img, preset, **kw)
+
+    def privacy_regions(self, faces: list, cam) -> list:
+        """Personnes secondaires (analyse efficientdet, hors sujet(s) principal(aux)) + zones manuelles
+        decisions["privacy_zones"]["zones"][clip] = [[x0, y0, x1, y1, t0, t1]] (normalisées, temps source)."""
+        clip, t_src = self.__dict__.get("_cur_src") or (self.cur_clip(), None)
+        out = []
+        if clip and t_src is not None:
+            persons = self.analysis_persons(clip, t_src)
+            mf = main_faces(faces)
+            if persons:
+                hmax = max(b[3] - b[1] for b in persons)
+                for b in persons:
+                    h = b[3] - b[1]
+                    holds_main = any(b[0] <= (f.bbox[0] + f.bbox[2]) / 2 <= b[2] and b[1] - 0.1 * h <=
+                                     (f.bbox[1] + f.bbox[3]) / 2 <= b[3] for f in mf)
+                    if h >= 0.5 * hmax or holds_main or h < 0.03 * SRC_H:
+                        continue  # sujet principal (jamais flouté) ou trop petit pour être reconnaissable
+                    out.append(list(b))
+            zones = ((_decisions().get("privacy_zones") or {}).get("zones") or {}).get(clip) or []
+            for z in zones:
+                if len(z) >= 4 and (len(z) < 6 or float(z[4]) <= t_src <= float(z[5])):
+                    out.append([z[0] * SRC_W, z[1] * SRC_H, z[2] * SRC_W, z[3] * SRC_H])
+        return [cam.box(b) if cam else list(b) for b in out]
+
+    def blur_regions(self, img, boxes: list):
+        """Assombrit + floute des zones (boîtes de sortie), bords adoucis."""
+        import cv2
+        H, W = img.shape[:2]
+        for b in boxes:
+            x0, y0 = int(max(0, b[0] - 0.08 * (b[2] - b[0]))), int(max(0, b[1] - 0.05 * (b[3] - b[1])))
+            x1, y1 = int(min(W, b[2] + 0.08 * (b[2] - b[0]))), int(min(H, b[3] + 0.05 * (b[3] - b[1])))
+            if x1 - x0 < 4 or y1 - y0 < 4:
+                continue
+            roi = img[y0:y1, x0:x1]
+            sig = max(2.0, (x1 - x0) / 10)
+            bl = cv2.GaussianBlur(roi, (0, 0), sig) * 0.55
+            f = max(2.0, min(x1 - x0, y1 - y0) * 0.15)  # bords adoucis (rampe linéaire)
+            ry = np.minimum(np.arange(y1 - y0), np.arange(y1 - y0)[::-1]) / f
+            rx = np.minimum(np.arange(x1 - x0), np.arange(x1 - x0)[::-1]) / f
+            m = np.clip(np.minimum.outer(ry, rx), 0.0, 1.0).astype(np.float32)[..., None]
+            img[y0:y1, x0:x1] = roi * (1 - m) + bl * m
+        return img
 
     def privacy_blur(self, img, faces_out: list):
         """Floute les visages hors sujets principaux (boîtes en coordonnées de sortie)."""
@@ -1066,6 +1240,7 @@ class ShotRenderer:
         img = self.grade(img, t)
         # floutage des inconnus
         if any(fx.get("type") == "privacy_blur" and _active(fx, t, self.dur) for fx in self.fx):
+            img = self.blur_regions(img, self.privacy_regions(faces, cam))
             boxes = [cam.box(f.bbox) if cam else list(f.bbox) for f in faces]
             img = self.privacy_blur(img, boxes)
         # effets d'image
@@ -1135,16 +1310,38 @@ class ShotRenderer:
                 img = self.red_circles(img, ov, t, t0, cam, faces, project=self._proj)
         return img
 
+    def hud_faces(self, faces: list, want: int) -> list:
+        """Visages du HUD : les 4 plus grands (≥ 30 % de la taille du plus grand), gauche → droite ; repli manuel
+        decisions["hud_boxes_<clip>"]["boxes"] (boîtes normalisées) si la détection en trouve moins que voulu."""
+        fs = []
+        if faces:
+            hmax = max(f.bbox[3] - f.bbox[1] for f in faces)
+            fs = sorted([f for f in faces if f.bbox[3] - f.bbox[1] >= 0.3 * hmax], key=lambda f: -_area(f.bbox))[:4]
+        boxes = _dec_value(f"hud_boxes_{_clip_num(self.cur_clip())}", "boxes")
+        if len(fs) < want and isinstance(boxes, list) and boxes:
+            fs = [_StubFace([b[0] * SRC_W, b[1] * SRC_H, b[2] * SRC_W, b[3] * SRC_H]) for b in boxes[:4]]
+            self.warn(f"hud_faces : {len(fs)} boîte(s) manuelle(s) (decisions hud_boxes) au lieu de la détection")
+        return sorted(fs, key=lambda f: (f.bbox[0] + f.bbox[2]) / 2)
+
+    def cur_clip(self) -> str | None:
+        if self.shot.get("clip"):
+            return self.shot["clip"]
+        return (self.job.get("freeze") or {}).get("clip")
+
     def hud(self, img, ov, t, t0, fi, cam, faces):
         G = self.G
-        fs = sorted(main_faces(faces), key=lambda f: (f.bbox[0] + f.bbox[2]) / 2)
+        order = ov.get("order")
+        want = len(order) if isinstance(order, (list, tuple)) and order else 4
+        fs = self.hud_faces(faces, want)
         if not fs:
             self.warn("hud_faces : aucun visage détecté")
             return img
-        order = ov.get("order")
         names = None
         if isinstance(order, (list, tuple)) and order:
-            if len(order) == len(fs):
+            if len(fs) >= len(order):
+                if len(fs) > len(order):  # les plus grands, toujours de gauche à droite
+                    fs = sorted(sorted(fs, key=lambda f: -_area(f.bbox))[:len(order)],
+                                key=lambda f: (f.bbox[0] + f.bbox[2]) / 2)
                 names = [str(n).upper() for n in order]
             else:
                 self.warn(f"hud_faces : {len(fs)} visage(s) pour {len(order)} prénom(s) -> étiquettes sans prénom")
@@ -1164,7 +1361,7 @@ class ShotRenderer:
             sub = None  # sous-étiquette automatique (gfx)
             box = cam.box(f.bbox) if cam else list(f.bbox)
             lm = None
-            if getattr(f, "lm", None) is not None and cam is not None:
+            if getattr(f, "lm", None) is not None and cam is not None and not getattr(f, "box_only", False):
                 lm = (np.asarray(f.lm, np.float32) - [cam.ox, cam.oy]) * cam.s + [cam.dx, cam.dy]
             img = self.safe("hud", G.draw_hud_face, img, box, tl, label, sub, fi, mode=mode, landmarks=lm)
         return img
@@ -1184,12 +1381,23 @@ class ShotRenderer:
             cx, cy = sx * pw, (fy - sh * 0.5) * ph
             circles.append(((cx, cy), (sh * ph * 0.32, sh * ph * 0.62)))
         else:
-            fs = sorted(sorted(faces, key=lambda f: -_area(f.bbox))[:4], key=lambda f: (f.bbox[0] + f.bbox[2]) / 2)
-            for f in fs:
-                b = f.bbox
-                circles.append((((b[0] + b[2]) / 2, (b[1] + b[3]) / 2), ((b[2] - b[0]) * 0.78, (b[3] - b[1]) * 0.8)))
-            if not fs:
-                self.warn("red_circles : aucun visage détecté sur la photo")
+            want = len(ov.get("draws") or []) or 4
+            centers = _dec_value("group_photo_faces", "centers")
+            pw, ph = self.job.get("plate_size") or (SRC_W, SRC_H)
+            if len(faces) != want and isinstance(centers, list) and centers:
+                # repli manuel : [[x, y, rayon]] normalisés dans la photo (rayon en fraction de la largeur)
+                for c in sorted(centers, key=lambda c: c[0])[:want]:
+                    r = float(c[2]) if len(c) > 2 else 0.05
+                    circles.append(((float(c[0]) * pw, float(c[1]) * ph), (r * pw, r * pw * 1.18)))
+                self.warn(f"red_circles : {len(faces)} visage(s) détecté(s) pour {want} → centres manuels (decisions)")
+            else:
+                fs = sorted(sorted(faces, key=lambda f: -_area(f.bbox))[:want], key=lambda f: (f.bbox[0] + f.bbox[2]) / 2)
+                for f in fs:
+                    b = f.bbox
+                    circles.append((((b[0] + b[2]) / 2, (b[1] + b[3]) / 2), ((b[2] - b[0]) * 0.78, (b[3] - b[1]) * 0.8)))
+                if len(fs) != want:
+                    self.warn(f"red_circles : {len(fs)} visage(s) détecté(s) sur la photo pour {want} cercles "
+                              "(renseigner decisions group_photo_faces.centers)")
         draws = ov.get("draws") if isinstance(ov.get("draws"), (list, tuple)) else None
         for i, ((cx, cy), (ax, ay)) in enumerate(circles):
             d0 = _num(draws[i], None) if draws and i < len(draws) else None
@@ -1328,6 +1536,43 @@ class ShotRenderer:
             sample = sorted(set(np.linspace(j0, j1, min(24, j1 - j0 + 1)).astype(int).tolist()))
             faces_seq = [faces_at(j) for j in sample]
         center = self.resolve_center(cam_spec, faces_seq)
+        need_fx = any(fx.get("type") in FACE_FX for fx in self.fx)
+        known = {}  # image source -> visages avec maillage (pour les images où le suivi décroche)
+        if need_fx and track is not None:
+            for jj in range(j0, j1 + 1):
+                try:
+                    mf = _mesh_faces(list(track.at(int(jj - j0)) or []))
+                except Exception:
+                    mf = []
+                if mf:
+                    known[jj] = mf
+        manual = (_decisions().get("face_boxes") or {}).get(self.shot.get("id"))
+
+        def fx_faces(j, faces):
+            """(visages pour les effets, boîte de repli) : maillage de l'image, sinon visage connu le plus proche
+            recalé sur la boîte de l'analyse, sinon boîte (analyse / manuelle decisions face_boxes)."""
+            if main_faces(_mesh_faces(faces)) or not need_fx:
+                return faces, None
+            ab = sorted(self.analysis_faces(clip, j / FPS), key=lambda g: -_area(g.bbox))
+            if known:
+                jn = min(known, key=lambda x: abs(x - j))
+                fs = known[jn]
+                if ab and hasattr(fs[0], "transformed"):
+                    f0 = max(fs, key=lambda f: _area(f.bbox))
+                    b, g = f0.bbox, ab[0].bbox
+                    sc = (g[2] - g[0]) / max(1.0, b[2] - b[0])
+                    if 0.6 <= sc <= 1.6:
+                        M = np.float32([[sc, 0, (g[0] + g[2]) / 2 - sc * (b[0] + b[2]) / 2],
+                                        [0, sc, (g[1] + g[3]) / 2 - sc * (b[1] + b[3]) / 2]])
+                        fs = [f.transformed(M) for f in fs]
+                self.warn("effets visages : suivi perdu sur une partie de la shot → visage connu le plus proche")
+                return fs, None
+            if ab:
+                return faces, ab[0].bbox
+            if isinstance(manual, (list, tuple)) and len(manual) == 4:
+                return faces, (manual[0] * SRC_W, manual[1] * SRC_H, manual[2] * SRC_W, manual[3] * SRC_H)
+            return faces, None
+
         reader = FrameReader(proxy, j0, j1 - j0 + 1)
         try:
             hold_fn = getattr(facefx(), "head_tic_hold", None)
@@ -1344,10 +1589,12 @@ class ShotRenderer:
                             pass
                 u8 = reader.get(j)
                 faces = faces_at(j)
+                self._cur_src = (clip, j / FPS)
                 cam = self.camera_at(t, k, center)
                 if self.full_res_needed(t):
                     img = u8.astype(np.float32) * (1.0 / 255.0)
-                    img = self.apply_face_fx(img, faces, t, fi)
+                    ff, fbox = fx_faces(j, faces)
+                    img = self.apply_face_fx(img, ff, t, fi, box=fbox)
                     img = self.apply_silhouette(img, t, fi)
                     img = cam.apply(img)
                 else:  # rien à faire en pleine résolution : recadrage direct en 8 bits (plus rapide)
@@ -1370,7 +1617,17 @@ class ShotRenderer:
             self.warn("gel sans source -> noir")
             return self.r_black(enc)
         self.src_range = (0, 0)
+        if "clip" in src:
+            self._cur_src = (src["clip"], _num(src.get("t"), 0.0))
         faces = self.faces_from_image(u8) if self.needs_faces() else []
+        fbox = None
+        if not main_faces(_mesh_faces(faces)) and "clip" in src:
+            ab = sorted(self.analysis_faces(src["clip"], _num(src.get("t"), 0.0)), key=lambda g: -_area(g.bbox))
+            manual = (_decisions().get("face_boxes") or {}).get(self.shot.get("id"))
+            if ab:
+                fbox = ab[0].bbox
+            elif isinstance(manual, (list, tuple)) and len(manual) == 4:
+                fbox = (manual[0] * SRC_W, manual[1] * SRC_H, manual[2] * SRC_W, manual[3] * SRC_H)
         center = self.resolve_center(self.shot.get("camera") or {}, [faces])
         base = u8.astype(np.float32) * (1.0 / 255.0)
         pre = None
@@ -1379,7 +1636,7 @@ class ShotRenderer:
             fi = self.fbase + k
             cam = self.camera_at(t, k, center)
             if self.full_res_needed(t):
-                img = self.apply_face_fx(base.copy(), faces, t, fi)
+                img = self.apply_face_fx(base.copy(), faces, t, fi, box=fbox)
                 img = self.apply_silhouette(img, t, fi)
                 img = cam.apply(img)
             else:
@@ -1487,6 +1744,11 @@ class ShotRenderer:
         FF = facefx()
         n = b - a
         frames, faces_seq = [], []
+        if not it.get("clip") and not it.get("photo"):  # micro-plan sans source (rush manquant) : noir
+            for m in range(n):
+                k = a + m
+                enc.write(self.post(np.zeros((self.oh, self.ow, 3), np.float32), float(self.tl[k]), k, None, []))
+            return
         if "clip" in it:
             proxy = self._clip_proxy(it["clip"])
             j0 = fidx(_num(it.get("src_in"), 0.0))
@@ -1694,6 +1956,11 @@ def build_jobs(edl: dict, quality: str, sil_meta: dict | None) -> tuple[list[dic
                       n in STUBS_USED)  # un rendu STUB n'est jamais réutilisé pour un rendu réel
     # emplacement de la silhouette sur la photo de groupe (réutilisé par les micro-plans photo du montage)
     photo_slots = [dict(s["silhouette"]) for s in edl["shots"] if s.get("kind") == "photo" and s.get("silhouette")]
+    # décisions lues au rendu (replis manuels) : elles font partie de la clé de cache
+    dec = _decisions()
+    dec_sig = _hash({k: v for k, v in dec.items() if k in ("group_photo_faces", "privacy_zones", "face_boxes",
+                                                           "silhouette_slots")
+                     or k.startswith(("hud_boxes_", "portrait_eyes_"))})
     jobs = []
     for i, s in enumerate(edl["shots"]):
         f0, f1 = plan[i]
@@ -1713,7 +1980,8 @@ def build_jobs(edl: dict, quality: str, sil_meta: dict | None) -> tuple[list[dic
         key = {
             "v": code, "q": quality, "shot": s, "n": n, "off": round(f0 / FPS - start, 5),
             "subs": [[round(x["start"] - start, 3), round(x["end"] - start, 3), x["text"], x["kind"]] for x in my_subs],
-            "skip": skips.get(s["id"], []), "freeze": freeze, "stubs": stub_sig,
+            "skip": skips.get(s["id"], []), "freeze": freeze, "stubs": stub_sig, "dec": dec_sig,
+            "analysis": [_file_sig(config.ANALYSIS_DIR / f"{c}.{k}.json") for c in clips for k in ("faces", "persons")],
             "pslot": photo_slots[:1] if s.get("kind") == "montage" else [],
             "files": [_file_sig(config.proxy_path(c)) for c in clips] + [_file_sig(config.proxy_path(p)) for p in photos]
             + ([_file_sig(config.TITLE_DIR / "title_seq.mp4")] if s.get("kind") == "title" else [])
@@ -1739,7 +2007,7 @@ def concat(files: list[Path], out: Path, n_expected: int, log=print) -> Path:
     tmp = out.with_name(out.stem + ".tmp.mp4")
     cmd = [_ffmpeg(), "-y", "-v", "error", "-nostdin", "-f", "concat", "-safe", "0", "-i", str(lst),
            "-map", "0:v:0", "-c", "copy", "-movflags", "+faststart", str(tmp)]
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
     n = count_frames(tmp) if r.returncode == 0 and tmp.exists() else -1
     if n != n_expected:
         log(f"[render] concat sans réencodage : {n} images au lieu de {n_expected} -> réencodage")
@@ -1747,7 +2015,7 @@ def concat(files: list[Path], out: Path, n_expected: int, log=print) -> Path:
                "-map", "0:v:0", "-frames:v", str(n_expected), "-c:v", "libx264", "-preset", "medium", "-crf", "10",
                "-pix_fmt", "yuv420p", "-r", str(FPS), "-colorspace", "bt709", "-color_primaries", "bt709",
                "-color_trc", "bt709", "-movflags", "+faststart", str(tmp)]
-        r = subprocess.run(cmd, capture_output=True, text=True)
+        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
         if r.returncode != 0:
             raise RuntimeError(f"concaténation échouée : {r.stderr[-800:]}")
         n = count_frames(tmp)

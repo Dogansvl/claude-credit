@@ -230,7 +230,8 @@ def compress(x: np.ndarray, sr: int, thr_db: float = -24.0, ratio: float = 2.5, 
 def deess(x: np.ndarray, sr: int, freq: float = 5500.0, thr_db: float = -30.0, ratio: float = 3.0,
           max_cut_db: float = 8.0, attack_ms: float = 1.0, release_ms: float = 60.0) -> np.ndarray:
     """De-esser à bande partagée : seule la bande au-dessus de `freq` est atténuée (reconstruction exacte)."""
-    hi = highpass(x, sr, freq, order=2)
+    sos = signal.butter(2, freq, "highpass", fs=sr, output="sos")
+    hi = signal.sosfiltfilt(sos, np.asarray(x, dtype=np.float64), axis=0).astype(np.float32)  # phase nulle
     lo = x - hi
     det = np.abs(mono(bandpass(x, sr, freq, min(freq * 2.2, sr * 0.45))))
     env = _envelope(det, sr, attack_ms, release_ms)
@@ -241,13 +242,16 @@ def deess(x: np.ndarray, sr: int, freq: float = 5500.0, thr_db: float = -30.0, r
 
 
 def deess_relative(x: np.ndarray, sr: int, below_vowel_db: float = 9.0, freq: float = 3600.0,
-                   max_cut_db: float = 14.0, attack_ms: float = 1.0, release_ms: float = 45.0) -> np.ndarray:
+                   max_cut_db: float = 14.0, release_ms: float = 40.0) -> np.ndarray:
     """De-esser RELATIF (indépendant du niveau d'entrée) : les trames de sifflantes (énergie 4–9 kHz
     dominante) sont ramenées à `below_vowel_db` dB sous le niveau des voyelles (p90 des trames où les
-    basses 100 Hz–1 kHz dominent). Seule la bande au-dessus de `freq` est atténuée : la consonne reste
-    nette, mais ne siffle plus plus fort que la voyelle (défaut typique des voix TTS soufflées)."""
-    m = mono(x).astype(np.float64)
+    basses 100 Hz–1 kHz dominent). Gain appliqué dans le domaine STFT (phase nulle) au-dessus de `freq`
+    seulement : la consonne reste nette mais ne siffle plus plus fort que la voyelle (défaut typique
+    des voix TTS soufflées)."""
+    xm = np.asarray(x, dtype=np.float64)
+    chans = [xm] if xm.ndim == 1 else [xm[:, c] for c in range(xm.shape[1])]
     n_fft, hop = 1024, 128
+    m = mono(xm)
     X = _stft(m, n_fft, hop)
     P = np.abs(X) ** 2
     fr = np.fft.rfftfreq(n_fft, 1 / sr)
@@ -260,20 +264,22 @@ def deess_relative(x: np.ndarray, sr: int, below_vowel_db: float = 9.0, freq: fl
     if vow.sum() < 5:
         return np.asarray(x, dtype=np.float32)
     ref = np.percentile(lvl[vow], 90) - below_vowel_db
-    # part de la trame portée par la bande haute : seule elle est réduite
-    hi_share = P[fr >= freq].sum(axis=0) / tot
+    hi_share = np.clip(P[fr >= freq].sum(axis=0) / tot, 1e-6, 1.0)
     need = np.clip(lvl - ref, 0.0, None)
-    # atténuation de la bande haute nécessaire pour baisser la trame de `need` dB
-    rem = 10 ** (-need / 10) - (1 - hi_share)
-    cut = np.where(need > 0, -10 * np.log10(np.clip(rem / np.maximum(hi_share, EPS), 10 ** (-max_cut_db / 10), 1.0)), 0.0)
-    cut = np.where(hf > lf, cut, 0.0)
-    t_fr = np.arange(len(cut)) * hop
-    cut_s = np.interp(np.arange(len(m)), t_fr, cut)
-    cut_s = _envelope(cut_s, sr, attack_ms, release_ms, block=16).astype(np.float64)
-    g = (10 ** (-cut_s / 20)).astype(np.float32)
-    hi = highpass(x, sr, freq, order=2)
-    lo = x - hi
-    return (lo + hi * (g if np.ndim(x) == 1 else g[:, None])).astype(np.float32)
+    rem = 10 ** (-need / 10) - (1 - hi_share)  # énergie que doit garder la bande haute
+    cut = -10 * np.log10(np.clip(rem / hi_share, 10 ** (-max_cut_db / 10), 1.0))
+    cut = np.where((need > 0) & (hf > lf), cut, 0.0)
+    # attaque immédiate (la trame est déjà centrée), relâche exponentielle
+    kr = math.exp(-hop / (sr * release_ms / 1000.0))
+    sm = np.empty_like(cut)
+    e = 0.0
+    for i, v in enumerate(cut):
+        e = v if v > e else kr * e + (1 - kr) * v
+        sm[i] = e
+    w = np.clip((np.log2(np.maximum(fr, 1.0) / freq) + 0.5), 0.0, 1.0)[:, None]  # transition d'1/2 octave
+    G = 10 ** (-(w * sm[None, :]) / 20)
+    out = [_istft(_stft(c, n_fft, hop) * G, n_fft, hop, len(c)) for c in chans]
+    return (out[0] if xm.ndim == 1 else np.stack(out, axis=1)).astype(np.float32)
 
 
 def true_peak_db(x: np.ndarray, oversample: int = 4) -> float:
@@ -676,7 +682,7 @@ NARRATOR_DEFAULTS = dict(
     eq=[("hp", 65, 2), ("lowshelf", 160, 2.5), ("peak", 320, -2.0, 1.1), ("peak", 2800, 1.2, 0.9),
         ("highshelf", 9000, -1.5)],
     deess=dict(freq=5200, thr_db=-31, ratio=3.0, max_cut_db=7),
-    sib_db=9.0,              # sifflantes ramenées à 9 dB sous les voyelles (de-esser relatif) ; None = off
+    sib_db=12.0,             # sifflantes ramenées à 12 dB sous les voyelles (de-esser relatif) ; None = off
     comp=dict(thr_db=-24, ratio=2.4, attack_ms=12, release_ms=140, knee_db=8, makeup_db=0),
     reverb=dict(decay_s=1.2, predelay_ms=14, damping=0.45, wet=0.12, seed=7),
     exciter_db=None,         # air recréé au-dessus de ~9 kHz (voix à bande étroite), ex. -24
@@ -726,18 +732,22 @@ def narrator_chain(x: np.ndarray, sr: int, **params) -> tuple[np.ndarray, dict]:
 # =============================================================================
 ENTITY_PRESETS = {
     # layers = [(cents, retard ms, panoramique, gain)] des couches chuchotées transposées (formants vers le bas)
-    # prénoms murmurés pendant les flashs de possession (0,55 s) : menace maximale, pré-swell court
-    "name": dict(semitones=-5.5, tempo=1.0, layers=[(0.0, 0.0, 0.0, 1.0), (+22, 11, -0.45, 0.6), (-27, 19, +0.5, 0.55)],
-                 low_layer=dict(semitones=-9.0, gain=0.35), ear=dict(semitones=-2.0, gain=0.9, pan=-0.22),
-                 preswell_s=0.6, preswell_gain=0.75, tail_s=0.8, tail_wet=0.16, breath=False),
+    # La couche sèche « collée à l'oreille » (ear) domine : c'est elle qui porte l'articulation (ASR) ;
+    # les couches graves désaccordées et le sous-grave donnent la menace sans masquer les formants.
+    # prénoms murmurés pendant les flashs de possession (~0,6 s) : menace, pré-swell court + micro-silence
+    "name": dict(semitones=-5.0, tempo=1.0, layers=[(0.0, 0.0, 0.0, 0.3), (+20, 11, -0.45, 0.15), (-25, 18, +0.5, 0.15)],
+                 low_layer=dict(semitones=-9.0, gain=0.12), ear=dict(semitones=-1.0, gain=2.5, pan=-0.2),
+                 preswell_s=0.6, preswell_gain=0.75, preswell_gap_s=0.06, tail_s=0.8, tail_wet=0.16, breath=False),
     # « Identification terminée » : grave et doublée, mais la couche « oreille » domine -> intelligible
-    "ident": dict(semitones=-4.5, tempo=1.0, layers=[(0.0, 0.0, 0.0, 0.6), (+18, 9, -0.4, 0.33), (-22, 16, +0.42, 0.3)],
-                  low_layer=dict(semitones=-8.0, gain=0.2), ear=dict(semitones=-1.5, gain=1.4, pan=-0.18),
-                  preswell_s=1.0, preswell_gain=0.8, tail_s=1.0, tail_wet=0.14, breath=False),
-    # « C'est qui lui ? » juste avant le screamer : ultra-intime, très sec, intelligible
+    "ident": dict(semitones=-4.5, tempo=1.0, layers=[(0.0, 0.0, 0.0, 0.5), (+18, 9, -0.4, 0.28), (-22, 16, +0.42, 0.25)],
+                  low_layer=dict(semitones=-8.0, gain=0.18), ear=dict(semitones=-1.5, gain=1.8, pan=-0.18),
+                  preswell_s=1.0, preswell_gain=0.8, preswell_gap_s=0.05, tail_s=1.0, tail_wet=0.14, breath=False),
+    # « C'est qui lui ? » juste avant le screamer : ultra-intime, très sec, intelligible ; inspiration
+    # très courte (onset ≤ 0,15 s) pour que le silence qui précède reste franc
     "cql": dict(semitones=-3.5, tempo=1.0, layers=[(0.0, 0.0, 0.0, 0.45), (+15, 8, +0.3, 0.25)],
                 low_layer=dict(semitones=-7.0, gain=0.15), ear=dict(semitones=-1.0, gain=1.4, pan=-0.3),
-                preswell_s=0.0, preswell_gain=0.0, tail_s=0.3, tail_wet=0.05, breath=True),
+                preswell_s=0.0, preswell_gain=0.0, tail_s=0.3, tail_wet=0.05, breath=True,
+                head_s=0.015, breath_s=0.1, breath_gap_s=0.03),
 }
 
 ENTITY_EQ = [("hp", 55, 2), ("lowshelf", 150, 4.5), ("peak", 420, -2.5, 1.0), ("peak", 4000, 3.0, 0.8),
@@ -774,6 +784,14 @@ def entity_chain(x: np.ndarray, sr: int, preset: str = "name", seed: int = 0, lu
     # (pour un chuchotement, seule l'enveloppe spectrale compte : la transposition déplace les formants)
     e = p["ear"]
     ear = _whisper_layer(y, SR, e["semitones"], formant=False, seed=seed + 40)
+    if e.get("voiced", 0.0) > 0:  # chuchotement « soufflé » : un peu de voix réelle sous le souffle (intelligibilité)
+        z = pitch_shift(y, SR, e["semitones"], formant=False) if abs(e["semitones"]) > 1e-3 else y
+        z = mono(z)[: len(ear)]
+        z = np.pad(z, (0, len(ear) - len(z)))
+        z = highpass(z, SR, 120, 2)
+        rz = np.sqrt(np.mean(z ** 2)) + EPS
+        re_ = np.sqrt(np.mean(ear ** 2)) + EPS
+        ear = ((1 - e["voiced"]) * ear + e["voiced"] * z * (re_ / rz)).astype(np.float32)
     ear = compress(ear, SR, thr_db=-28, ratio=3.5, attack_ms=3, release_ms=80, knee_db=6)
     ear_st = pan(ear, e["pan"])
     itd = int(0.00035 * SR)  # léger retard inter-aural : la voix est d'un côté de la tête
@@ -795,17 +813,20 @@ def entity_chain(x: np.ndarray, sr: int, preset: str = "name", seed: int = 0, lu
         _, sb = speech_bounds(speech, SR, thr_db=-40)
         speech = speech[: min(len(speech), int((sb + p["tail_s"]) * SR))]
         speech = fade(speech, SR, 0.0, min(0.25, p["tail_s"] / 2))
-    head = np.zeros((int(0.05 * SR), 2), dtype=np.float32)
+    head = np.zeros((int(p.get("head_s", 0.05) * SR), 2), dtype=np.float32)
     pre_len = 0
     if p["preswell_s"] > 0:
         swell = reverse_swell(bus[i0:], dark_ir(SR, decay_s=max(1.5, p["preswell_s"] * 2.2), predelay_ms=0,
                                                  seed=seed + 60), p["preswell_s"], SR)
         swell *= p["preswell_gain"]
+        gap = int(p.get("preswell_gap_s", 0.0) * SR)
+        if 0 < gap < len(swell):  # micro-silence entre l'aspiration et le mot (attaque nette, intelligible)
+            swell[-gap:] *= (0.5 + 0.5 * np.cos(np.linspace(0, np.pi, gap)))[:, None]
         head = np.concatenate([head, swell])
     if p.get("breath"):
-        br = breath(SR, 0.36, seed=seed + 70)
+        br = breath(SR, p.get("breath_s", 0.36), seed=seed + 70)
         br_st = pan(br, e["pan"]) * db2lin(-18)
-        gap = int(0.07 * SR)
+        gap = int(p.get("breath_gap_s", 0.07) * SR)
         head = np.concatenate([head, br_st, np.zeros((gap, 2), np.float32)])
     pre_len = len(head)
     out = np.concatenate([head, speech]).astype(np.float32)

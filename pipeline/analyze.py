@@ -85,7 +85,7 @@ def clip_duration(clip: str, analysis_dir=None) -> float | None:
     p = config.proxy_path(clip)
     if p.exists() and p.suffix == ".mp4":
         r = subprocess.run([FFPROBE, "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(p)],
-                           capture_output=True, text=True)
+                           capture_output=True, text=True, encoding="utf-8", errors="replace")
         try:
             return float(r.stdout.strip())
         except ValueError:
@@ -250,28 +250,52 @@ def _utterance_bounds(words: list[dict], i0: int, i1: int, gap: float = 0.35) ->
     return a, b
 
 
-def detect_instructions_in_words(words: list[dict], blacklist=None, pad: float = 0.12) -> list[dict]:
-    """Consignes (config.INSTRUCTION_BLACKLIST) trouvées dans des mots horodatés. Chaque repère couvre
-    l'énoncé entier qui contient la consigne (mots séparés par < 0,35 s), avec une marge `pad`."""
+def _tok_eq(t: str, p: str) -> bool:
+    """Égalité de mots entiers, tolérante à une lettre près pour les mots de 4 lettres et plus
+    (filme/filmes, possede/possedes ; 4 lettres : terminaison seulement, fais/fait, crie/criez) ; les mots courts
+    (y, le, la, c, est, as…) doivent être identiques."""
+    if t == p:
+        return True
+    if len(p) < 4 or t[:1] != p[:1] or abs(len(t) - len(p)) > 1:
+        return False
+    if len(p) == 4:  # mots de 4 lettres : seule la terminaison varie (fais/fait, crie/criez)
+        return t[:3] == p[:3] and len(t) <= 5
+    if len(t) == len(p):
+        return sum(x != y for x, y in zip(t, p)) <= 1
+    short, long_ = (t, p) if len(t) < len(p) else (p, t)
+    return any(long_[:k] + long_[k + 1:] == short for k in range(len(long_)))
+
+
+def match_blacklist(tokens: list[str], blacklist=None) -> list[tuple[int, int, str]]:
+    """Consignes trouvées dans une suite de jetons normalisés (norm_text) : [(i0, i1 inclus, consigne)].
+    Recherche par MOTS ENTIERS (même nombre de mots, chacun égal à une lettre près s'il est long)."""
     blacklist = blacklist if blacklist is not None else config.INSTRUCTION_BLACKLIST
-    hits = []
+    out = []
     for ph in blacklist:
-        ptoks = norm_text(ph).split()
-        if not ptoks:
+        pt = norm_text(ph).split()
+        n = len(pt)
+        if not n:
             continue
-        if len(ptoks) == 1:  # mot isolé (« action », « coupe ») : égalité stricte (ou suffixe court : « coupez »)
-            ms = []
-            for i, w in enumerate(words):
-                for t in norm_text(w.get("w", "")).split():
-                    if t == ptoks[0] or (t.startswith(ptoks[0]) and len(t) - len(ptoks[0]) <= 1):
-                        ms.append({"i0": i, "i1": i, "score": 1.0})
-        else:
-            ms = match_phrase(words, ph, min_score=0.8)
-        for m in ms:
-            a, b = _utterance_bounds(words, m["i0"], m["i1"])
-            hits.append({"phrase": ph, "start": round(max(0.0, words[a]["start"] - pad), 3),
-                         "end": round(words[b]["end"] + pad, 3), "score": m["score"],
-                         "text": " ".join(words[k]["w"] for k in range(a, b + 1))})
+        for i in range(len(tokens) - n + 1):
+            if all(_tok_eq(tokens[i + k], pt[k]) for k in range(n)):
+                out.append((i, i + n - 1, ph))
+    return sorted(out)
+
+
+def detect_instructions_in_words(words: list[dict], blacklist=None, pad: float = 0.12) -> list[dict]:
+    """Consignes (config.INSTRUCTION_BLACKLIST, mots entiers) trouvées dans des mots horodatés. Chaque repère couvre
+    l'énoncé entier qui contient la consigne (mots séparés par < 0,35 s), avec une marge `pad`."""
+    toks = _word_tokens(words)
+    hits = []
+    words_only = set(getattr(config, "INSTRUCTION_WORDS_ONLY", []))
+    for i0, i1, ph in match_blacklist([t for t, _ in toks], blacklist):
+        if ph in words_only:  # mot courant (« attends », « c'est bon ») : le mot seul
+            a, b = toks[i0][1], toks[i1][1]
+        else:  # vraie consigne : tout l'énoncé
+            a, b = _utterance_bounds(words, toks[i0][1], toks[i1][1])
+        hits.append({"phrase": ph, "start": round(max(0.0, words[a]["start"] - pad), 3),
+                     "end": round(words[b]["end"] + pad, 3), "score": 1.0,
+                     "text": " ".join(words[k]["w"] for k in range(a, b + 1))})
     hits.sort(key=lambda h: h["start"])
     merged: list[dict] = []
     for h in hits:  # fusion des repères qui se recouvrent
@@ -731,7 +755,8 @@ def _in_range(ts, t0, t1):
 
 def resolve_auto(spec: str, analysis_dir=None) -> tuple[object | None, str]:
     """Valeur d'un résolveur automatique, ou (None, raison) si l'analyse manque / ne trouve rien.
-    person_peak / face_largest / flash_peak / audio_peak → temps (s, proxy) ; person_center → [x, y] normalisés."""
+    person_peak / face_largest / flash_peak / audio_peak / person_absent_after → temps (s, proxy) ;
+    person_center → [x, y] normalisés."""
     a = _adir(analysis_dir)
     try:
         p = parse_auto(spec)
@@ -760,6 +785,26 @@ def resolve_auto(spec: str, analysis_dir=None) -> tuple[object | None, str]:
         bx = np.median([[(q["bbox"][0] + q["bbox"][2]) / 2, (q["bbox"][1] + q["bbox"][3]) / 2] for _, _, q in top], axis=0)
         return [round(float(bx[0]) / d["w"], 3), round(float(bx[1]) / d["h"], 3)], \
             f"centre médian de {len(top)} détections"
+    if kind == "person_absent_after":
+        # premier instant de la fenêtre à partir duquel plus AUCUNE personne n'est détectée (jusqu'à t1)
+        d = _read_json(a / f"{clip}.persons.json")
+        if not d:
+            return None, "personnes non analysées"
+        def present(i):
+            return any(q.get("score", 0) >= 0.3 for q in d["persons"][i])
+        idx = _in_range(d["t"], t0, t1)
+        if not idx:
+            return None, f"pas d'analyse entre {t0} et {t1} s"
+        before = _in_range(d["t"], t0 - 3.0, t1)
+        if not any(present(i) for i in before):
+            return None, f"aucune personne détectée autour de {t0}–{t1} s (détecteur aveugle ?)"
+        if present(idx[-1]):
+            return None, f"une personne est encore détectée à {d['t'][idx[-1]]:.2f} s"
+        k = len(idx) - 1
+        while k > 0 and not present(idx[k - 1]):
+            k -= 1
+        t = d["t"][idx[k]]
+        return round(t + off, 3), f"plus personne à partir de {t:.2f} s"
     if kind == "face_largest":
         d = _read_json(a / f"{clip}.faces.json")
         if not d:

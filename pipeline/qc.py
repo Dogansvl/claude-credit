@@ -44,9 +44,12 @@ FLASH_DELTA = 0.10        # variation de luminance relative (linéaire) comptée
 FLASH_MAX_PER_S = 3
 LUFS_TOL = 1.0
 # Noir réel ou plan sombre ? Statistiques d'image en luma codée (0..1) sur une réduction 54x96 :
-DARK_STD_MIN = 0.012      # écart-type spatial au-dessus duquel l'image a du contenu (plan de nuit : 0,017–0,035 ; noir : 0)
-DARK_P99_MIN = 0.06       # et 99e centile (zones éclairées présentes ; plan de nuit : 0,17–0,23 ; noir : 0–0,02)
+# (sous-titre actif et timecode masqués, pour qu'un texte sur du noir ne passe pas pour du contenu)
+DARK_STD_MIN = 0.004      # écart-type spatial (≈ 1/255) au-dessus duquel l'image a du contenu (faux plans de nuit
+                          # étalonnés : 0,007–0,035 ; noirs francs rendus, même avec grain : 0,000)
 TRUE_BLACK_MEAN = 0.03    # image quasi uniforme ET moyenne sous ce seuil = noir
+SUB_BAND = (0.60, 0.83)   # bande verticale (fraction de H) masquée quand un sous-titre est affiché
+TC_ZONE = (0.5, 0.09)     # coin haut gauche (fraction de W, H) toujours masqué (timecode caméscope)
 SRC_BLACK_LUMA = 0.04     # luminance moyenne du rush (analysis/<clip>.luma.json) sous laquelle la source est noire
 HOLE_MIN_FRAMES = 2       # un trou = au moins 2 images noires consécutives non prévues
 CONTENT_KINDS = ("clip", "freeze", "photo", "montage")
@@ -91,7 +94,7 @@ def mp4_top_boxes(path: Path) -> list[tuple[str, int, int]]:
 
 
 def _run(cmd: list[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, capture_output=True, text=True, errors="replace")
+    return subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
 
 
 def _screamer_shot(edl: dict) -> dict | None:
@@ -200,19 +203,37 @@ def detect_black(mp4: Path) -> list[tuple[float, float]]:
 
 
 def frame_stats(mp4: Path, w: int = 54, h: int = 96) -> dict:
-    """Statistiques par image (un seul décodage réduit) : luminance linéaire moyenne (flashs), et en luma
-    codée 0..1 : moyenne, écart-type spatial, 99e centile (noir réel vs plan sombre)."""
+    """Un seul décodage réduit : luminance linéaire moyenne par image (flashs) et luma codée 0..1 (n, h, w)
+    pour distinguer noir réel et plan sombre."""
     cmd = [R._ffmpeg(), "-v", "error", "-nostdin", "-i", str(mp4), "-map", "0:v:0", "-vf",
            f"scale={w}:{h}:flags=area,format=rgb24", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"]
     r = subprocess.run(cmd, capture_output=True)
     a = np.frombuffer(r.stdout, np.uint8)
     n = len(a) // (w * h * 3)
-    rgb = a[: n * w * h * 3].reshape(n, h * w, 3).astype(np.float32) / 255.0
+    rgb = a[: n * w * h * 3].reshape(n, h, w, 3).astype(np.float32) / 255.0
     coef = np.array([0.2126, 0.7152, 0.0722], np.float32)
     lin = np.where(rgb <= 0.04045, rgb / 12.92, ((rgb + 0.055) / 1.055) ** 2.4)
-    y = rgb @ coef
-    return {"n": n, "Ylin": (lin @ coef).mean(axis=1), "mean": y.mean(axis=1), "std": y.std(axis=1),
-            "p99": np.percentile(y, 99, axis=1)}
+    return {"n": n, "Ylin": (lin @ coef).reshape(n, -1).mean(axis=1), "Y": rgb @ coef}
+
+
+def masked_stats(Y: np.ndarray, edl: dict | None) -> tuple[np.ndarray, np.ndarray]:
+    """(moyenne, écart-type spatial) par image, timecode et sous-titre actif masqués."""
+    n, h, w = Y.shape
+    base = np.ones((h, w), bool)
+    base[: int(round(TC_ZONE[1] * h)), : int(round(TC_ZONE[0] * w))] = False
+    sub = base.copy()
+    sub[int(SUB_BAND[0] * h): int(round(SUB_BAND[1] * h))] = False
+    active = np.zeros(n, bool)
+    for sb in (edl or {}).get("subtitles") or []:
+        i0 = max(0, int(float(sb.get("start", 0)) * config.FPS) - 1)
+        i1 = min(n, int(float(sb.get("end", 0)) * config.FPS) + 2)
+        active[i0:i1] = True
+    mean, std = np.empty(n, np.float32), np.empty(n, np.float32)
+    for m, sel in ((base, ~active), (sub, active)):
+        v = Y[sel][:, m]
+        if len(v):
+            mean[sel], std[sel] = v.mean(axis=1), v.std(axis=1)
+    return mean, std
 
 
 def _shot_at(edl: dict, t: float) -> dict | None:
@@ -274,8 +295,9 @@ def classify_dark(edl: dict | None, stats: dict, intervals: list[tuple[float, fl
     ou noir présent dans le rush source. Ajoute les trous courts (≥ 2 images) que blackdetect ne voit pas."""
     fps = config.FPS
     n = stats["n"]
-    content = (stats["std"] >= DARK_STD_MIN) & (stats["p99"] >= DARK_P99_MIN)
-    black = (~content) & (stats["mean"] < TRUE_BLACK_MEAN)
+    mean, std = masked_stats(stats["Y"], edl)
+    content = std >= DARK_STD_MIN
+    black = (~content) & (mean < TRUE_BLACK_MEAN)
     frames = set()
     for x, y in intervals:
         frames.update(range(max(0, int(round(x * fps))), min(n, int(round(y * fps)))))
@@ -308,8 +330,8 @@ def classify_dark(edl: dict | None, stats: dict, intervals: list[tuple[float, fl
                 continue
             out.append({"t": [round(i0 / fps, 2), round(i1 / fps, 2)],
                         "shots": sorted({shots_of.get(i, "?") for i in range(i0, i1)}),
-                        "luma": round(float(stats["mean"][i0:i1].mean()), 3),
-                        "ecart_type": round(float(stats["std"][i0:i1].mean()), 4)})
+                        "luma": round(float(mean[i0:i1].mean()), 3),
+                        "ecart_type": round(float(std[i0:i1].mean()), 4)})
         return out
 
     return {"holes": describe(cls["hole"], HOLE_MIN_FRAMES), "dark": describe(cls["dark"]),
@@ -567,21 +589,10 @@ def check_asr(mp4: Path, edl: dict | None, log=print) -> tuple[list[dict], dict]
     text = " ".join(toks)
     log(f"[qc] ASR ({tr.get('backend')}, {time.time() - t0:.0f} s) : {len(toks)} mots")
     found_bl = []
-    for ph in config.INSTRUCTION_BLACKLIST:
-        p = norm_text(ph)
-        pw = p.split()
-        hit = None
-        for i in range(len(toks) - len(pw) + 1):
-            if toks[i:i + len(pw)] == pw:
-                hit = i
-                break
-        if hit is None and len(pw) >= 2:
-            r, i = _fuzzy_find(toks, p)
-            if r >= 0.88:
-                hit = i
-        if hit is not None:
-            found_bl.append({"consigne": ph, "t": round(ttimes[hit], 2) if hit < len(ttimes) else None,
-                             "contexte": " ".join(toks[max(0, hit - 4):hit + len(pw) + 4])})
+    from pipeline.analyze import match_blacklist  # recherche par mots entiers (même règle que le montage)
+    for i0, i1, ph in match_blacklist(toks):
+        found_bl.append({"consigne": ph, "t": round(ttimes[i0], 2),
+                         "contexte": " ".join(toks[max(0, i0 - 4):i1 + 5])})
     checks = [_check("ASR : aucune consigne de tournage", "fail" if found_bl else "pass", found_bl or "aucune",
                      "aucun mot de la liste noire", f"moteur {tr.get('backend')}")]
     lines = []
@@ -610,7 +621,44 @@ def check_asr(mp4: Path, edl: dict | None, log=print) -> tuple[list[dict], dict]
         checks.append(_check("ASR : voix off reconnue", "warn" if len(miss_n) > len(nr) // 4 else "pass",
                              f"{len(nr) - len(miss_n)}/{len(nr)}", "≥ 75 % (indicatif)",
                              ("non reconnues : " + " | ".join(miss_n)) if miss_n else ""))
-    return checks, {"backend": tr.get("backend"), "text": text, "lines": lines, "blacklist_hits": found_bl}
+    extra = unexpected_words(toks, ttimes, edl)
+    if extra:
+        checks.append(_check("ASR : mots hors texte prévu", "warn", f"{sum(len(x['mots'].split()) for x in extra)} mot(s)",
+                             "seulement voix off et répliques gardées",
+                             "à écouter : bavardage audible ? (ou erreur de transcription) — liste dans le rapport"))
+    return checks, {"backend": tr.get("backend"), "text": text, "lines": lines, "blacklist_hits": found_bl,
+                    "unexpected": extra}
+
+
+def unexpected_words(toks: list[str], ttimes: list[float], edl: dict | None, margin: float = 1.5) -> list[dict]:
+    """Mots entendus dans le mix qui ne sont ni dans une voix off ni dans une réplique gardée (sous-titre),
+    au voisinage de leur instant (± margin). Regroupés en passages (écart < 0,8 s)."""
+    spans = []  # (t0, t1, vocabulaire)
+    for sb in (edl or {}).get("subtitles") or []:
+        spans.append((float(sb.get("start", 0)) - margin, float(sb.get("end", 0)) + margin,
+                      set(norm_text(sb.get("text", "")).split())))
+    for v in (edl or {}).get("voices") or []:
+        t0 = float(v.get("t_speech", 0))
+        spans.append((t0 - margin, t0 + float(v.get("speech_dur", 0)) + margin,
+                      set(norm_text(v.get("text", "")).split())))
+
+    def explained(tok, t):
+        for a, b, voc in spans:
+            if a <= t <= b and (tok in voc or any(difflib.SequenceMatcher(None, tok, w).ratio() >= 0.75 for w in voc)):
+                return True
+        return False
+    out = []
+    for tok, t in zip(toks, ttimes):
+        if len(tok) < 2 or explained(tok, t):
+            continue
+        if out and t - out[-1]["t1"] < 0.8:
+            out[-1]["mots"] += " " + tok
+            out[-1]["t1"] = t
+        else:
+            out.append({"t0": round(t, 2), "t1": t, "mots": tok})
+    for x in out:
+        x["t1"] = round(x["t1"], 2)
+    return out
 
 
 def contact_sheet(mp4: Path, out: Path, cols: int = 12, tw: int = 180) -> Path:
@@ -681,6 +729,15 @@ def write_report(res: dict, out_md: Path) -> None:
         L += ["", "## ASR — répliques et voix off", "| texte | type | score | trouvé |", "|---|---|---|---|"]
         for x in d["asr"]["lines"]:
             L.append(f"| {x['text']} | {x['kind']} | {x['score']} | {'oui' if x['found'] else 'NON'} |")
+    if d.get("asr", {}).get("unexpected"):
+        L += ["", "## ASR — mots entendus hors voix off / répliques gardées (à écouter)", "| t | mots |", "|---|---|"]
+        for x in d["asr"]["unexpected"][:80]:
+            L.append(f"| {x['t0']:.2f}–{x['t1']:.2f} s | {x['mots']} |")
+    if d.get("originals"):
+        o = d["originals"]
+        L += ["", "## Originaux", f"- {o.get('checked', 0)} fichier(s) vérifié(s) (taille, date, empreinte) : "
+              + ("intacts" if o.get("ok") else f"PROBLÈME modifiés {o.get('changed')} / absents {o.get('missing')}"
+                 if o.get("ok") is False else "non vérifiable (inventaire absent)")]
     if d.get("flashes", {}).get("transitions") is not None:
         L += ["", "## Flashs", f"- maximum {d['flashes']['max_per_s']} flash(s) par seconde (t≈{d['flashes']['t']} s)"]
     if res.get("render"):
@@ -745,6 +802,17 @@ def qc(final_mp4, edl: dict | None = None, quality: str | None = None, run_asr: 
         log(f"[qc] {key:9s} " + ", ".join(f"{x['name']}={x['status']}" for x in c) + f" ({time.time() - t0:.0f} s)")
     if not run_asr:
         checks.append(_check("ASR (liste noire)", "skip", None, None, "désactivé"))
+    try:
+        from pipeline.ingest import verify_originals
+        orig = verify_originals()
+    except Exception as e:
+        orig = {"ok": None, "checked": 0, "changed": [], "missing": [], "detail": str(e)}
+    data["originals"] = orig
+    if orig.get("ok") is False:
+        checks.append(_check("originaux intacts", "fail", {"modifiés": orig["changed"], "absents": orig["missing"]},
+                             "taille, date et empreinte identiques à l'ingestion"))
+    elif orig.get("ok"):
+        checks.append(_check("originaux intacts", "pass", f"{orig['checked']} fichier(s)", "inchangés depuis l'ingestion"))
     rep_p = config.RENDER_DIR / f"video_{quality}.json"
     render_rep = None
     if rep_p.exists():
@@ -782,15 +850,19 @@ def qc(final_mp4, edl: dict | None = None, quality: str | None = None, run_asr: 
 
 
 def _update_lisezmoi(res: dict) -> None:
-    """Dernière ligne du LISEZMOI = verdict réel du contrôle qualité."""
+    """Dernière ligne du LISEZMOI = verdict réel du contrôle qualité (« originaux intacts » seulement si vérifié)."""
     p = config.OUT_DIR / config.README_TXT
     if not p.exists():
         return
     lines = p.read_text(encoding="utf-8").splitlines()[:5]
     fails = [c["name"] for c in res["checks"] if c["status"] == "fail"]
+    o = (res.get("data") or {}).get("originals") or {}
+    orig = (f"originaux intacts ({o['checked']} fichiers vérifiés)" if o.get("ok") else
+            "ATTENTION : originaux modifiés ou absents depuis l'ingestion" if o.get("ok") is False else
+            "originaux ouverts en lecture seule")
     last = ("Contrôle qualité automatique validé (durée, format, loudness, ASR, noirs, flashs, sous-titres, prénoms) ; "
-            "originaux intacts." if not fails else
-            "Contrôle qualité automatique : À CORRIGER (" + ", ".join(fails[:4]) + ") ; originaux intacts.")
+            f"{orig}." if not fails else
+            "Contrôle qualité automatique : À CORRIGER (" + ", ".join(fails[:4]) + f") ; {orig}.")
     if len(lines) >= 5:
         lines[4] = last
     else:

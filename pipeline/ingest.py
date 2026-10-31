@@ -484,6 +484,78 @@ def make_photo_proxy(photo: str, force: bool = False) -> Path:
 
 
 # ---------------------------------------------------------------------------
+# Originaux : empreintes (preuve qu'ils n'ont pas été touchés) et fichiers OneDrive « en ligne uniquement »
+# ---------------------------------------------------------------------------
+FP_CHUNK = 1 << 20
+# attributs Windows d'un fichier OneDrive non téléchargé (Fichiers à la demande)
+_ONLINE_ONLY = 0x00400000 | 0x00040000 | 0x00001000   # RECALL_ON_DATA_ACCESS | RECALL_ON_OPEN | OFFLINE
+
+
+def fingerprint(path) -> dict:
+    """Empreinte rapide d'un original : taille, date de modification, SHA-1 du 1er et du dernier Mo."""
+    import hashlib
+    path = Path(path)
+    st = path.stat()
+    h = hashlib.sha1()
+    with open(path, "rb") as f:
+        h.update(f.read(FP_CHUNK))
+        if st.st_size > 2 * FP_CHUNK:
+            f.seek(-FP_CHUNK, os.SEEK_END)
+            h.update(f.read(FP_CHUNK))
+    return {"size": st.st_size, "mtime": int(st.st_mtime), "sha1_partial": h.hexdigest()}
+
+
+def online_only(path) -> bool:
+    """Fichier OneDrive « disponible en ligne uniquement » (Windows) ?"""
+    attrs = getattr(os.stat(path), "st_file_attributes", 0) or 0
+    return bool(attrs & _ONLINE_ONLY)
+
+
+def ensure_local(path) -> None:
+    """Force le téléchargement d'un original OneDrive « en ligne uniquement » (lecture complète, sans modifier
+    le contenu) pour que ffmpeg ne bute pas sur un délai réseau. Message clair si c'est impossible."""
+    path = Path(path)
+    if not online_only(path):
+        return
+    size = path.stat().st_size
+    log(f"[ingest] {path.name} est « en ligne uniquement » (OneDrive) : téléchargement ({size / 1e6:.0f} Mo)…")
+    t0 = time.time()
+    try:
+        with open(path, "rb") as f:
+            while f.read(8 * FP_CHUNK):
+                pass
+    except OSError as e:
+        raise RuntimeError(f"{path.name} : impossible de le récupérer depuis OneDrive ({e}). Vérifie la connexion, "
+                           "ou clic droit sur le dossier des rushs > « Toujours conserver sur cet appareil ».") from e
+    log(f"[ingest] {path.name} téléchargé en {time.time() - t0:.0f} s")
+
+
+def verify_originals(inv_path: Path | None = None) -> dict:
+    """Recompare les originaux à leurs empreintes de l'inventaire. {"ok", "checked", "changed", "missing"}."""
+    inv_path = inv_path or (config.ANALYSIS_DIR / "inventory.json")
+    try:
+        inv = json.loads(Path(inv_path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"ok": None, "checked": 0, "changed": [], "missing": [], "detail": "inventaire absent"}
+    changed, missing, n = [], [], 0
+    for sect in ("clips", "photos"):
+        for name, e in (inv.get(sect) or {}).items():
+            fp, src = e.get("fingerprint"), e.get("source")
+            if not fp or not src:
+                continue
+            n += 1
+            if not Path(src).exists():
+                missing.append(name)
+                continue
+            try:
+                if fingerprint(src) != fp:
+                    changed.append(name)
+            except OSError:
+                missing.append(name)
+    return {"ok": n > 0 and not changed and not missing, "checked": n, "changed": changed, "missing": missing}
+
+
+# ---------------------------------------------------------------------------
 # Inventaire
 # ---------------------------------------------------------------------------
 def _find_rush(name: str) -> Path | None:
@@ -512,10 +584,22 @@ def run_ingest(force: bool = False, jobs: int = PROXY_JOBS, only: list[str] | No
             pass
     t0 = time.time()
     todo = []
+    fps_: dict[str, dict] = {}
+    for c in clips + photos:
+        src = _find_rush(c)
+        if src is None:
+            continue
+        try:
+            ensure_local(src)
+            fps_[c] = fingerprint(src)
+        except (OSError, RuntimeError) as e:
+            inv["problems"].append(f"{c}: {e}")
+            log(f"[ingest] ÉCHEC {c}: {e}")
     for c in clips:
         src = _find_rush(c)
         if src is None:
             inv["missing"].append(c)
+            log(f"[ingest] MANQUANT : {c} (aucun {c}.MOV/.mp4 dans {config.RUSH_DIR}) — le montage le remplacera")
             continue
         todo.append(c)
     threads = max(1, (os.cpu_count() or 2) // max(1, jobs))
@@ -531,7 +615,12 @@ def run_ingest(force: bool = False, jobs: int = PROXY_JOBS, only: list[str] | No
                 log(f"[ingest] ÉCHEC {c}: {e}")
     for c in todo:
         src = config.rush_path(c)
-        entry = {"source": str(src), "probe": probe(src)}
+        entry = {"source": str(src), "fingerprint": fps_.get(c)}
+        try:
+            entry["probe"] = probe(src)
+        except Exception as e:
+            entry["probe"] = None
+            entry["error"] = str(e)
         res = results.get(c)
         if isinstance(res, Exception):
             entry["error"] = str(res)
@@ -547,12 +636,14 @@ def run_ingest(force: bool = False, jobs: int = PROXY_JOBS, only: list[str] | No
         src = _find_rush(p)
         if src is None:
             inv["missing"].append(p)
+            log(f"[ingest] MANQUANT : {p} (aucune photo {p}.jpeg/.jpg/.HEIC dans {config.RUSH_DIR})")
             continue
         try:
             out = make_photo_proxy(p, force)
             side = json.loads((config.PROXY_DIR / f"{p}.proxy.json").read_text(encoding="utf-8"))
-            inv["photos"][p] = {"source": str(src), "proxy": str(out), **{k: side.get(k) for k in (
-                "exif_orientation", "datetime", "raw_size", "size", "color")}}
+            inv["photos"][p] = {"source": str(src), "proxy": str(out), "fingerprint": fps_.get(p),
+                                **{k: side.get(k) for k in ("exif_orientation", "datetime", "raw_size", "size",
+                                                           "color")}}
         except Exception as e:
             inv["photos"][p] = {"source": str(src), "error": str(e)}
             inv["problems"].append(f"{p}: {e}")

@@ -50,6 +50,8 @@ CUT_FADE = 0.01             # fondu du son source aux coupes (s)
 MAX_CHARS = 34              # sous-titres : ≤ 2 lignes de ≤ 34 caractères
 SUB_HOLD = 0.3              # maintien d'un sous-titre après la fin de la parole
 SUB_GAP = 0.04              # écart minimal entre deux sous-titres
+AMBIENCE_DB = -4.0          # son source plus bas que ça = ambiance : tous ses mots transcrits sont coupés
+WORD_PAD = 0.1              # marge autour d'un mot coupé (s)
 NAMES_UP = {n.upper() for n in config.NAMES}
 _DEC = re.compile(r"^decision:([A-Za-z0-9_]+)(?:\.([A-Za-z_]+))?([+-]\d+(?:\.\d+)?)?$")
 
@@ -550,6 +552,58 @@ def _faces_in_range(clip, tm, dur, ctx: Ctx) -> int | None:
     return min(4, n) if n > 0 else None
 
 
+def _merge_ranges(rs: list) -> list:
+    out = []
+    for a, b in sorted([float(x), float(y)] for x, y in rs if float(y) > float(x)):
+        if out and a <= out[-1][1] + 0.02:
+            out[-1][1] = max(out[-1][1], b)
+        else:
+            out.append([a, b])
+    return [[r4(a), r4(b)] for a, b in out]
+
+
+def _available(name: str | None) -> bool | None:
+    """Rush disponible ? True (proxy ou original trouvé), False (rushs présents mais pas celui-ci, ou listé
+    manquant par l'ingestion), None (inconnu : aucun rush ni inventaire, ex. plan par défaut)."""
+    if not name or not isinstance(name, str):
+        return None
+    if config.proxy_path(name).exists():
+        return True
+    try:
+        config.rush_path(name)
+        return True
+    except FileNotFoundError:
+        pass
+    inv = _load_json(config.ANALYSIS_DIR / "inventory.json") or {}
+    if name in (inv.get("missing") or []):
+        return False
+    try:
+        if config.RUSH_DIR.is_dir() and any(config.RUSH_DIR.iterdir()):
+            return False
+    except OSError:
+        pass
+    return None
+
+
+def _photo_or_fallback(pid, ctx: Ctx, sid: str):
+    """Photo demandée, ou une autre photo du groupe si elle manque (message clair, pas de plantage au rendu)."""
+    if _available(pid) is not False:
+        return pid
+    alt = next((p for p in config.PHOTOS if p != pid and _available(p)), None)
+    ctx.warn(f"{sid} : PHOTO MANQUANTE {pid} → " + (f"repli sur {alt}" if alt else "aucune autre photo disponible"))
+    return alt or pid
+
+
+def _clamp_src(t: float, clip: str | None, ctx: Ctx, sid: str, field: str) -> float:
+    """Instant source borné à [0, durée du clip − 1 image] (avertissement si corrigé)."""
+    L = _clip_len(clip, ctx)
+    hi = None if L is None else max(0.0, L - 1 / FPS)
+    t2 = max(0.0, t if hi is None else min(t, hi))
+    if abs(t2 - t) > 1e-3:
+        ctx.warn(f"{sid}.{field} : {t:.2f} s hors de {clip} ({'?' if L is None else f'{L:.2f}'} s) → {t2:.2f} s")
+    return t2
+
+
 def _clip_len(clip: str, ctx: Ctx) -> float | None:
     if ctx.an is None or not clip:
         return None
@@ -573,7 +627,22 @@ def build(spec_module=None, decisions: dict | None = None, analysis_dir=None, vo
         voice_manifest = _load_json(config.VOICE_DIR / "manifest.json")
     if title_meta is None:
         title_meta = _load_json(config.TITLE_DIR / "title_meta.json")
+    overrides: dict[str, dict] = {}
+    for _ in range(3):  # passes : corrections de rejeu (S2k/S2l…) appliquées puis reconstruction
+        edl, ctx, conflicts = _build_pass(spec, decisions, adir, voice_manifest, title_meta, overrides)
+        new = {k: v for k, v in conflicts.items() if overrides.get(k) != v}
+        if not new:
+            break
+        overrides.update(new)
+    if write:
+        write_outputs(edl, ctx, commit=commit)
+    return edl
+
+
+def _build_pass(spec, decisions: dict, adir, voice_manifest, title_meta, overrides: dict):
+    """Une passe de résolution : renvoie (edl, ctx, corrections de rejeu à appliquer à la passe suivante)."""
     ctx = Ctx(spec, decisions, adir, voice_manifest, title_meta)
+    ctx.overrides = overrides
     if adir is None:
         ctx.warn("aucune analyse (transcriptions, visages...) : EDL construite sur les replis du brief", once_key="noanalysis")
     if not voice_manifest:
@@ -585,11 +654,30 @@ def build(spec_module=None, decisions: dict | None = None, analysis_dir=None, vo
     shots, voices, subs, cues, silence, src_audio = [], [], [], [], [], []
     t_frames = 0  # position en images (entier) : aucune dérive
     prev = None
+    dropped: list[str] = []
+    order = [sp["id"] for sp in spec.SHOTS]
     for sp in spec.SHOTS:
         sid = sp["id"]
         kind = sp["kind"]
+        drop_key = sp.get("drop_if_unconfirmed")
+        if drop_key and not _pick_candidate(ctx.dec.get(drop_key))[1]:
+            ctx.warn(f"{sid} supprimée de la timeline : aucune identité confirmée pour « {drop_key} » "
+                     f"(decisions.json) — pas de gel sans prénom")
+            dropped.append(sid)
+            continue
         sh = {"id": sid, "section": sp.get("section"), "label": sp.get("label", ""), "kind": kind}
         clip = resolve_scalar(sp.get("clip"), ctx, sid, "clip") if sp.get("clip") else None
+        if kind == "clip" and _available(clip) is False:
+            ctx.warn(f"{sid} : RUSH MANQUANT {clip} (ni original dans {config.RUSH_DIR} ni proxy) → plan remplacé "
+                     f"par du noir ; dépose le fichier puis relance ingest")
+            kind = sh["kind"] = "black"
+            sh["label"] += f" [RUSH MANQUANT {clip}]"
+            est = sp.get("dur")
+            if est is None and isinstance(sp.get("src_out"), dict) and isinstance(sp.get("src_in"), dict):
+                est = float(sp["src_out"].get("fallback", 1.0)) - float(sp["src_in"].get("fallback", 0.0))
+            sp = {k: v for k, v in sp.items() if k not in ("fx", "silhouette", "camera", "subs", "cues")}
+            sp["dur"] = max(0.5, float(est or 1.0))
+            clip = None
         tm = None
         if kind == "clip":
             speed = _tuples_to_lists(sp.get("speed", 1.0))
@@ -602,6 +690,13 @@ def build(spec_module=None, decisions: dict | None = None, analysis_dir=None, vo
                     dur = 0.5
             else:
                 dur = float(sp["dur"])
+            ovr = ctx.overrides.get(sid) or {}
+            if "src_in" in ovr:
+                src_in = float(ovr["src_in"])
+                ctx.warn(ovr["why"])
+            if "src_out" in ovr:
+                dur = max(1 / FPS, (float(ovr["src_out"]) - src_in) / max(_mean_speed(speed), 1e-3))
+                ctx.warn(ovr["why"])
             if src_in < 0:
                 if src_in < -0.1:
                     ctx.warn(f"{sid} : src_in négatif ({src_in:.2f} s) ramené à 0")
@@ -635,15 +730,25 @@ def build(spec_module=None, decisions: dict | None = None, analysis_dir=None, vo
                     sh["freeze_src"] = dict(prev["_last"])
             elif isinstance(fs, (list, tuple)) and len(fs) == 3 and fs[0] == "clip":
                 fclip = resolve_scalar(fs[1], ctx, sid, "freeze_src.clip")
-                ft = float(resolve_scalar(fs[2], ctx, sid, "freeze_src.t", fclip))
-                sh["freeze_src"] = {"clip": fclip, "t": r4(max(0.0, ft))}
+                ft = resolve_scalar(fs[2], ctx, sid, "freeze_src.t", fclip)
+                try:
+                    ft = float(ft)
+                except (TypeError, ValueError):
+                    ctx.warn(f"{sid} : instant du gel non résolu ({fs[2]!r}) → 0 s")
+                    ft = 0.0
+                ft = _clamp_src(ft, fclip, ctx, sid, "freeze_src.t")
+                if _available(fclip) is False:
+                    ctx.warn(f"{sid} : RUSH MANQUANT {fclip} pour le gel → noir")
+                    sh["freeze_src"] = None
+                else:
+                    sh["freeze_src"] = {"clip": fclip, "t": r4(ft)}
             else:
                 ctx.warn(f"{sid} : freeze_src non reconnu {fs}")
                 sh["freeze_src"] = None
         else:
             dur = fr(float(sp.get("dur", 1.0))) / FPS
         if kind == "photo":
-            sh["photo"] = resolve_scalar(sp.get("photo"), ctx, sid, "photo")
+            sh["photo"] = _photo_or_fallback(resolve_scalar(sp.get("photo"), ctx, sid, "photo"), ctx, sid)
         start = t_frames / FPS
         sh["start"] = r4(start)
         sh["dur"] = r4(dur)
@@ -655,13 +760,19 @@ def build(spec_module=None, decisions: dict | None = None, analysis_dir=None, vo
             vid = resolve_scalar(v["id"], ctx, sid, "voice.id")
             if not vid:
                 continue
+            with_sub = True
+            mk = _DEC.match(v["id"]) if isinstance(v["id"], str) else None
+            if mk and not _pick_candidate(ctx.dec.get(mk.group(1)))[1]:
+                with_sub = False
+                ctx.warn(f"{sid} : {mk.group(1)} non confirmé → chuchotement {vid} gardé, SANS sous-titre de prénom")
             info = voice_info(str(vid), ctx)
             t_rel = resolve_voice_time(v.get("t", 0.0), shot_voices, ctx, sid)
             vo = {"id": str(vid), "file": info["file"], "t_speech": r4(start + t_rel),
                   "t_file": r4(start + t_rel - info["onset_s"]), "dur": r4(info["dur"]),
                   "speech_dur": r4(info["speech_dur"]), "gain_db": float(v.get("gain_db", 0.0)), "kind": info["kind"],
                   "shot": sid, "allow_in_silence": bool(sp.get("silence")), "text": info["text"],
-                  "tts_text": info.get("tts_text", info["text"]), "_t_rel": t_rel, "estimated": info["estimated"]}
+                  "tts_text": info.get("tts_text", info["text"]), "_t_rel": t_rel, "estimated": info["estimated"],
+                  "subtitle": with_sub}
             shot_voices.append(vo)
         voices += shot_voices
         ctx.voices = voices
@@ -765,6 +876,22 @@ def build(spec_module=None, decisions: dict | None = None, analysis_dir=None, vo
                         audio["mute_ranges"].append([r4(a0), r4(a1)])
                         ctx.warn(f"{sid} : consigne « {h['text']} » ({clip} {h['start']:.2f}–{h['end']:.2f} s) "
                                  f"dans la plage utilisée → son source coupé {a0:.2f}–{a1:.2f} s")
+            if audio["src_gain_db"] < AMBIENCE_DB and not sp.get("keep_words"):
+                # son source d'ambiance : aucun mot parasite audible (bavardages hors sujet)
+                tr = ctx.an.load_transcript(clip, ctx.adir) or {}
+                cut, heard = [], []
+                for w in tr.get("words") or []:
+                    if w["end"] > play_src[0] and w["start"] < play_src[1]:
+                        a0 = max(0.0, tm.rel(w["start"] - WORD_PAD))
+                        a1 = min(dur, tm.rel(w["end"] + WORD_PAD))
+                        if a1 > a0:
+                            cut.append([r4(a0), r4(a1)])
+                            heard.append(w["w"])
+                if cut:
+                    audio["mute_ranges"] += cut
+                    ctx.warn(f"{sid} : son d'ambiance ({audio['src_gain_db']:+.0f} dB) → {len(cut)} mot(s) parasite(s) "
+                             f"coupé(s) : « {' '.join(heard)[:60]} »")
+            audio["mute_ranges"] = _merge_ranges(audio["mute_ranges"])
         sh["audio"] = audio
         if kind == "clip" and not audio["mute_src"]:
             play = dur if sh["freeze_after"] is None else min(dur, float(sh["freeze_after"]))
@@ -794,12 +921,24 @@ def build(spec_module=None, decisions: dict | None = None, analysis_dir=None, vo
                 if it.get("clip"):
                     c = resolve_scalar(it["clip"], ctx, sid, f"items[{k}].clip")
                     s_in = float(resolve_scalar(it.get("src_in", 0.0), ctx, sid, f"items[{k}].src_in", c) or 0.0)
-                    Lc = _clip_len(c, ctx)
-                    if Lc is not None and s_in + frames[k] / FPS > Lc:
-                        s_in = max(0.0, Lc - frames[k] / FPS - 1 / FPS)
-                    it2.update({"clip": c, "src_in": r4(max(0.0, s_in))})
+                    if _available(c) is False:
+                        prev_ok = next((x for x in reversed(items) if x.get("clip") or x.get("photo")), None)
+                        ctx.warn(f"{sid} : micro-plan {k} : RUSH MANQUANT {c} → "
+                                 + ("répétition du micro-plan précédent" if prev_ok else "noir"))
+                        if prev_ok:
+                            it2.update({x: prev_ok[x] for x in ("clip", "src_in", "photo") if x in prev_ok})
+                    else:
+                        Lc = _clip_len(c, ctx)
+                        if Lc is not None and s_in + frames[k] / FPS > Lc:
+                            new_in = max(0.0, Lc - frames[k] / FPS - 1 / FPS)
+                            ctx.warn(f"{sid} : micro-plan {k} ({c}) {s_in:.2f} s hors du clip ({Lc:.2f} s) → {new_in:.2f} s")
+                            s_in = new_in
+                        if s_in < 0:
+                            ctx.warn(f"{sid} : micro-plan {k} ({c}) instant négatif {s_in:.2f} s → 0")
+                        it2.update({"clip": c, "src_in": r4(max(0.0, s_in))})
                 elif it.get("photo"):
-                    it2["photo"] = resolve_scalar(it["photo"], ctx, sid, f"items[{k}].photo")
+                    it2["photo"] = _photo_or_fallback(resolve_scalar(it["photo"], ctx, sid, f"items[{k}].photo"),
+                                                      ctx, sid)
                 items.append(it2)
                 if k > 0:
                     cues.append({"t": r4(start + acc / FPS), "sfx": "impact_hit", "gain_db": MONTAGE_HIT_DB, "dur": None,
@@ -859,7 +998,8 @@ def build(spec_module=None, decisions: dict | None = None, analysis_dir=None, vo
     total = t_frames / FPS
     # --- sous-titres des voix off
     for v in voices:
-        subs += voice_subtitles(v, ctx)
+        if v.get("subtitle", True):
+            subs += voice_subtitles(v, ctx)
     subs.sort(key=lambda s: (s["start"], s["end"]))
     for i in range(len(subs) - 1):
         a, b = subs[i], subs[i + 1]
@@ -877,6 +1017,10 @@ def build(spec_module=None, decisions: dict | None = None, analysis_dir=None, vo
 
     def ref_t(rf) -> float:
         s = by_id.get(rf["ref"])
+        if s is None and rf["ref"] in dropped:  # shot supprimée : point de la shot gardée suivante
+            nxt = next((by_id[x] for x in order[order.index(rf["ref"]) + 1:] if x in by_id), None)
+            if nxt is not None:
+                return nxt["start"] + float(rf.get("offset", 0.0))
         if s is None:
             ctx.warn(f"musique : shot inconnue {rf['ref']}")
             return 0.0
@@ -919,6 +1063,7 @@ def build(spec_module=None, decisions: dict | None = None, analysis_dir=None, vo
                                 "title_meta": bool(title_meta), "analysis": adir is not None,
                                 "decisions_reviewed": bool(decisions.get("_reviewed"))},
                  "anchors": {"found": ctx.anchors_found, "total": ctx.anchors_total},
+                 "dropped_shots": dropped,
                  "fixtures": fixtures,
                  "conventions": "start/dur absolus alignés sur les images ; fx/overlays/silhouette relatifs à la shot ; "
                                 "voices/subtitles/cues/music/silence/src_audio absolus ; vitesse = speed × speed_ramp (smoothstep), "
@@ -926,9 +1071,42 @@ def build(spec_module=None, decisions: dict | None = None, analysis_dir=None, vo
         "shots": shots, "voices": voices, "subtitles": subs, "cues": cues, "music": music, "silence": silence,
         "src_audio": src_audio, "checks": checks, "warnings": ctx.warnings,
     }
-    if write:
-        write_outputs(edl, ctx, commit=commit)
-    return edl
+    return edl, ctx, _replay_conflicts(shots, ctx)
+
+
+def _cuts_word(clip: str, t: float, ctx: Ctx) -> bool:
+    """Une coupe à l'instant source t tombe-t-elle au milieu d'un mot transcrit ?"""
+    if ctx.an is None:
+        return False
+    tr = ctx.an.load_transcript(clip, ctx.adir) or {}
+    return any(w["start"] + 0.02 < t < w["end"] - 0.02 for w in tr.get("words") or [])
+
+
+def _replay_conflicts(shots: list[dict], ctx: Ctx) -> dict:
+    """Pas de rejeu : deux shots consécutives du même clip ne doivent pas se chevaucher dans la source
+    (ex. le cri S2l ne rejoue pas la fin de S2k). On raccourcit la première (src_out = src_in suivant − 0,05 s)
+    si elle garde ≥ 0,4 s sans couper un mot ; sinon on décale le début de la seconde."""
+    out = {}
+    for a, b in zip(shots, shots[1:]):
+        if not (a["kind"] == b["kind"] == "clip" and a.get("clip") and a["clip"] == b.get("clip")):
+            continue
+        if a.get("freeze_after") is not None:
+            continue
+        a_in, a_out, b_in = float(a["src_in"]), float(a["src_out"]), float(b["src_in"])
+        if not (a_in - 0.01 <= b_in < a_out - 0.01):  # la seconde ne reprend pas dans la plage de la première
+            continue
+        ov = a_out - b_in
+        new_out = float(b["src_in"]) - 0.05
+        if new_out - float(a["src_in"]) >= 0.4 and not _cuts_word(a["clip"], new_out, ctx):
+            out[a["id"]] = {"src_out": round(new_out, 4),
+                            "why": f"{a['id']} rejouait {ov:.2f} s reprises par {b['id']} : fin ramenée de "
+                                   f"{a['src_out']:.2f} à {new_out:.2f} s"}
+        else:
+            new_in = float(a["src_out"])
+            out[b["id"]] = {"src_in": round(new_in, 4),
+                            "why": f"{b['id']} rejouait {ov:.2f} s de {a['id']} : début décalé de "
+                                   f"{b['src_in']:.2f} à {new_in:.2f} s (raccourcir {a['id']} couperait un mot)"}
+    return out
 
 
 # ---------------------------------------------------------------------------
