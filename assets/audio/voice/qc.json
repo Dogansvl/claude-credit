@@ -1,0 +1,732 @@
+{
+ "backend": "piper:tom",
+ "backend_errors": [
+  "edge: edge-tts indisponible : ClientConnectorDNSError: Cannot connect to host speech.platform.bing.com:443 ssl:<ssl.SSLContext object at 0x7faf3e99f9d0> [Name or service not known]"
+ ],
+ "backend_settings": {
+  "narrator": {
+   "voice": "tom",
+   "model": "fr_FR-tom-medium.onnx",
+   "speaker": null,
+   "noise_scale": 0.62,
+   "noise_w_scale": 0.7
+  },
+  "entity": {
+   "voice": "tom",
+   "model": "fr_FR-tom-medium.onnx",
+   "speaker": null,
+   "noise_scale": 0.62,
+   "noise_w_scale": 0.7
+  }
+ },
+ "windows": {
+  "groups": [
+   {
+    "ids": [
+     "N01"
+    ],
+    "gaps": [],
+    "start": 6.3,
+    "window": 5.05,
+    "shot": "S2b"
+   },
+   {
+    "ids": [
+     "N02"
+    ],
+    "gaps": [],
+    "start": 11.35,
+    "window": 2.15,
+    "shot": "S2d"
+   },
+   {
+    "ids": [
+     "N03"
+    ],
+    "gaps": [],
+    "start": 13.5,
+    "window": 2.1,
+    "shot": "S2e"
+   },
+   {
+    "ids": [
+     "N04"
+    ],
+    "gaps": [],
+    "start": 35.6,
+    "window": 1.9,
+    "shot": "S3b"
+   },
+   {
+    "ids": [
+     "N05"
+    ],
+    "gaps": [],
+    "start": 37.5,
+    "window": 2.15,
+    "shot": "S3c"
+   },
+   {
+    "ids": [
+     "E_IDENT"
+    ],
+    "gaps": [],
+    "start": 44.6,
+    "window": 4.5,
+    "shot": "S4b"
+   },
+   {
+    "ids": [
+     "N06"
+    ],
+    "gaps": [],
+    "start": 49.1,
+    "window": 4.3,
+    "shot": "S4e"
+   },
+   {
+    "ids": [
+     "N07a",
+     "N07b"
+    ],
+    "gaps": [
+     0.35
+    ],
+    "start": 56.7,
+    "window": 4.75,
+    "shot": "S4h"
+   },
+   {
+    "ids": [
+     "E_DOGAN"
+    ],
+    "gaps": [],
+    "start": 61.45,
+    "window": 0.55,
+    "shot": "S4i"
+   },
+   {
+    "ids": [
+     "E_GABRIEL"
+    ],
+    "gaps": [],
+    "start": 62.0,
+    "window": 0.55,
+    "shot": "S4j"
+   },
+   {
+    "ids": [
+     "E_HUGO"
+    ],
+    "gaps": [],
+    "start": 62.55,
+    "window": 0.55,
+    "shot": "S4k"
+   },
+   {
+    "ids": [
+     "E_ARSENE"
+    ],
+    "gaps": [],
+    "start": 63.1,
+    "window": 0.85,
+    "shot": "S4l"
+   },
+   {
+    "ids": [
+     "N08a",
+     "N08b"
+    ],
+    "gaps": [
+     0.45
+    ],
+    "start": 63.95,
+    "window": 4.1,
+    "shot": "S4m"
+   },
+   {
+    "ids": [
+     "N09a",
+     "N09b"
+    ],
+    "gaps": [
+     0.4
+    ],
+    "start": 71.65,
+    "window": 3.7,
+    "shot": "S5a"
+   },
+   {
+    "ids": [
+     "E_CQL"
+    ],
+    "gaps": [],
+    "start": 84.25,
+    "window": 1.05,
+    "shot": "S6d"
+   },
+   {
+    "ids": [
+     "E_IDENT"
+    ],
+    "gaps": [],
+    "start": 90.8,
+    "window": 1.5,
+    "shot": "S7a"
+   }
+  ],
+  "film_end": 92.3
+ },
+ "max_speech": {
+  "N01": 4.9,
+  "N02": 2.0,
+  "N03": 1.95,
+  "N04": 1.75,
+  "N05": 2.0,
+  "E_IDENT": 1.42,
+  "N06": 4.15,
+  "N07a": 2.639,
+  "N07b": 1.558,
+  "E_DOGAN": 0.55,
+  "E_GABRIEL": 0.55,
+  "E_HUGO": 0.55,
+  "E_ARSENE": 0.85,
+  "N08a": 1.932,
+  "N08b": 1.568,
+  "N09a": 2.576,
+  "N09b": 0.918,
+  "E_CQL": 0.97
+ },
+ "items": {
+  "N01": {
+   "lufs": -20.0,
+   "peak_db": -3.12,
+   "params": {
+    "length_scale": 0.94,
+    "seed": 53073,
+    "tempo": 1.1
+   },
+   "prosody": {
+    "f0_med": 116.4,
+    "f0_st_std": 2.43,
+    "f0_st_range": 8.38,
+    "hnr_db": 5.9,
+    "jitter_pct": 2.48
+   },
+   "max_speech": 4.9,
+   "natural_speech": 6.17,
+   "asr_raw": "Le 30 octobre 2026, quatre Annie ont pris la route pour un Escape Game.",
+   "asr_final": "Le 30 octobre 2026, 4 amis ont pris la route pour un escape game.",
+   "wer_final": 0.0
+  },
+  "N02": {
+   "lufs": -20.0,
+   "peak_db": -8.25,
+   "params": {
+    "length_scale": 1.1,
+    "seed": 77019
+   },
+   "prosody": {
+    "f0_med": 115.0,
+    "f0_st_std": 2.73,
+    "f0_st_range": 8.86,
+    "hnr_db": 3.6,
+    "jitter_pct": 2.43
+   },
+   "max_speech": 2.0,
+   "natural_speech": 1.797,
+   "asr_raw": "Ils se sont filmés toute la soirée.",
+   "asr_final": "Ils se sont filmés toute la soirée.",
+   "wer_final": 0.0
+  },
+  "N03": {
+   "lufs": -20.0,
+   "peak_db": -8.38,
+   "params": {
+    "length_scale": 1.1,
+    "seed": 22397
+   },
+   "prosody": {
+    "f0_med": 110.5,
+    "f0_st_std": 2.8,
+    "f0_st_range": 9.21,
+    "hnr_db": 3.65,
+    "jitter_pct": 2.66
+   },
+   "max_speech": 1.95,
+   "natural_speech": 1.703,
+   "asr_raw": "Voici ce qu'ils ont filmé.",
+   "asr_final": "Voici ce qu'ils ont filmé.",
+   "wer_final": 0.0
+  },
+  "N04": {
+   "lufs": -20.0,
+   "peak_db": -7.46,
+   "params": {
+    "length_scale": 1.1,
+    "seed": 40686
+   },
+   "prosody": {
+    "f0_med": 111.9,
+    "f0_st_std": 2.29,
+    "f0_st_range": 7.14,
+    "hnr_db": 7.37,
+    "jitter_pct": 1.86
+   },
+   "max_speech": 1.75,
+   "natural_speech": 1.227,
+   "asr_raw": "Ils ne l'ont jamais revu.",
+   "asr_final": "Ils ne l'ont jamais revu.",
+   "wer_final": 0.0
+  },
+  "N05": {
+   "lufs": -20.0,
+   "peak_db": -5.62,
+   "params": {
+    "length_scale": 1.1,
+    "seed": 96520
+   },
+   "prosody": {
+    "f0_med": 116.9,
+    "f0_st_std": 2.33,
+    "f0_st_range": 8.07,
+    "hnr_db": 5.77,
+    "jitter_pct": 2.39
+   },
+   "max_speech": 2.0,
+   "natural_speech": 1.756,
+   "asr_raw": "Lui ne les a plus jamais quittés.",
+   "asr_final": "Lui ne les a plus jamais quittés.",
+   "wer_final": 0.0
+  },
+  "N06": {
+   "lufs": -20.0,
+   "peak_db": -6.04,
+   "params": {
+    "length_scale": 1.1,
+    "seed": 87330
+   },
+   "prosody": {
+    "f0_med": 111.4,
+    "f0_st_std": 2.04,
+    "f0_st_range": 6.21,
+    "hnr_db": 3.65,
+    "jitter_pct": 2.19
+   },
+   "max_speech": 4.15,
+   "natural_speech": 3.611,
+   "asr_raw": "Les organisateurs jurent que cette pièce ne fait pas partie du jeu.",
+   "asr_final": "Les organisateurs jurent que cette pièce ne fait pas partie du jeu.",
+   "wer_final": 0.0
+  },
+  "N07a": {
+   "lufs": -20.0,
+   "peak_db": -6.12,
+   "params": {
+    "length_scale": 0.94,
+    "seed": 64376,
+    "tempo": 1.1
+   },
+   "prosody": {
+    "f0_med": 110.5,
+    "f0_st_std": 1.97,
+    "f0_st_range": 6.62,
+    "hnr_db": 5.42,
+    "jitter_pct": 2.81
+   },
+   "max_speech": 2.639,
+   "natural_speech": 3.407,
+   "asr_raw": "à 22h12, Dogen Senni au piano.",
+   "asr_final": "A 22h12, Dogen se nige au piano.",
+   "wer_final": 0.273
+  },
+  "N07b": {
+   "lufs": -20.0,
+   "peak_db": -5.81,
+   "params": {
+    "length_scale": 0.94,
+    "seed": 20082,
+    "tempo": 1.1
+   },
+   "prosody": {
+    "f0_med": 119.8,
+    "f0_st_std": 2.38,
+    "f0_st_range": 7.61,
+    "hnr_db": 4.78,
+    "jitter_pct": 2.62
+   },
+   "max_speech": 1.558,
+   "natural_speech": 2.079,
+   "asr_raw": "Il ne se souvient pas d'avoir joué.",
+   "asr_final": "Il ne se souvient pas d'avoir joué.",
+   "wer_final": 0.0
+  },
+  "N08a": {
+   "lufs": -20.0,
+   "peak_db": -6.11,
+   "params": {
+    "length_scale": 1.1,
+    "seed": 73015,
+    "tempo": 1.032
+   },
+   "prosody": {
+    "f0_med": 117.0,
+    "f0_st_std": 2.88,
+    "f0_st_range": 11.24,
+    "hnr_db": 3.87,
+    "jitter_pct": 2.65
+   },
+   "max_speech": 1.932,
+   "natural_speech": 1.974,
+   "asr_raw": "Sur la photo, ils sont quatre.",
+   "asr_final": "sur la photo I-104.",
+   "wer_final": 0.333
+  },
+  "N08b": {
+   "lufs": -20.0,
+   "peak_db": -5.23,
+   "params": {
+    "length_scale": 1.1,
+    "seed": 82573,
+    "tempo": 1.032
+   },
+   "prosody": {
+    "f0_med": 111.7,
+    "f0_st_std": 1.89,
+    "f0_st_range": 6.58,
+    "hnr_db": 4.09,
+    "jitter_pct": 2.32
+   },
+   "max_speech": 1.568,
+   "natural_speech": 1.602,
+   "asr_raw": "Regardez derrière eux.",
+   "asr_final": "Regardez derrière eux.",
+   "wer_final": 0.0
+  },
+  "N09a": {
+   "lufs": -20.0,
+   "peak_db": -3.59,
+   "params": {
+    "length_scale": 1.1,
+    "seed": 25854
+   },
+   "prosody": {
+    "f0_med": 117.3,
+    "f0_st_std": 2.87,
+    "f0_st_range": 8.67,
+    "hnr_db": 3.64,
+    "jitter_pct": 3.14
+   },
+   "max_speech": 2.576,
+   "natural_speech": 2.232,
+   "asr_raw": "À 23 heures, tout était fini.",
+   "asr_final": "A 23 heures, tout était fini.",
+   "wer_final": 0.0
+  },
+  "N09b": {
+   "lufs": -20.0,
+   "peak_db": -6.64,
+   "params": {
+    "length_scale": 1.1,
+    "seed": 51484
+   },
+   "prosody": {
+    "f0_med": 108.7,
+    "f0_st_std": 2.09,
+    "f0_st_range": 5.91,
+    "hnr_db": 4.34,
+    "jitter_pct": 2.17
+   },
+   "max_speech": 0.918,
+   "natural_speech": 0.574,
+   "asr_raw": "Il riait.",
+   "asr_final": "Il riait.",
+   "wer_final": 0.0
+  },
+  "E_DOGAN": {
+   "lufs": -20.08,
+   "peak_db": -3.14,
+   "params": {
+    "length_scale": 0.89,
+    "seed": 64662,
+    "tempo": 1.1
+   },
+   "prosody": {},
+   "max_speech": 0.55,
+   "natural_speech": 0.606,
+   "asr_raw": "Dugan",
+   "asr_final": "Ducan.",
+   "wer_final": 1.0,
+   "asr_final_full": "Dupagne",
+   "asr_ear": "Ducando",
+   "wer_ear": 1.0
+  },
+  "E_GABRIEL": {
+   "lufs": -20.0,
+   "peak_db": -3.56,
+   "params": {
+    "length_scale": 0.85,
+    "seed": 85646,
+    "tempo": 1.257
+   },
+   "prosody": {},
+   "max_speech": 0.55,
+   "natural_speech": 0.736,
+   "asr_raw": "Gabriel",
+   "asr_final": "D'abriens.",
+   "wer_final": 2.0,
+   "asr_final_full": "Da p*r*n",
+   "asr_ear": "Gabriel",
+   "wer_ear": 0.0
+  },
+  "E_HUGO": {
+   "lufs": -20.0,
+   "peak_db": -4.33,
+   "params": {
+    "length_scale": 1.0,
+    "seed": 95316
+   },
+   "prosody": {},
+   "max_speech": 0.55,
+   "natural_speech": 0.349,
+   "asr_raw": "et deux",
+   "asr_final": "Et toi !",
+   "wer_final": 2.0,
+   "asr_final_full": "Et toi !",
+   "asr_ear": "Indo",
+   "wer_ear": 1.0
+  },
+  "E_ARSENE": {
+   "lufs": -20.0,
+   "peak_db": -5.39,
+   "params": {
+    "length_scale": 1.0,
+    "seed": 16719
+   },
+   "prosody": {},
+   "max_speech": 0.85,
+   "natural_speech": 0.681,
+   "asr_raw": "Arsène",
+   "asr_final": "Affronter.",
+   "wer_final": 1.0,
+   "asr_final_full": "Auction !",
+   "asr_ear": "Arsène",
+   "wer_ear": 0.0
+  },
+  "E_IDENT": {
+   "lufs": -20.0,
+   "peak_db": -3.1,
+   "params": {
+    "length_scale": 0.893,
+    "seed": 21189,
+    "tempo": 1.036
+   },
+   "prosody": {},
+   "max_speech": 1.42,
+   "natural_speech": 1.492,
+   "asr_raw": "Identification terminée.",
+   "asr_final": "Identification terminée.",
+   "wer_final": 0.0,
+   "asr_final_full": "Identification terminée.",
+   "asr_ear": "Identification terminée.",
+   "wer_ear": 0.0
+  },
+  "E_CQL": {
+   "lufs": -20.0,
+   "peak_db": -7.58,
+   "params": {
+    "length_scale": 1.0,
+    "seed": 74375
+   },
+   "prosody": {},
+   "max_speech": 0.97,
+   "natural_speech": 0.719,
+   "asr_raw": "C'est qui lui ?",
+   "asr_final": "C'est qui lui ?",
+   "wer_final": 0.0,
+   "asr_final_full": "C'est qui lui ?",
+   "asr_ear": "C'est qui lui ?",
+   "wer_ear": 0.0
+  }
+ },
+ "takes_log": [
+  "N01 prise 0: {'length_scale': 1.1, 'seed': 53073, 'tempo': 1.1} parole=5.63s wer=0.00 « Le 30 octobre 2026, 4 amis ont pris la route pour un escape game. » score=2.789",
+  "N01 prise 0: {'length_scale': 0.94, 'seed': 53073, 'tempo': 1.1} parole=4.88s wer=0.00 « Le 30 octobre 2026, 4 amis ont pris la route pour un escape game. » score=0.126",
+  "N01 prise 1: {'length_scale': 1.1, 'seed': 54073, 'tempo': 1.1} parole=5.40s wer=0.12 « Le 30 octobre 2026, quatre amis ont pris la roue pour un esthétique game. » score=2.589",
+  "N01 prise 1: {'length_scale': 0.94, 'seed': 54073, 'tempo': 1.064} parole=4.86s wer=0.12 « Le 30 octobre 2026, 4 amis ont pris la route pour un STGAME. » score=0.840",
+  "N01 prise 2: {'length_scale': 1.1, 'seed': 55073, 'tempo': 1.1} parole=5.48s wer=0.00 « Le 30 octobre 2026, 4 amis ont pris la route pour un escape game. » score=2.215",
+  "N01 prise 2: {'length_scale': 0.94, 'seed': 55073, 'tempo': 1.085} parole=4.85s wer=0.06 « Le 30 octobre 2026, 4 années ont pris la route pour un escape game. » score=0.516",
+  "N01 prise 3: {'length_scale': 1.1, 'seed': 56073, 'tempo': 1.1} parole=5.60s wer=0.00 « Le 30 octobre 2026, quatre amis ont pris la route pour un escape game. » score=2.670",
+  "N01 prise 3: {'length_scale': 0.94, 'seed': 56073, 'tempo': 1.1} parole=4.87s wer=0.06 « Le 30 octobre 2026, 4 amis ont pris la route pour un escape du game. » score=0.506",
+  "N01 prise 4: {'length_scale': 1.1, 'seed': 57073, 'tempo': 1.1} parole=5.46s wer=0.00 « Le 30 octobre 2026, quatre amis ont pris la route pour un escape game. » score=2.120",
+  "N01 prise 4: {'length_scale': 0.94, 'seed': 57073, 'tempo': 1.077} parole=4.86s wer=0.06 « Le 30 octobre 2026, quatre amis ont pris la route pour un estate game. » score=0.486",
+  "N01 prise 5: {'length_scale': 1.1, 'seed': 58073, 'tempo': 1.1} parole=5.57s wer=0.00 « Le 30 octobre 2026, quatre amis ont pris la route pour un escape game. » score=2.558",
+  "N01 prise 5: {'length_scale': 0.94, 'seed': 58073, 'tempo': 1.091} parole=4.85s wer=0.06 « Le 30 octobre 2026, quatre amis ont pris la route pour un estate game. » score=0.492",
+  "N02 prise 0: {'length_scale': 1.1, 'seed': 75019} parole=1.81s wer=0.14 « Il se sent filmé toute la soirée. » score=1.028",
+  "N02 prise 1: {'length_scale': 1.1, 'seed': 76019} parole=1.78s wer=0.00 « Ils se sont filmés toute la soirée. » score=0.142",
+  "N02 prise 2: {'length_scale': 1.1, 'seed': 77019} parole=1.77s wer=0.00 « Ils se sont filmés toute la soirée. » score=0.074",
+  "N02 prise 3: {'length_scale': 1.1, 'seed': 78019, 'tempo': 1.036} parole=1.99s wer=0.00 « Ils se sont filmés toute la soirée. » score=0.160",
+  "N02 prise 3: {'length_scale': 1.051, 'seed': 78019} parole=1.97s wer=0.00 « Ils se sont filmés toute la soirée. » score=0.101",
+  "N02 prise 4: {'length_scale': 1.1, 'seed': 79019, 'tempo': 1.032} parole=2.00s wer=0.00 « Ils se sont filmés toute la soirée. » score=0.136",
+  "N02 prise 4: {'length_scale': 1.055, 'seed': 79019, 'tempo': 1.012} parole=1.99s wer=0.00 « Ils se sont filmés toute la soirée. » score=0.190",
+  "N02 prise 5: {'length_scale': 1.1, 'seed': 80019} parole=1.75s wer=0.00 « Ils se sont filmés toute la soirée. » score=0.123",
+  "N03 prise 0: {'length_scale': 1.1, 'seed': 22397} parole=1.71s wer=0.00 « Voici ce qu'ils ont filmé. » score=0.064",
+  "N03 prise 1: {'length_scale': 1.1, 'seed': 23397} parole=1.79s wer=0.00 « Voici ce qu'ils ont filmé. » score=0.192",
+  "N03 prise 2: {'length_scale': 1.1, 'seed': 24397} parole=1.69s wer=0.00 « Voici ce qu'ils ont filmé. » score=0.110",
+  "N03 prise 3: {'length_scale': 1.1, 'seed': 25397} parole=1.66s wer=0.00 « Voici ce qu'ils ont filmé. » score=0.142",
+  "N03 prise 4: {'length_scale': 1.1, 'seed': 26397} parole=1.58s wer=0.00 « Voici ce qu'ils ont filmé. » score=0.070",
+  "N03 prise 5: {'length_scale': 1.1, 'seed': 27397} parole=1.62s wer=0.00 « Voici ce qu'ils ont filmé. » score=0.121",
+  "N04 prise 0: {'length_scale': 1.1, 'seed': 38686} parole=1.25s wer=0.17 « Ils ne l'ont jamais refus. » score=1.139",
+  "N04 prise 1: {'length_scale': 1.1, 'seed': 39686} parole=1.29s wer=0.00 « Ils ne l'ont jamais revu. » score=0.147",
+  "N04 prise 2: {'length_scale': 1.1, 'seed': 40686} parole=1.26s wer=0.00 « Ils ne l'ont jamais revu. » score=0.103",
+  "N04 prise 3: {'length_scale': 1.1, 'seed': 41686} parole=1.25s wer=0.00 « Ils ne l'ont jamais revu. » score=0.149",
+  "N04 prise 4: {'length_scale': 1.1, 'seed': 42686} parole=1.19s wer=0.00 « Ils ne l'ont jamais revu. » score=0.159",
+  "N04 prise 5: {'length_scale': 1.1, 'seed': 43686} parole=1.27s wer=0.00 « Ils ne l'ont jamais revu. » score=0.170",
+  "N05 prise 0: {'length_scale': 1.1, 'seed': 96520} parole=1.78s wer=0.00 « Lui ne les a plus jamais quittés. » score=0.113",
+  "N05 prise 1: {'length_scale': 1.1, 'seed': 97520} parole=1.80s wer=0.00 « Lui ne les a plus jamais quittés. » score=0.129",
+  "N05 prise 2: {'length_scale': 1.1, 'seed': 98520} parole=1.87s wer=0.00 « Lui ne les a plus jamais quittés. » score=0.131",
+  "N05 prise 3: {'length_scale': 1.1, 'seed': 99520} parole=1.83s wer=0.00 « Lui ne les a plus jamais quittés. » score=0.126",
+  "N05 prise 4: {'length_scale': 1.1, 'seed': 100520} parole=1.99s wer=0.00 « Lui ne les a plus jamais quittés. » score=0.130",
+  "N05 prise 5: {'length_scale': 1.1, 'seed': 101520} parole=1.83s wer=0.00 « Lui ne les a plus jamais quittés. » score=0.128",
+  "N06 prise 0: {'length_scale': 1.1, 'seed': 85330} parole=3.62s wer=0.00 « Les organisateurs jurent que cette pièce ne fait pas partie du jeu. » score=0.197",
+  "N06 prise 1: {'length_scale': 1.1, 'seed': 86330} parole=3.58s wer=0.00 « Les organisateurs jurent que cette pièce ne fait pas partie du jeu. » score=0.222",
+  "N06 prise 2: {'length_scale': 1.1, 'seed': 87330} parole=3.89s wer=0.00 « Les organisateurs jurent que cette pièce ne fait pas partie du jeu. » score=0.177",
+  "N06 prise 3: {'length_scale': 1.1, 'seed': 88330} parole=3.60s wer=0.00 « Les organisateurs jurent que cette pièce ne fait pas partie du jeu. » score=0.186",
+  "N06 prise 4: {'length_scale': 1.1, 'seed': 89330} parole=3.61s wer=0.00 « Les organisateurs jurent que cette pièce ne fait pas partie du jeu. » score=0.208",
+  "N06 prise 5: {'length_scale': 1.1, 'seed': 90330} parole=3.83s wer=0.00 « Les organisateurs jurent que cette pièce ne fait pas partie du jeu. » score=0.190",
+  "N07a prise 0: {'length_scale': 1.1, 'seed': 64376, 'tempo': 1.1} parole=3.10s wer=0.27 « à 22h12, Dogen Senni au piano. » score=3.372",
+  "N07a prise 0: {'length_scale': 0.94, 'seed': 64376, 'tempo': 1.1} parole=2.69s wer=0.27 « A 22h12, Dogen se nige au piano. » score=1.837",
+  "N07a prise 1: {'length_scale': 1.1, 'seed': 65376, 'tempo': 1.1} parole=3.07s wer=0.00 « A 22h12, Dogen s'est mis au piano. » score=1.608",
+  "N07a prise 1: {'length_scale': 0.94, 'seed': 65376, 'tempo': 1.1} parole=2.62s wer=0.36 « à 22h12, Doken Semi au piano. » score=2.402",
+  "N07a prise 2: {'length_scale': 1.1, 'seed': 66376, 'tempo': 1.1} parole=3.21s wer=0.27 « à 22h12, Dogen Senni au piano. » score=3.832",
+  "N07a prise 2: {'length_scale': 0.94, 'seed': 66376, 'tempo': 1.1} parole=2.78s wer=0.27 « à 22h12, Dogen Senni au piano. » score=2.195",
+  "N07a prise 3: {'length_scale': 1.1, 'seed': 67376, 'tempo': 1.1} parole=3.24s wer=0.27 « à 22h12, Dogen Semi au piano. » score=4.003",
+  "N07a prise 3: {'length_scale': 0.94, 'seed': 67376, 'tempo': 1.1} parole=2.81s wer=0.27 « à 22h12, Dogen Semi au piano. » score=2.307",
+  "N07a prise 4: {'length_scale': 1.1, 'seed': 68376, 'tempo': 1.1} parole=3.10s wer=0.27 « à 22h12, Dogen Semi au piano. » score=3.402",
+  "N07a prise 4: {'length_scale': 0.94, 'seed': 68376, 'tempo': 1.1} parole=2.70s wer=0.27 « à 22h12, Dogen Cenny au piano. » score=1.855",
+  "N07a prise 5: {'length_scale': 1.1, 'seed': 69376, 'tempo': 1.1} parole=3.20s wer=0.27 « à 22h12, Dogen Semi au piano. » score=3.789",
+  "N07a prise 5: {'length_scale': 0.94, 'seed': 69376, 'tempo': 1.1} parole=2.77s wer=0.36 « à 22h12, Duggan Semi au piano. » score=2.573",
+  "N07b prise 0: {'length_scale': 1.1, 'seed': 18082, 'tempo': 1.1} parole=1.89s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=1.095",
+  "N07b prise 0: {'length_scale': 0.94, 'seed': 18082, 'tempo': 1.1} parole=1.65s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=0.228",
+  "N07b prise 1: {'length_scale': 1.1, 'seed': 19082, 'tempo': 1.1} parole=1.85s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=0.889",
+  "N07b prise 1: {'length_scale': 0.94, 'seed': 19082, 'tempo': 1.1} parole=1.63s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=0.207",
+  "N07b prise 2: {'length_scale': 1.1, 'seed': 20082, 'tempo': 1.1} parole=1.83s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=0.856",
+  "N07b prise 2: {'length_scale': 0.94, 'seed': 20082, 'tempo': 1.1} parole=1.60s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=0.145",
+  "N07b prise 3: {'length_scale': 1.1, 'seed': 21082, 'tempo': 1.1} parole=1.88s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=1.015",
+  "N07b prise 3: {'length_scale': 0.94, 'seed': 21082, 'tempo': 1.1} parole=1.66s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=0.207",
+  "N07b prise 4: {'length_scale': 1.1, 'seed': 22082, 'tempo': 1.1} parole=1.88s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=1.004",
+  "N07b prise 4: {'length_scale': 0.94, 'seed': 22082, 'tempo': 1.1} parole=1.63s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=0.184",
+  "N07b prise 5: {'length_scale': 1.1, 'seed': 23082, 'tempo': 1.1} parole=1.88s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=1.008",
+  "N07b prise 5: {'length_scale': 0.94, 'seed': 23082, 'tempo': 1.1} parole=1.65s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=0.223",
+  "N08a prise 0: {'length_scale': 1.1, 'seed': 73015, 'tempo': 1.032} parole=1.92s wer=0.00 « Sur la photo, il sont quatre. » score=0.083",
+  "N08a prise 0: {'length_scale': 1.055, 'seed': 73015, 'tempo': 1.051} parole=1.93s wer=0.00 « Sur la photo, il sont quatre. » score=0.185",
+  "N08a prise 1: {'length_scale': 1.1, 'seed': 74015, 'tempo': 1.07} parole=1.92s wer=0.00 « Sur la photo, il sont quatre. » score=0.172",
+  "N08a prise 1: {'length_scale': 1.018, 'seed': 74015} parole=1.87s wer=0.33 « Sur la photo, y-104. » score=2.144",
+  "N08a prise 2: {'length_scale': 1.1, 'seed': 75015, 'tempo': 1.1} parole=2.10s wer=0.00 « Sur la photo, il sont quatre. » score=0.557",
+  "N08a prise 2: {'length_scale': 0.94, 'seed': 75015} parole=1.74s wer=0.00 « Sur la photo, il sont quatre. » score=0.135",
+  "N08a prise 3: {'length_scale': 1.1, 'seed': 76015, 'tempo': 1.055} parole=1.93s wer=0.33 « sur la photo I-104. » score=2.113",
+  "N08a prise 3: {'length_scale': 1.032, 'seed': 76015} parole=1.89s wer=0.00 « Sur la photo, il sont quatre. » score=0.095",
+  "N08a prise 4: {'length_scale': 1.1, 'seed': 77015, 'tempo': 1.059} parole=1.92s wer=0.00 « Sur la photo, il sont quatre. » score=0.190",
+  "N08a prise 4: {'length_scale': 1.028, 'seed': 77015} parole=1.92s wer=0.17 « Sur la photo, y sont quatre. » score=1.077",
+  "N08a prise 5: {'length_scale': 1.1, 'seed': 78015, 'tempo': 1.03} parole=1.92s wer=0.00 « Sur la photo, ils sont quatre. » score=0.128",
+  "N08a prise 5: {'length_scale': 1.057, 'seed': 78015} parole=1.92s wer=0.33 « sur la photo I-104. » score=2.108",
+  "N08b prise 0: {'length_scale': 1.1, 'seed': 82573, 'tempo': 1.032} parole=1.56s wer=0.00 « Regardez derrière eux. » score=0.205",
+  "N08b prise 0: {'length_scale': 1.055, 'seed': 82573} parole=1.56s wer=0.00 « Regardez derrière eux. » score=0.258",
+  "N08b prise 1: {'length_scale': 1.1, 'seed': 83573} parole=1.51s wer=0.00 « Regardez derrière eux. » score=0.210",
+  "N08b prise 2: {'length_scale': 1.1, 'seed': 84573} parole=1.52s wer=0.00 « Regardez derrière eux. » score=0.281",
+  "N08b prise 3: {'length_scale': 1.1, 'seed': 85573} parole=1.48s wer=0.00 « Regardez derrière eux. » score=0.237",
+  "N08b prise 4: {'length_scale': 1.1, 'seed': 86573, 'tempo': 1.083} parole=1.55s wer=0.00 « Regardez derrière eux. » score=0.232",
+  "N08b prise 4: {'length_scale': 1.006, 'seed': 86573} parole=1.41s wer=0.00 « Regardez derrière eux. » score=0.278",
+  "N08b prise 5: {'length_scale': 1.1, 'seed': 87573} parole=1.54s wer=0.00 « Regardez derrière eux. » score=0.249",
+  "N09a prise 0: {'length_scale': 1.1, 'seed': 24854} parole=2.23s wer=0.00 « A 23 heures, tout était fini. » score=0.094",
+  "N09a prise 1: {'length_scale': 1.1, 'seed': 25854} parole=2.34s wer=0.00 « A 23 heures, tout était fini. » score=0.074",
+  "N09a prise 2: {'length_scale': 1.1, 'seed': 26854} parole=2.30s wer=0.00 « A 23h, tout était fini. » score=0.114",
+  "N09a prise 3: {'length_scale': 1.1, 'seed': 27854} parole=2.30s wer=0.00 « A 23 heures, tout était fini. » score=0.095",
+  "N09a prise 4: {'length_scale': 1.1, 'seed': 28854} parole=2.37s wer=0.00 « A 23h, tout était fini. » score=0.163",
+  "N09a prise 5: {'length_scale': 1.1, 'seed': 29854} parole=2.33s wer=0.00 « A 23h, tout était fini. » score=0.074",
+  "N09b prise 0: {'length_scale': 1.1, 'seed': 49484} parole=0.58s wer=1.00 « Il ne réitait. » score=6.197",
+  "N09b prise 1: {'length_scale': 1.1, 'seed': 50484} parole=0.61s wer=1.00 « Il aurait été. » score=6.107",
+  "N09b prise 2: {'length_scale': 1.1, 'seed': 51484} parole=0.61s wer=0.00 « Il riait. » score=0.163",
+  "N09b prise 3: {'length_scale': 1.1, 'seed': 52484} parole=0.59s wer=1.00 « Yorai. » score=6.274",
+  "N09b prise 4: {'length_scale': 1.1, 'seed': 53484} parole=0.64s wer=1.50 « Il leur y est. » score=9.203",
+  "N09b prise 5: {'length_scale': 1.1, 'seed': 54484} parole=0.58s wer=1.00 « Il aurait été. » score=6.287",
+  "E_DOGAN prise 0: {'length_scale': 1.0, 'seed': 64662, 'tempo': 1.219} parole=0.56s wer=1.00 « Ducan ! » score=9.066",
+  "E_DOGAN prise 0: {'length_scale': 0.89, 'seed': 64662, 'tempo': 1.1} parole=0.55s wer=1.00 « Ducan. » score=9.030",
+  "E_DOGAN prise 1: {'length_scale': 1.0, 'seed': 65662, 'tempo': 1.3} parole=0.55s wer=3.00 « J'ai bien » score=27.090",
+  "E_DOGAN prise 1: {'length_scale': 0.85, 'seed': 65662, 'tempo': 1.117} parole=0.56s wer=2.00 « De gun » score=15.035",
+  "E_DOGAN prise 2: {'length_scale': 1.0, 'seed': 66662, 'tempo': 1.273} parole=0.55s wer=7.00 « D'où est-ce que tu es? » score=45.082",
+  "E_DOGAN prise 2: {'length_scale': 0.861, 'seed': 66662, 'tempo': 1.118} parole=0.55s wer=4.00 « Tout à l'heure. » score=27.035",
+  "E_DOGAN prise 3: {'length_scale': 1.0, 'seed': 67662, 'tempo': 1.228} parole=0.56s wer=3.00 « T'es gagne. » score=21.068",
+  "E_DOGAN prise 3: {'length_scale': 0.889, 'seed': 67662, 'tempo': 1.123} parole=0.56s wer=2.00 « D'accord. » score=15.037",
+  "E_DOGAN prise 4: {'length_scale': 1.0, 'seed': 68662, 'tempo': 1.337} parole=0.56s wer=4.00 « Tout à l'heure. » score=27.101",
+  "E_DOGAN prise 4: {'length_scale': 0.85, 'seed': 68662, 'tempo': 1.071} parole=0.55s wer=4.00 « Tout à l'heure. » score=27.021",
+  "E_DOGAN prise 5: {'length_scale': 1.0, 'seed': 69662, 'tempo': 1.35} parole=0.55s wer=1.00 « Ducan. » score=9.105",
+  "E_DOGAN prise 5: {'length_scale': 0.85, 'seed': 69662, 'tempo': 1.163} parole=0.56s wer=1.00 « Ducan. » score=9.049",
+  "E_GABRIEL prise 0: {'length_scale': 1.0, 'seed': 84646, 'tempo': 1.45} parole=0.57s wer=2.00 « Da blin ! » score=12.135",
+  "E_GABRIEL prise 0: {'length_scale': 0.85, 'seed': 84646, 'tempo': 1.258} parole=0.56s wer=5.00 « D'a p'l'ai » score=30.077",
+  "E_GABRIEL prise 1: {'length_scale': 1.0, 'seed': 85646, 'tempo': 1.45} parole=0.56s wer=2.00 « D'accord » score=21.135",
+  "E_GABRIEL prise 1: {'length_scale': 0.85, 'seed': 85646, 'tempo': 1.257} parole=0.55s wer=2.00 « D'accord. » score=12.077",
+  "E_GABRIEL prise 2: {'length_scale': 1.0, 'seed': 86646, 'tempo': 1.45} parole=0.61s wer=2.00 « D'accord. » score=12.135",
+  "E_GABRIEL prise 2: {'length_scale': 0.85, 'seed': 86646, 'tempo': 1.364} parole=0.55s wer=2.00 « Depez-le. » score=12.109",
+  "E_GABRIEL prise 3: {'length_scale': 1.0, 'seed': 87646, 'tempo': 1.45} parole=0.57s wer=2.00 « D'accord. » score=12.135",
+  "E_GABRIEL prise 3: {'length_scale': 0.85, 'seed': 87646, 'tempo': 1.334} parole=0.55s wer=8.00 « D'abord, je vais te dire une chose. » score=48.100",
+  "E_GABRIEL prise 4: {'length_scale': 1.0, 'seed': 88646, 'tempo': 1.45} parole=0.57s wer=4.00 « D'a p*rde ! » score=24.135",
+  "E_GABRIEL prise 4: {'length_scale': 0.85, 'seed': 88646, 'tempo': 1.318} parole=0.55s wer=2.00 « D'accord. » score=15.095",
+  "E_GABRIEL prise 5: {'length_scale': 1.0, 'seed': 89646, 'tempo': 1.45} parole=0.60s wer=2.00 « D'Avayon ! » score=12.135",
+  "E_GABRIEL prise 5: {'length_scale': 0.85, 'seed': 89646, 'tempo': 1.406} parole=0.55s wer=9.00 « D'abord, je vais vous donner une petite paix. » score=63.122",
+  "E_HUGO prise 0: {'length_scale': 1.0, 'seed': 94316} parole=0.40s wer=2.00 « Et vous? » score=18.000",
+  "E_HUGO prise 1: {'length_scale': 1.0, 'seed': 95316} parole=0.41s wer=2.00 « Et toi ! » score=15.000",
+  "E_HUGO prise 2: {'length_scale': 1.0, 'seed': 96316} parole=0.42s wer=2.00 « Et vous? » score=18.000",
+  "E_HUGO prise 3: {'length_scale': 1.0, 'seed': 97316} parole=0.40s wer=2.00 « Et toi ? » score=21.000",
+  "E_HUGO prise 4: {'length_scale': 1.0, 'seed': 98316} parole=0.40s wer=2.00 « Et toi ? » score=15.000",
+  "E_HUGO prise 5: {'length_scale': 1.0, 'seed': 99316} parole=0.41s wer=2.00 « Et toi ? » score=15.000",
+  "E_ARSENE prise 0: {'length_scale': 1.0, 'seed': 16719} parole=0.75s wer=1.00 « Affronter. » score=6.000",
+  "E_ARSENE prise 1: {'length_scale': 1.0, 'seed': 17719} parole=0.71s wer=1.00 « Affronter. » score=6.000",
+  "E_ARSENE prise 2: {'length_scale': 1.0, 'seed': 18719} parole=0.69s wer=1.00 « Affirmé. » score=6.000",
+  "E_ARSENE prise 3: {'length_scale': 1.0, 'seed': 19719} parole=0.69s wer=2.00 « Au revoir. » score=12.000",
+  "E_ARSENE prise 4: {'length_scale': 1.0, 'seed': 20719} parole=0.73s wer=1.00 « Aucine. » score=6.000",
+  "E_ARSENE prise 5: {'length_scale': 1.0, 'seed': 21719} parole=0.75s wer=2.00 « Au revoir. » score=15.000",
+  "E_IDENT prise 0: {'length_scale': 1.0, 'seed': 20189, 'tempo': 1.114} parole=1.41s wer=3.00 « Il doit y avoir une question terminée. » score=18.034",
+  "E_IDENT prise 0: {'length_scale': 0.933, 'seed': 20189, 'tempo': 1.212} parole=1.41s wer=0.00 « Identification terminée. » score=0.064",
+  "E_IDENT prise 1: {'length_scale': 1.0, 'seed': 21189, 'tempo': 1.163} parole=1.41s wer=0.00 « Identification terminée. » score=0.049",
+  "E_IDENT prise 1: {'length_scale': 0.893, 'seed': 21189, 'tempo': 1.036} parole=1.41s wer=0.00 « Identification terminée. » score=0.011",
+  "E_IDENT prise 2: {'length_scale': 1.0, 'seed': 22189, 'tempo': 1.173} parole=1.41s wer=0.00 « Identification terminée. » score=0.052",
+  "E_IDENT prise 2: {'length_scale': 0.89, 'seed': 22189, 'tempo': 1.206} parole=1.40s wer=1.50 « Et la discussion terminée. » score=9.062",
+  "E_IDENT prise 3: {'length_scale': 1.0, 'seed': 23189, 'tempo': 1.16} parole=1.41s wer=0.00 « Identification terminée. » score=1.548",
+  "E_IDENT prise 3: {'length_scale': 0.897, 'seed': 23189, 'tempo': 1.205} parole=1.41s wer=0.00 « Identification terminée. » score=0.062",
+  "E_IDENT prise 4: {'length_scale': 1.0, 'seed': 24189, 'tempo': 1.17} parole=1.41s wer=0.00 « Identification terminée. » score=0.051",
+  "E_IDENT prise 4: {'length_scale': 0.884, 'seed': 24189, 'tempo': 1.056} parole=1.40s wer=0.00 « Identification terminée. » score=0.017",
+  "E_IDENT prise 5: {'length_scale': 1.0, 'seed': 25189, 'tempo': 1.157} parole=1.41s wer=0.00 « Identification terminée. » score=0.047",
+  "E_IDENT prise 5: {'length_scale': 0.903, 'seed': 25189, 'tempo': 1.227} parole=1.41s wer=0.00 « Identification terminée. » score=0.068",
+  "E_CQL prise 0: {'length_scale': 1.0, 'seed': 74375} parole=0.76s wer=0.00 « C'est qui lui ? » score=0.000",
+  "E_CQL prise 1: {'length_scale': 1.0, 'seed': 75375} parole=0.78s wer=0.00 « C'est qui lui ? » score=0.000",
+  "E_CQL prise 2: {'length_scale': 1.0, 'seed': 76375} parole=0.71s wer=0.00 « C'est qui lui ? » score=0.000",
+  "E_CQL prise 3: {'length_scale': 1.0, 'seed': 77375} parole=0.75s wer=0.00 « C'est qui lui ? » score=1.500",
+  "E_CQL prise 4: {'length_scale': 1.0, 'seed': 78375} parole=0.71s wer=0.00 « C'est qui lui ? » score=0.000",
+  "E_CQL prise 5: {'length_scale': 1.0, 'seed': 79375} parole=0.74s wer=0.00 « C'est qui lui ? » score=0.000",
+  "N07a prise 0: {'length_scale': 1.1, 'seed': 64376, 'tempo': 1.1} parole=3.10s wer=0.27 « à 22h12, Dogen Senni au piano. » score=5.778",
+  "N07a prise 0: {'length_scale': 0.94, 'seed': 64376, 'tempo': 1.1} parole=2.69s wer=0.27 « A 22h12, Dogen se nige au piano. » score=1.837",
+  "N07a prise 1: {'length_scale': 1.1, 'seed': 65376, 'tempo': 1.1} parole=3.07s wer=0.00 « A 22h12, Dogen s'est mis au piano. » score=3.822",
+  "N07a prise 1: {'length_scale': 0.94, 'seed': 65376, 'tempo': 1.1} parole=2.62s wer=0.36 « à 22h12, Doken Semi au piano. » score=2.402",
+  "N07a prise 2: {'length_scale': 1.1, 'seed': 66376, 'tempo': 1.1} parole=3.21s wer=0.27 « à 22h12, Dogen Senni au piano. » score=6.868",
+  "N07a prise 2: {'length_scale': 0.94, 'seed': 66376, 'tempo': 1.1} parole=2.78s wer=0.27 « à 22h12, Dogen Senni au piano. » score=2.693",
+  "N07a prise 3: {'length_scale': 1.1, 'seed': 67376, 'tempo': 1.1} parole=3.24s wer=0.27 « à 22h12, Dogen Semi au piano. » score=7.237",
+  "N07a prise 3: {'length_scale': 0.94, 'seed': 67376, 'tempo': 1.1} parole=2.81s wer=0.27 « à 22h12, Dogen Semi au piano. » score=3.003",
+  "N07a prise 4: {'length_scale': 1.1, 'seed': 68376, 'tempo': 1.1} parole=3.10s wer=0.27 « à 22h12, Dogen Semi au piano. » score=5.826",
+  "N07a prise 4: {'length_scale': 0.94, 'seed': 68376, 'tempo': 1.1} parole=2.70s wer=0.27 « à 22h12, Dogen Senni au piano. » score=1.854",
+  "N07a prise 5: {'length_scale': 1.1, 'seed': 69376, 'tempo': 1.1} parole=3.20s wer=0.27 « à 22h12, Dogen Semi au piano. » score=6.771",
+  "N07a prise 5: {'length_scale': 0.94, 'seed': 69376, 'tempo': 1.1} parole=2.77s wer=0.36 « à 22h12, Duggan Semi au piano. » score=3.011",
+  "N07b prise 0: {'length_scale': 1.1, 'seed': 18082, 'tempo': 1.1} parole=1.89s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=2.957",
+  "N07b prise 0: {'length_scale': 0.94, 'seed': 18082, 'tempo': 1.1} parole=1.65s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=0.528",
+  "N07b prise 1: {'length_scale': 1.1, 'seed': 19082, 'tempo': 1.1} parole=1.85s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=2.493",
+  "N07b prise 1: {'length_scale': 0.94, 'seed': 19082, 'tempo': 1.1} parole=1.63s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=0.297",
+  "N07b prise 2: {'length_scale': 1.1, 'seed': 20082, 'tempo': 1.1} parole=1.83s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=2.370",
+  "N07b prise 2: {'length_scale': 0.94, 'seed': 20082, 'tempo': 1.1} parole=1.60s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=0.145",
+  "N07b prise 3: {'length_scale': 1.1, 'seed': 21082, 'tempo': 1.1} parole=1.88s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=2.769",
+  "N07b prise 3: {'length_scale': 0.94, 'seed': 21082, 'tempo': 1.1} parole=1.66s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=0.577",
+  "N07b prise 4: {'length_scale': 1.1, 'seed': 22082, 'tempo': 1.1} parole=1.88s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=2.782",
+  "N07b prise 4: {'length_scale': 0.94, 'seed': 22082, 'tempo': 1.1} parole=1.63s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=0.324",
+  "N07b prise 5: {'length_scale': 1.1, 'seed': 23082, 'tempo': 1.1} parole=1.88s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=2.780",
+  "N07b prise 5: {'length_scale': 0.94, 'seed': 23082, 'tempo': 1.1} parole=1.65s wer=0.00 « Il ne se souvient pas d'avoir joué. » score=0.553"
+ ]
+}
