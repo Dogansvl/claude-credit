@@ -580,8 +580,13 @@ def _asr_speech(asr: ASR, y: np.ndarray, info: dict) -> str:
 
 
 def _q24(y: np.ndarray) -> np.ndarray:
-    """Quantification PCM 24 bits (le fichier tel qu'il sera écrit)."""
-    return (np.round(np.clip(y, -1.0, 1.0) * 8388607.0) / 8388607.0).astype(np.float32)
+    """Le signal EXACTEMENT tel qu'il sera relu depuis le WAV PCM 24 bits écrit par vf.write_wav."""
+    import io
+    buf = io.BytesIO()
+    sf.write(buf, np.clip(vf.as_stereo(y), -1.0, 1.0).astype(np.float32), vf.SR, subtype="PCM_24", format="WAV")
+    buf.seek(0)
+    z, _ = sf.read(buf, dtype="float32")
+    return z
 
 
 _PARAKEET = {"ok": None}

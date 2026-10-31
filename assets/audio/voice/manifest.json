@@ -78,8 +78,8 @@
       "text": "Sur la photo, ils sont quatre.",
       "tts_text": "Sur la photo, ils sont quatre.",
       "onset_s": 0.06,
-      "speech_dur": 1.922,
-      "dur": 2.533,
+      "speech_dur": 1.93,
+      "dur": 2.541,
       "kind": "narrator"
     },
     "N08b": {
@@ -96,17 +96,17 @@
       "text": "À 23h, tout était fini.",
       "tts_text": "À vingt-trois heures, tout était fini.",
       "onset_s": 0.06,
-      "speech_dur": 2.339,
-      "dur": 2.949,
+      "speech_dur": 2.276,
+      "dur": 2.886,
       "kind": "narrator"
     },
     "N09b": {
       "file": "N09b.wav",
       "text": "Ils riaient.",
       "tts_text": "Ils riaient.",
-      "onset_s": 0.062,
-      "speech_dur": 0.576,
-      "dur": 1.187,
+      "onset_s": 0.061,
+      "speech_dur": 0.562,
+      "dur": 1.173,
       "kind": "narrator"
     },
     "E_DOGAN": {

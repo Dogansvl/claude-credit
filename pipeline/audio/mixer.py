@@ -50,6 +50,7 @@ SFX_TAIL_DUCK_DB = 5.0         # traînes des SFX (> 0,5 s après leur attaque) 
 DIALOG_KEY_THR_DB = -34.0      # seuil de la clé « répliques » (RMS 20 ms, après nivellement et gain)
 SCREAMER_SPAN_S = 1.35         # durée de la section screamer si la shot du screamer est introuvable
 SCREAMER_TAIL_S = 0.45         # traîne (noir qui suit) incluse dans la section densifiée
+SCREAMER_DRIVE_DB = 4.0        # attaque de la saturation douce du screamer (densité = loudness à crête égale)
 SCREAMER_MARGIN_S = 2.5        # LU : court terme du screamer au-dessus du 2e pic du film (exigé ≥ 1, idéal ≥ 2)
 SCREAMER_MARGIN_M = 3.3        # LU : momentané du screamer au-dessus du 2e pic (exigé ≥ 3)
 MASTER_LUFS = -14.0
@@ -492,9 +493,13 @@ def _densify(x: np.ndarray, ts: float, t_end: float, t_tail: float, master_gain_
     if b - a < 64:
         return x
     g = float(dsp.lin(master_gain_db))
-    c = float(dsp.lin(MASTER_TP - 0.3))
+    c = float(dsp.lin(MASTER_TP - 1.0))
     seg = x[a:b]
-    sat = _soft_clip_os(seg * g, c) / g
+    # saturation (plafond 1 dB sous celui du master) puis passe-bas 14 kHz : sans les harmoniques extrêmes de
+    # l'écrêtage, l'encodeur AAC ne « déborde » plus (mesuré après AAC 320k : −0,7 dBTP sans ces précautions,
+    # −1,3 dBTP avec, pour −1,5 dBTP en WAV)
+    drive = float(dsp.lin(SCREAMER_DRIVE_DB))
+    sat = dsp.lowpass(_soft_clip_os(seg * (g * drive), c), 14000, order=4, zero_phase=True) / g
     tau = (np.arange(b - a) / SR) + (a / SR)
     w = np.clip((t_tail - tau) / max(t_tail - t_end, 1e-3), 0, 1)        # plein pendant le cri, fondu sur la traîne
     w = np.minimum(w, np.clip((tau - (ts - 0.005)) / 0.003, 0, 1))[:, None].astype(np.float32)

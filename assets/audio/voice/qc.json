@@ -169,11 +169,11 @@
     ],
     "gaps": [],
     "start": 91.15,
-    "window": 2.9,
+    "window": 3.0,
     "shot": "S7a"
    }
   ],
-  "film_end": 94.05
+  "film_end": 94.15
  },
  "max_speech": {
   "N01": 4.9,
@@ -190,7 +190,7 @@
   "E_HUGO": 0.75,
   "E_ARSENE": 1.05,
   "N08a": 1.932,
-  "N08b": 1.578,
+  "N08b": 1.57,
   "N09a": 2.726,
   "N09b": 0.574,
   "E_CQL": 0.92
@@ -361,23 +361,23 @@
   },
   "N08a": {
    "lufs": -20.0,
-   "peak_db": -6.31,
+   "peak_db": -7.39,
    "params": {
-    "length_scale": 1.057,
-    "seed": 78015
+    "length_scale": 1.038,
+    "seed": 80015
    },
    "prosody": {
-    "f0_med": 121.2,
-    "f0_st_std": 2.72,
-    "f0_st_range": 7.24,
-    "hnr_db": 3.46,
-    "jitter_pct": 3.22
+    "f0_med": 122.7,
+    "f0_st_std": 2.62,
+    "f0_st_range": 8.23,
+    "hnr_db": 3.58,
+    "jitter_pct": 3.5
    },
    "max_speech": 1.932,
    "natural_speech": 1.974,
-   "asr_raw": "Sur la photo, ils sont quatre.",
-   "asr_final": "sur la photo I-104.",
-   "wer_final": 0.333
+   "asr_raw": "Sur la photo, il sont quatre.",
+   "asr_final": "Sur la photo, il sont quatre.",
+   "wer_final": 0.0
   },
   "N08b": {
    "lufs": -20.0,
@@ -401,44 +401,44 @@
   },
   "N09a": {
    "lufs": -20.0,
-   "peak_db": -3.14,
+   "peak_db": -4.72,
    "params": {
     "length_scale": 1.1,
-    "seed": 25854
+    "seed": 31854
    },
    "prosody": {
-    "f0_med": 117.2,
-    "f0_st_std": 2.87,
-    "f0_st_range": 8.67,
-    "hnr_db": 4.63,
-    "jitter_pct": 3.13
+    "f0_med": 113.7,
+    "f0_st_std": 2.83,
+    "f0_st_range": 8.76,
+    "hnr_db": 5.06,
+    "jitter_pct": 2.89
    },
    "max_speech": 2.726,
    "natural_speech": 2.232,
-   "asr_raw": "À 23 heures, tout était fini.",
-   "asr_final": "A 23 heures, tout était fini.",
+   "asr_raw": "À 23h, tout était fini.",
+   "asr_final": "À 23 heures, tout était fini.",
    "wer_final": 0.0
   },
   "N09b": {
    "lufs": -20.0,
-   "peak_db": -7.38,
+   "peak_db": -6.18,
    "params": {
     "length_scale": 1.1,
-    "seed": 49484,
-    "tempo": 1.011
+    "seed": 63484,
+    "tempo": 1.031
    },
    "prosody": {
-    "f0_med": 113.0,
-    "f0_st_std": 1.85,
-    "f0_st_range": 5.65,
-    "hnr_db": 5.06,
-    "jitter_pct": 2.35
+    "f0_med": 113.6,
+    "f0_st_std": 2.07,
+    "f0_st_range": 6.7,
+    "hnr_db": 5.14,
+    "jitter_pct": 3.1
    },
    "max_speech": 0.574,
    "natural_speech": 0.574,
-   "asr_raw": "Il leur y est.",
-   "asr_final": "Il aurait.",
-   "wer_final": 0.5
+   "asr_raw": "Yurie et",
+   "asr_final": "Il riait.",
+   "wer_final": 0.0
   },
   "E_DOGAN": {
    "lufs": -20.31,
@@ -1073,6 +1073,79 @@
   "N08b prise 13: {'length_scale': 1.1, 'seed': 95573} parole=1.50s wer=0.00 « Regardez derrière eux. » | « Regardez derrière eux. » | « Regardez derrière eux. » score=0.273",
   "N08b prise 14: {'length_scale': 1.1, 'seed': 96573} parole=1.49s wer=0.00 « Regardez derrière eux. » | « Regardez derrière eux. » | « Regardez derrière eux. » score=0.247",
   "N08b prise 15: {'length_scale': 1.1, 'seed': 97573, 'tempo': 1.039} parole=1.57s wer=0.00 « Regardez derrière eux. » | « Regardez derrière eux. » | « Regardez derrière eux. » score=0.254",
-  "N08b prise 15: {'length_scale': 1.048, 'seed': 97573} parole=1.46s wer=0.00 « Regardez derrière eux. » | « Regardez derrière eux. » | « Regardez derrière eux. » score=0.239"
+  "N08b prise 15: {'length_scale': 1.048, 'seed': 97573} parole=1.46s wer=0.00 « Regardez derrière eux. » | « Regardez derrière eux. » | « Regardez derrière eux. » score=0.239",
+  "N09a prise 0: {'length_scale': 1.1, 'seed': 24854} parole=2.23s wer=0.00 « A 23 heures, tout était fini. » | « A 23 heures, tout était fini. » | « À23 heures, tout était fini. » score=0.086",
+  "N09a prise 1: {'length_scale': 1.1, 'seed': 25854} parole=2.34s wer=0.00 « A 23 heures, tout était fini. » | « A 23 heures, tout était fini. » | « À23 heures, tout était fini. » score=0.064",
+  "N09a prise 2: {'length_scale': 1.1, 'seed': 26854} parole=2.30s wer=0.00 « A 23h, tout était fini. » | « A 23 heures, tout était fini. » | « À23 heures, tout était fini. » score=0.097",
+  "N09a prise 3: {'length_scale': 1.1, 'seed': 27854} parole=2.30s wer=0.00 « A 23 heures, tout était fini. » | « A 23 heures, tout était fini. » | « À23 heures, tout était fini. » score=0.085",
+  "N09a prise 4: {'length_scale': 1.1, 'seed': 28854} parole=2.37s wer=0.00 « A 23h, tout était fini. » | « À 23 heures, tout était fini. » | « À23 heures, tout était fini. » score=0.148",
+  "N09a prise 5: {'length_scale': 1.1, 'seed': 29854} parole=2.33s wer=0.00 « A 23h, tout était fini. » | « A 23h, tout était fini. » | « À23 heures, tout était fini. » score=0.067",
+  "N09a prise 6: {'length_scale': 1.1, 'seed': 30854} parole=2.35s wer=0.00 « A 23 heures, tout était fini. » | « A 23h, tout était fini. » | « À23 heures, tout était fini. » score=0.069",
+  "N09a prise 7: {'length_scale': 1.1, 'seed': 31854} parole=2.28s wer=0.00 « À 23 heures, tout était fini. » | « À 23 heures, tout était fini. » | « À23 heures, tout était fini. » score=0.054",
+  "N09a prise 8: {'length_scale': 1.1, 'seed': 32854} parole=2.33s wer=0.00 « A 23 heures, tout était fini. » | « A 23 heures, tout était fini. » | « À23 heures, tout était fini. » score=0.077",
+  "N09a prise 9: {'length_scale': 1.1, 'seed': 33854} parole=2.25s wer=0.00 « A 23h, tout était fini. » | « A 23h, tout était fini. » | « À23 heures, tout était fini. » score=0.083",
+  "N09a prise 10: {'length_scale': 1.1, 'seed': 34854} parole=2.29s wer=0.00 « A 23 heures, tout était fini. » | « A 23 heures, tout était fini. » | « À23 heures, tout était fini. » score=0.194",
+  "N09a prise 11: {'length_scale': 1.1, 'seed': 35854} parole=2.42s wer=0.00 « A 23h, tout était fini. » | « A 23h, tout était fini. » | « À23 heures, tout était fini. » score=0.064",
+  "N09a prise 12: {'length_scale': 1.1, 'seed': 36854} parole=2.32s wer=0.00 « A 23 heures, tout était fini. » | « A 23 heures, tout était fini. » | « À23 heures, tout était fini. » score=0.115",
+  "N09a prise 13: {'length_scale': 1.1, 'seed': 37854} parole=2.29s wer=0.00 « A 23 heures, tout était fini. » | « A 23 heures, tout était fini. » | « À23 heures, tout était fini. » score=0.125",
+  "N09a prise 14: {'length_scale': 1.1, 'seed': 38854} parole=2.29s wer=0.00 « À 23 heures, tout était fini. » | « À 23 heures, tout était fini. » | « À23 heures, tout était fini. » score=0.069",
+  "N09a prise 15: {'length_scale': 1.1, 'seed': 39854} parole=2.28s wer=0.00 « A 23 heures, tout était fini. » | « A 23h, tout était fini. » | « À23 heures, tout était fini. » score=0.065",
+  "N09b prise 0: {'length_scale': 1.1, 'seed': 49484, 'tempo': 1.011} parole=0.58s wer=0.83 « Il aurait... » | « Il aurait... » | « Il a rayé. » score=5.195",
+  "N09b prise 1: {'length_scale': 1.1, 'seed': 50484, 'tempo': 1.066} parole=0.57s wer=1.00 « Il aurait yé. » | « Il aurait yé. » | « Il a rayé. » score=6.133",
+  "N09b prise 1: {'length_scale': 1.044, 'seed': 50484, 'tempo': 1.054} parole=0.57s wer=0.92 « Il a rayé. » | « Il aurait. » | « Il a rayé. » score=5.612",
+  "N09b prise 2: {'length_scale': 1.1, 'seed': 51484, 'tempo': 1.062} parole=0.57s wer=1.00 « Il aurait été. » | « Il aurait été. » | « Le rié. » score=6.284",
+  "N09b prise 2: {'length_scale': 1.025, 'seed': 51484, 'tempo': 1.014} parole=0.58s wer=1.00 « Il aurait été. » | « Il aurait été. » | « Il a payé. » score=6.241",
+  "N09b prise 3: {'length_scale': 1.1, 'seed': 52484, 'tempo': 1.043} parole=0.57s wer=0.92 « Yorai. » | « Yorei et » | « Il ray. » score=5.780",
+  "N09b prise 4: {'length_scale': 1.1, 'seed': 53484, 'tempo': 1.1} parole=0.58s wer=0.83 « Il aurait été. » | « Il aurait été. » | « Il riait. » score=5.211",
+  "N09b prise 4: {'length_scale': 0.999, 'seed': 53484, 'tempo': 1.033} parole=0.57s wer=1.00 « Il aurait-il. » | « Il aurait été. » | « Il a rien. » score=6.257",
+  "N09b prise 5: {'length_scale': 1.1, 'seed': 54484} parole=0.58s wer=1.00 « Il aurait été. » | « Il aurait été. » | « Il a brillé. » score=6.282",
+  "N09b prise 6: {'length_scale': 1.1, 'seed': 55484, 'tempo': 1.06} parole=0.57s wer=0.83 « Il aurait. » | « Il aurait. » | « Il a prié. » score=5.253",
+  "N09b prise 6: {'length_scale': 1.067, 'seed': 55484} parole=0.57s wer=0.92 « Il aurait été. » | « Il aurait... » | « Il a crié. » score=5.791",
+  "N09b prise 7: {'length_scale': 1.1, 'seed': 56484} parole=0.56s wer=1.00 « Il aurait été. » | « Il aurait été. » | « Le rayé. » score=6.235",
+  "N09b prise 8: {'length_scale': 1.1, 'seed': 57484} parole=0.57s wer=0.92 « Il aurait été. » | « Il aurait été. » | « Il ray. » score=5.674",
+  "N09b prise 9: {'length_scale': 1.1, 'seed': 58484, 'tempo': 1.028} parole=0.58s wer=0.92 « Il aurait été. » | « Il aurait été. » | « Il rayait. » score=5.729",
+  "N09b prise 9: {'length_scale': 1.059, 'seed': 58484, 'tempo': 1.029} parole=0.56s wer=0.50 « Il aurait. » | « Il aurait. » | « Il ray. » score=3.288",
+  "N09b prise 10: {'length_scale': 1.1, 'seed': 59484, 'tempo': 1.037} parole=0.57s wer=0.83 « Il est réellé. » | « Il est réellé. » | « Il riait. » score=5.150",
+  "N09b prise 10: {'length_scale': 1.05, 'seed': 59484, 'tempo': 1.036} parole=0.57s wer=0.50 « Il aurait... » | « Il aurait. » | « Il riet. » score=3.148",
+  "N09b prise 11: {'length_scale': 1.1, 'seed': 60484, 'tempo': 1.1} parole=0.60s wer=1.42 « et le rayer. » | « et le rayer. » | « Nog y » score=8.751",
+  "N09b prise 11: {'length_scale': 0.962, 'seed': 60484, 'tempo': 1.035} parole=0.56s wer=0.92 « Il aurait été. » | « Il aurait été. » | « Il ray. » score=5.853",
+  "N09b prise 12: {'length_scale': 1.1, 'seed': 61484, 'tempo': 1.071} parole=0.57s wer=1.00 « Il aurait yé. » | « Il aurait yé. » | « Il a rayé. » score=6.303",
+  "N09b prise 12: {'length_scale': 1.058, 'seed': 61484} parole=0.57s wer=0.92 « Il aurait yé. » | « Il aurait yé. » | « Il rayait. » score=5.798",
+  "N09b prise 13: {'length_scale': 1.1, 'seed': 62484, 'tempo': 1.1} parole=0.57s wer=0.42 « Il le riait. » | « Il le riait. » | « Il riait. » score=2.799",
+  "N09b prise 13: {'length_scale': 1.009, 'seed': 62484} parole=0.56s wer=0.67 « Il riait. » | « Il riait. » | « Il a rié. » score=4.241",
+  "N09b prise 14: {'length_scale': 1.1, 'seed': 63484, 'tempo': 1.031} parole=0.56s wer=0.42 « Il aurait... » | « Il riait. » | « Il ray. » score=2.667",
+  "N09b prise 15: {'length_scale': 1.1, 'seed': 64484, 'tempo': 1.1} parole=0.60s wer=0.92 « Il le rayait. » | « Il le rayait. » | « Il rayait. » score=5.800",
+  "N09b prise 15: {'length_scale': 0.95, 'seed': 64484} parole=0.57s wer=1.33 « Il a rié. » | « Il leur y est. » | « Il a rien. » score=8.182",
+  "N08a prise 0: {'length_scale': 1.1, 'seed': 73015, 'tempo': 1.032} parole=1.92s wer=0.11 « Sur la photo, y sont quatre. » | « Sur la photo, ils sont quatre. » | « Sur la photo, ils sont quatre. » score=0.762",
+  "N08a prise 0: {'length_scale': 1.055, 'seed': 73015, 'tempo': 1.051} parole=1.93s wer=0.00 « Sur la photo, ils sont quatre. » | « Sur la photo, ils sont quatre. » | « Sur la photo, ils sont quatre. » score=0.188",
+  "N08a prise 1: {'length_scale': 1.1, 'seed': 74015, 'tempo': 1.07} parole=1.92s wer=0.00 « Sur la photo, ils sont quatre. » | « Sur la photo, ils sont quatre. » | « Sur la photo, ils sont quatre. » score=0.167",
+  "N08a prise 1: {'length_scale': 1.018, 'seed': 74015} parole=1.88s wer=0.14 « Sur la photo, y sont quatre. » | « Sur la photo, y sont quatre. » | « Sur la photo, ils sont quatre. » score=0.979",
+  "N08a prise 2: {'length_scale': 1.1, 'seed': 75015, 'tempo': 1.1} parole=2.10s wer=0.00 « Sur la photo, il sont quatre. » | « Sur la photo, il sont quatre. » | « Sur la photo, ils sont quatre. » score=1.188",
+  "N08a prise 2: {'length_scale': 0.94, 'seed': 75015} parole=1.74s wer=0.00 « Sur la photo, ils sont quatre. » | « Sur la photo, il sont quatre. » | « Sur la photo, ils sont quatre. » score=0.121",
+  "N08a prise 3: {'length_scale': 1.1, 'seed': 76015, 'tempo': 1.055} parole=1.94s wer=0.11 « Sur la photo, ils sont quatre. » | « Sur la photo, y sont quatre. » | « Sur la photo, ils sont quatre. » score=0.760",
+  "N08a prise 3: {'length_scale': 1.032, 'seed': 76015} parole=1.89s wer=0.28 « sur la photo I-104. » | « sur la photo I-104. » | « Sur la photo, ils sont quatre. » score=1.753",
+  "N08a prise 4: {'length_scale': 1.1, 'seed': 77015, 'tempo': 1.059} parole=1.92s wer=0.00 « Sur la photo, il sont quatre. » | « Sur la photo, il sont quatre. » | « Sur la photo, ils sont quatre. » score=0.164",
+  "N08a prise 4: {'length_scale': 1.028, 'seed': 77015} parole=1.92s wer=0.14 « Sur la photo, y sont quatre. » | « Sur la photo, y sont quatre. » | « Sur la photo, ils sont quatre. » score=0.907",
+  "N08a prise 5: {'length_scale': 1.1, 'seed': 78015, 'tempo': 1.03} parole=1.92s wer=0.00 « Sur la photo, il sont quatre. » | « Sur la photo, il sont quatre. » | « Sur la photo, ils sont quatre. » score=0.127",
+  "N08a prise 5: {'length_scale': 1.057, 'seed': 78015} parole=1.92s wer=0.22 « Sur la photo, ils sont quatre. » | « sur la photo I-104. » | « Sur la photo, ils sont quatre. » score=1.411",
+  "N08a prise 6: {'length_scale': 1.1, 'seed': 79015, 'tempo': 1.074} parole=1.94s wer=0.14 « Sur la photo, y sont quatre. » | « Sur la photo, y sont quatre. » | « Sur la photo, ils sont quatre. » score=0.946",
+  "N08a prise 6: {'length_scale': 1.013, 'seed': 79015} parole=1.93s wer=0.11 « Sur la photo, ils sont quatre. » | « Sur la photo, y sont quatre. » | « Sur la photo, ils sont quatre. » score=0.814",
+  "N08a prise 7: {'length_scale': 1.1, 'seed': 80015, 'tempo': 1.049} parole=1.93s wer=0.28 « sur la photo I-Son4. » | « sur la photo I-104. » | « Sur la photo, ils sont quatre. » score=1.749",
+  "N08a prise 7: {'length_scale': 1.038, 'seed': 80015} parole=1.93s wer=0.00 « Sur la photo, il sont quatre. » | « Sur la photo, il sont quatre. » | « Sur la photo, ils sont quatre. » score=0.091",
+  "N08a prise 8: {'length_scale': 1.1, 'seed': 81015, 'tempo': 1.012} parole=1.92s wer=0.00 « Sur la photo, il sont quatre. » | « Sur la photo, il sont quatre. » | « Sur la photo, ils sont quatre. » score=0.140",
+  "N08a prise 9: {'length_scale': 1.1, 'seed': 82015, 'tempo': 1.1} parole=2.19s wer=0.00 « Sur la photo, ils sont quatre. » | « Sur la photo, ils sont quatre. » | « Sur la photo, ils sont quatre. » score=2.222",
+  "N08a prise 9: {'length_scale': 0.94, 'seed': 82015} parole=1.93s wer=0.17 « Sur la photo, y sont quatre. » | « Sur la photo, y sont quatre. » | « Sur la photo, y sont quatre. » score=1.072",
+  "N08a prise 10: {'length_scale': 1.1, 'seed': 83015, 'tempo': 1.03} parole=1.93s wer=0.14 « Sur la photo, y sont quatre. » | « Sur la photo, y sont quatre. » | « Sur la photo, ils sont quatre. » score=0.992",
+  "N08a prise 10: {'length_scale': 1.057, 'seed': 83015, 'tempo': 1.1} parole=1.99s wer=0.25 « Sur la photo I-104. » | « Sur la photo, y sont quatre. » | « Sur la photo, ils sont quatre. » score=1.643",
+  "N08a prise 11: {'length_scale': 1.1, 'seed': 84015, 'tempo': 1.1} parole=2.11s wer=0.00 « Sur la photo, il sont quatre. » | « Sur la photo, il sont quatre. » | « Sur la photo, ils sont quatre. » score=1.353",
+  "N08a prise 11: {'length_scale': 0.94, 'seed': 84015, 'tempo': 1.1} parole=1.92s wer=0.00 « Sur la photo, il sont quatre. » | « Sur la photo, il sont quatre. » | « Sur la photo, ils sont quatre. » score=0.174",
+  "N08a prise 12: {'length_scale': 1.1, 'seed': 85015, 'tempo': 1.078} parole=1.93s wer=0.00 « Sur la photo, ils sont quatre. » | « Sur la photo, ils sont quatre. » | « Sur la photo, ils sont quatre. » score=0.104",
+  "N08a prise 12: {'length_scale': 1.01, 'seed': 85015, 'tempo': 1.012} parole=1.92s wer=0.00 « Sur la photo, il sont quatre. » | « Sur la photo, il sont quatre. » | « Sur la photo, ils sont quatre. » score=0.161",
+  "N08a prise 13: {'length_scale': 1.1, 'seed': 86015, 'tempo': 1.061} parole=1.94s wer=0.00 « Sur la photo, il sont quatre. » | « Sur la photo, il sont quatre. » | « Sur la photo, ils sont quatre. » score=0.156",
+  "N08a prise 13: {'length_scale': 1.026, 'seed': 86015} parole=1.93s wer=0.28 « Sur la photo I-104. » | « Sur la photo I-104. » | « Sur la photo, ils sont quatre. » score=1.762",
+  "N08a prise 14: {'length_scale': 1.1, 'seed': 87015, 'tempo': 1.074} parole=1.92s wer=0.00 « Sur la photo, il sont quatre. » | « Sur la photo, il sont quatre. » | « Sur la photo, ils sont quatre. » score=0.158",
+  "N08a prise 14: {'length_scale': 1.014, 'seed': 87015} parole=1.93s wer=0.00 « Sur la photo, ils sont quatre. » | « Sur la photo, ils sont quatre. » | « Sur la photo, ils sont quatre. » score=0.133",
+  "N08a prise 15: {'length_scale': 1.1, 'seed': 88015, 'tempo': 1.028} parole=1.93s wer=0.00 « Sur la photo, ils sont quatre. » | « Sur la photo, ils sont quatre. » | « Sur la photo, ils sont quatre. » score=0.093",
+  "N08a prise 15: {'length_scale': 1.059, 'seed': 88015} parole=1.91s wer=0.00 « Sur la photo, ils sont quatre. » | « Sur la photo, ils sont quatre. » | « Sur la photo, ils sont quatre. » score=0.121"
  ]
 }

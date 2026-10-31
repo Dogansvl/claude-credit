@@ -1,6 +1,6 @@
 # Voix off — rapport de génération
 
-Généré par `python tools/make_voices.py` le 2026-10-31 18:51 — backend : **piper:tom**.
+Généré par `python tools/make_voices.py` le 2026-10-31 19:00 — backend : **piper:tom**.
 
 ## Voix choisie et pourquoi
 
@@ -81,10 +81,10 @@ proche de 0,1 s, onset ≤ 0,15 s pour que le silence de S6d reste franc) → qu
 | N06 | narrator | Les organisateurs jurent que cette pièce ne fait pas partie du jeu. | Les organisateurs jurent que cette pièce ne fait pas partie du jeu. | 0.058 | 3.60 | 4.21 | 4.15 | -20.0 | -3.16 | {'length_scale': 1.1, 'seed': 88330} | Les organisateurs jurent que cette pièce ne fait pas partie du jeu. | 0.0 |
 | N07a | narrator | À 22h12, Dogan s'est mis au piano. | À vingt-deux heures douze, Dogane s'est mis au piano. | 0.060 | 2.72 ⚠ | 3.33 | 2.64 | -20.0 | -3.17 | {'length_scale': 0.94, 'seed': 75376, 'tempo': 1.1} | A 22h12, Dogen s'est mis au piano. | 0.0 |
 | N07b | narrator | Il ne se souvient pas d'avoir joué. | Il ne se souvient pas d'avoir joué. | 0.060 | 1.55 ⚠ | 2.16 | 1.53 | -20.0 | -4.64 | {'length_scale': 0.94, 'seed': 25082, 'tempo': 1.1} | Il ne se souvient pas d'avoir joué. | 0.0 |
-| N08a | narrator | Sur la photo, ils sont quatre. | Sur la photo, ils sont quatre. | 0.060 | 1.92 | 2.53 | 1.93 | -20.0 | -6.31 | {'length_scale': 1.057, 'seed': 78015} | sur la photo I-104. | 0.333 |
-| N08b | narrator | Regardez derrière eux. | Regardez derrière eux. | 0.058 | 1.51 | 2.12 | 1.58 | -20.0 | -6.85 | {'length_scale': 1.1, 'seed': 83573} | Regardez derrière eux. | 0.0 |
-| N09a | narrator | À 23h, tout était fini. | À vingt-trois heures, tout était fini. | 0.060 | 2.34 | 2.95 | 2.73 | -20.0 | -3.14 | {'length_scale': 1.1, 'seed': 25854} | A 23 heures, tout était fini. | 0.0 |
-| N09b | narrator | Ils riaient. | Ils riaient. | 0.062 | 0.58 | 1.19 | 0.57 | -20.0 | -7.38 | {'length_scale': 1.1, 'seed': 49484, 'tempo': 1.011} | Il aurait. | 0.5 |
+| N08a | narrator | Sur la photo, ils sont quatre. | Sur la photo, ils sont quatre. | 0.060 | 1.93 | 2.54 | 1.93 | -20.0 | -7.39 | {'length_scale': 1.038, 'seed': 80015} | Sur la photo, il sont quatre. | 0.0 |
+| N08b | narrator | Regardez derrière eux. | Regardez derrière eux. | 0.058 | 1.51 | 2.12 | 1.57 | -20.0 | -6.85 | {'length_scale': 1.1, 'seed': 83573} | Regardez derrière eux. | 0.0 |
+| N09a | narrator | À 23h, tout était fini. | À vingt-trois heures, tout était fini. | 0.060 | 2.28 | 2.89 | 2.73 | -20.0 | -4.72 | {'length_scale': 1.1, 'seed': 31854} | À 23 heures, tout était fini. | 0.0 |
+| N09b | narrator | Ils riaient. | Ils riaient. | 0.061 | 0.56 | 1.17 | 0.57 | -20.0 | -6.18 | {'length_scale': 1.1, 'seed': 63484, 'tempo': 1.031} | Il riait. | 0.0 |
 | E_DOGAN | entity | Dogan… | Dogane. | 0.653 | 0.65 | 2.24 | 0.75 | -20.31 | -3.19 | {'length_scale': 1.0, 'seed': 67662} | Dugan | 0.0 |
 | E_GABRIEL | entity | Gabriel… | Gabriel. | 0.652 | 0.76 | 2.47 | 0.75 | -20.0 | -3.04 | {'length_scale': 1.0, 'seed': 85646, 'tempo': 1.049} | Gabriel | 0.0 |
 | E_HUGO | entity | Hugo… | Hugo. | 0.651 | 0.39 | 2.20 | 0.75 | -20.0 | -3.3 | {'length_scale': 1.0, 'seed': 99316} | *Bruit de la porte* | 4.0 |
@@ -121,14 +121,14 @@ Fenêtre = du début de parole jusqu'à la voix suivante (ou fin de shot `silenc
 | S4j | E_GABRIEL | 61.90 | 0.60 | 0.76 | -0.16 | 0.74 |  |
 | S4k | E_HUGO | 62.50 | 0.60 | 0.39 | +0.21 | 0.35 |  |
 | S4l | E_ARSENE | 63.10 | 0.90 | 0.74 | +0.16 | 0.68 |  |
-| S4m | N08a + N08b | 64.00 | 4.10 | 3.89 | +0.21 | 4.03 | 0.08 |
-| S5a | N09a + N09b | 72.15 | 3.90 | 3.37 | +0.53 | 3.26 |  |
+| S4m | N08a + N08b | 64.00 | 4.10 | 3.90 | +0.20 | 4.03 | 0.08 |
+| S5a | N09a + N09b | 72.15 | 3.90 | 3.29 | +0.61 | 3.26 |  |
 | S6d | E_CQL | 85.35 | 1.00 | 0.77 | +0.23 | 0.72 |  |
-| S7a | E_IDENT | 91.15 | 2.90 | 1.56 | +1.34 | 1.49 |  |
+| S7a | E_IDENT | 91.15 | 3.00 | 1.56 | +1.44 | 1.49 |  |
 
 « il manquerait » : allongement de la fenêtre (shot ou position de la voix suivante) qui permettrait de garder le débit lent préféré sans compression ; relancer alors `tools/make_voices.py`, qui s'adapte automatiquement à `edit/edl_spec.py`.
 
-Durée totale estimée de la spec : 94.0 s (approximative : ancres non résolues).
+Durée totale estimée de la spec : 94.2 s (approximative : ancres non résolues).
 
 ## Spectrogrammes
 
