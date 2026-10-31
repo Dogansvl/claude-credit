@@ -1,58 +1,247 @@
 {
   "_doc": "Choix validés EN REGARDANT les images (planches contact analysis/contact/*.jpg). Valeurs: nombre, ou {\"auto\": <résolveur>, \"fallback\": nombre}. Un prénom ne s'affiche à l'écran que si \"confirmed\": true. Coordonnées normalisées (0..1) dans l'image proxy 1080x1920 (ou dans la photo pour group_photo*). Les entrées listées dans _review_required DOIVENT être vérifiées sur les vraies images avant le rendu final.",
   "_review_required": [
-    "name_hugo", "name_arsene", "hud_order_8347", "possess_1", "possess_3", "possess_4",
-    "group_photo", "silhouette_slots", "bodybag_8348_t", "room_wide_8349_t", "gabriel_terror_8349_t",
-    "bk_8355_t", "bk_8356_t", "silhouette_center_8346"
+    "name_hugo",
+    "name_arsene",
+    "hud_order_8347",
+    "possess_1",
+    "possess_3",
+    "possess_4",
+    "group_photo",
+    "silhouette_slots",
+    "bodybag_8348_t",
+    "room_wide_8349_t",
+    "gabriel_terror_8349_t",
+    "bk_8355_t",
+    "bk_8356_t",
+    "silhouette_center_8346",
+    "piano_8354_t",
+    "bodybag_center_8348",
+    "group_photo_center",
+    "hugo_8357_t",
+    "possess_2",
+    "screamer_8349_t",
+    "wall_empty_8346_t",
+    "group_photo_faces",
+    "privacy_zones"
   ],
   "_reviewed": false,
-
-  "silhouette_source": {"clip": "IMG_8346", "t_range": [6.0, 9.5], "best_t": {"auto": "person_peak:IMG_8346:6.0-9.5", "fallback": 7.5}},
-  "silhouette_center_8346": {"auto": "person_center:IMG_8346:6.0-9.5", "fallback": [0.5, 0.45]},
-  "silhouette_peak_8346_t": {"auto": "person_peak:IMG_8346:6.0-9.5", "fallback": 7.5},
-
-  "name_gabriel": {"clip": "IMG_8341", "t": {"auto": "flash_peak:IMG_8341:1.3-2.3", "fallback": 1.8}, "confirmed": true, "_note": "brief : Gabriel secoué à l'arrière dans les éclairs (~1,8 s)"},
-  "name_dogan": {"clip": "IMG_8338", "confirmed": true, "_note": "brief : Dogan dans la lumière rouge"},
-  "name_hugo": {"candidates": [
-      {"clip": "IMG_8339", "t": 1.0, "confirmed": false, "_note": "selfie, PROBABLEMENT Hugo : à vérifier (chignon, t-shirt noir, veste cuir)"},
-      {"clip": "IMG_8357", "t": 4.6, "confirmed": true, "_note": "brief : Hugo immobile face caméra 4–7,5 s"}
-  ]},
-  "name_arsene": {"candidates": [
-      {"clip": "IMG_8337", "t": 1.5, "confirmed": false, "_note": "passager éclairé en rouge : identité à vérifier (lunettes, cheveux longs bouclés)"},
-      {"clip": "IMG_8343", "t": 1.5, "confirmed": false},
-      {"clip": "IMG_8357", "t": 9.0, "confirmed": false, "_note": "brief : Arsène près de la voiture"}
-  ]},
-
-  "scream_8338_t": {"auto": "audio_peak:IMG_8338:4.3-7.6:-0.12", "fallback": 4.6},
-  "scream_8347_t": {"auto": "audio_peak:IMG_8347:9.8-12.2:-0.15", "fallback": 10.7},
-  "screamer_8349_t": {"auto": "audio_peak:IMG_8349:14.3-16.8:-0.10", "fallback": 15.0},
-
-  "hud_order_8347": {"order_left_to_right": null, "_note": "ex. [\"Hugo\",\"Dogan\",\"Arsène\",\"Gabriel\"] une fois vérifié ; null = étiquettes sans prénom"},
-
+  "silhouette_source": {
+    "clip": "IMG_8346",
+    "t_range": [
+      6.0,
+      9.5
+    ],
+    "best_t": {
+      "auto": "person_peak:IMG_8346:6.0-9.5",
+      "fallback": 7.5
+    }
+  },
+  "silhouette_center_8346": {
+    "auto": "person_center:IMG_8346:6.0-9.5",
+    "fallback": [
+      0.5,
+      0.45
+    ]
+  },
+  "silhouette_peak_8346_t": {
+    "auto": "person_peak:IMG_8346:6.0-9.5",
+    "fallback": 7.5
+  },
+  "name_gabriel": {
+    "clip": "IMG_8341",
+    "t": {
+      "auto": "flash_peak:IMG_8341:1.3-2.3",
+      "fallback": 1.8
+    },
+    "confirmed": true,
+    "_note": "brief : Gabriel secoué à l'arrière dans les éclairs (~1,8 s)"
+  },
+  "name_dogan": {
+    "clip": "IMG_8338",
+    "confirmed": true,
+    "_note": "brief : Dogan dans la lumière rouge"
+  },
+  "name_hugo": {
+    "candidates": [
+      {
+        "clip": "IMG_8339",
+        "t": 1.0,
+        "confirmed": false,
+        "_note": "selfie, PROBABLEMENT Hugo : à vérifier (chignon, t-shirt noir, veste cuir)"
+      },
+      {
+        "clip": "IMG_8357",
+        "t": 4.6,
+        "confirmed": true,
+        "_note": "brief : Hugo immobile face caméra 4–7,5 s"
+      }
+    ]
+  },
+  "name_arsene": {
+    "candidates": [
+      {
+        "clip": "IMG_8337",
+        "t": 1.5,
+        "confirmed": false,
+        "_note": "passager éclairé en rouge : identité à vérifier (lunettes, cheveux longs bouclés)"
+      },
+      {
+        "clip": "IMG_8343",
+        "t": 1.5,
+        "confirmed": false
+      },
+      {
+        "clip": "IMG_8357",
+        "t": 9.0,
+        "confirmed": false,
+        "_note": "brief : Arsène près de la voiture"
+      }
+    ]
+  },
+  "scream_8338_t": {
+    "auto": "audio_peak:IMG_8338:4.3-7.6:-0.12",
+    "fallback": 4.6
+  },
+  "scream_8347_t": {
+    "auto": "audio_peak:IMG_8347:9.8-12.2:-0.15",
+    "fallback": 10.7
+  },
+  "screamer_8349_t": {
+    "auto": "audio_peak:IMG_8349:14.3-16.8:-0.10",
+    "fallback": 15.0
+  },
+  "hud_order_8347": {
+    "order_left_to_right": null,
+    "_note": "ex. [\"Hugo\",\"Dogan\",\"Arsène\",\"Gabriel\"] une fois vérifié ; null = étiquettes sans prénom"
+  },
   "bodybag_8348_t": 2.0,
-  "bodybag_center_8348": [0.5, 0.62],
+  "bodybag_center_8348": [
+    0.5,
+    0.62
+  ],
   "room_wide_8349_t": 1.0,
-  "gabriel_terror_8349_t": {"auto": "face_largest:IMG_8349:7.0-13.0", "fallback": 7.6},
+  "gabriel_terror_8349_t": {
+    "auto": "face_largest:IMG_8349:7.0-13.0",
+    "fallback": 7.6
+  },
   "piano_8354_t": 1.0,
-
-  "possess_1": {"clip": "IMG_8340", "t": {"auto": "face_largest:IMG_8340:8.5-11.5", "fallback": 8.8}, "whisper": "E_DOGAN", "_note": "identité à vérifier ; le chuchotement doit correspondre au visage"},
-  "possess_2": {"clip": "IMG_8344", "t": {"auto": "face_largest:IMG_8344:4.5-7.5", "fallback": 5.0}, "whisper": "E_GABRIEL"},
-  "possess_3": {"clip": "IMG_8339", "t": {"auto": "face_largest:IMG_8339:0.5-4.0", "fallback": 1.5}, "whisper": "E_HUGO"},
-  "possess_4": {"clip": "IMG_8337", "t": {"auto": "face_largest:IMG_8337:0.5-4.0", "fallback": 1.5}, "whisper": "E_ARSENE"},
-
+  "possess_1": {
+    "clip": "IMG_8340",
+    "t": {
+      "auto": "face_largest:IMG_8340:8.5-11.5",
+      "fallback": 8.8
+    },
+    "whisper": "E_DOGAN",
+    "_note": "identité à vérifier ; le chuchotement doit correspondre au visage",
+    "confirmed": false
+  },
+  "possess_2": {
+    "clip": "IMG_8344",
+    "t": {
+      "auto": "face_largest:IMG_8344:4.5-7.5",
+      "fallback": 5.0
+    },
+    "whisper": "E_GABRIEL",
+    "confirmed": true
+  },
+  "possess_3": {
+    "clip": "IMG_8339",
+    "t": {
+      "auto": "face_largest:IMG_8339:0.5-4.0",
+      "fallback": 1.5
+    },
+    "whisper": "E_HUGO",
+    "confirmed": false
+  },
+  "possess_4": {
+    "clip": "IMG_8337",
+    "t": {
+      "auto": "face_largest:IMG_8337:0.5-4.0",
+      "fallback": 1.5
+    },
+    "whisper": "E_ARSENE",
+    "confirmed": false
+  },
   "group_photo": "IMG_8350",
-  "group_photo_center": [0.5, 0.45],
-
+  "group_photo_center": [
+    0.5,
+    0.45
+  ],
   "bk_8355_t": 2.0,
   "bk_8356_t": 3.0,
   "hugo_8357_t": 4.0,
-
   "silhouette_slots": {
-    "room_corner_8349": {"x": 0.86, "foot_y": 0.70, "height": 0.40, "blur": 2.0, "darkness": 0.85, "occlude_persons": false},
-    "group_photo_bg":   {"x": 0.50, "foot_y": 0.60, "height": 0.34, "blur": 2.5, "darkness": 0.9, "occlude_persons": true, "space": "photo"},
-    "bk_window_8356":   {"x": 0.84, "foot_y": 0.55, "height": 0.30, "blur": 3.0, "darkness": 0.7, "blend": "multiply", "occlude_persons": true},
-    "parking_8357_far": {"x": 0.28, "foot_y": 0.60, "height": 0.15, "blur": 1.8, "darkness": 0.9, "occlude_persons": true},
-    "parking_8357_mid": {"x": 0.31, "foot_y": 0.68, "height": 0.27, "blur": 1.6, "darkness": 0.92, "occlude_persons": true},
-    "parking_8357_near":{"x": 0.27, "foot_y": 0.86, "height": 0.50, "blur": 1.4, "darkness": 0.95, "occlude_persons": true}
+    "room_corner_8349": {
+      "x": 0.86,
+      "foot_y": 0.7,
+      "height": 0.4,
+      "blur": 2.0,
+      "darkness": 0.85,
+      "occlude_persons": false
+    },
+    "group_photo_bg": {
+      "x": 0.5,
+      "foot_y": 0.6,
+      "height": 0.34,
+      "blur": 2.5,
+      "darkness": 0.9,
+      "occlude_persons": true,
+      "space": "photo"
+    },
+    "bk_window_8356": {
+      "x": 0.84,
+      "foot_y": 0.55,
+      "height": 0.3,
+      "blur": 3.0,
+      "darkness": 0.7,
+      "blend": "multiply",
+      "occlude_persons": true
+    },
+    "parking_8357_far": {
+      "x": 0.28,
+      "foot_y": 0.6,
+      "height": 0.15,
+      "blur": 1.8,
+      "darkness": 0.9,
+      "occlude_persons": true
+    },
+    "parking_8357_mid": {
+      "x": 0.31,
+      "foot_y": 0.68,
+      "height": 0.27,
+      "blur": 1.6,
+      "darkness": 0.92,
+      "occlude_persons": true
+    },
+    "parking_8357_near": {
+      "x": 0.27,
+      "foot_y": 0.86,
+      "height": 0.5,
+      "blur": 1.4,
+      "darkness": 0.95,
+      "occlude_persons": true
+    }
+  },
+  "wall_empty_8346_t": {
+    "auto": "person_absent_after:IMG_8346:11.0-14.0",
+    "fallback": 12.6,
+    "_note": "première image où la silhouette a COMPLÈTEMENT disparu derrière le mur"
+  },
+  "group_photo_faces": {
+    "centers": null,
+    "_note": "repli manuel si la détection ne trouve pas 4 visages : [[x,y,rayon_norm]...] normalisés dans la photo, ordre gauche→droite"
+  },
+  "privacy_zones": {
+    "_note": "zones à flouter à la main par clip : {\"IMG_8357\": [[x0,y0,x1,y1,t0,t1]...]} normalisées",
+    "zones": {}
+  },
+  "hud_boxes_8347": {
+    "boxes": null,
+    "_note": "repli manuel : 4 boîtes visage [[x0,y0,x1,y1]...] normalisées, gauche→droite"
+  },
+  "portrait_eyes_8349": {
+    "eyes": null,
+    "_note": "repli manuel : positions des yeux des tableaux [[x,y,r]...] normalisées ; null = détection auto limitée aux tableaux"
   }
 }
