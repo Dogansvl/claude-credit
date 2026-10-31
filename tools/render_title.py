@@ -6,19 +6,23 @@ Produit :
   assets/title/cover_plate.png  image fixe 1080x1920 pour la couverture (titre en haut, contre-jour au centre/bas)
   assets/title/BodoniModa-Black-opsz28.ttf  instance statique (Blender ne gère pas les axes variables)
 
-Passes Blender (tools/blender_title.py), toutes en EXR linéaire dans WORK_DIR/title_frames/ :
-  bg   : surfaces sans volume, 540x960 (le fond est flou de toute façon : profondeur de champ + brouillard)
+Passes Blender (tools/blender_title.py, Cycles CPU), en EXR linéaire dans WORK_DIR/title_frames/exr_<passe>/ :
+  bg   : surfaces sans volume, 34 % (le fond est flou de toute façon : profondeur de champ + brouillard)
   text : surfaces sans volume, 1080x1920 mais uniquement dans un cadre autour du titre (bords nets)
-  fog  : brouillard seul, 270x480, transmittance T + diffusion S par groupe de lumière
-Post (ce script) : débruitage OIDN, suréchantillonnage bilatéral joint guidé par la profondeur,
-recomposition image = Σ surf·T + S + brume, halo, courbe filmique, étalonnage froid, PNG 8 bits tramé.
+  fog  : brouillard seul, 16 % : transmittance T + diffusion S par groupe de lumière (+ brouillard reflété)
+Post (ce script) : débruitage OIDN (albédo + normales), suréchantillonnage bilatéral joint guidé par la
+profondeur, recomposition image = Σ surf·T + S + brume, halo, traînée anamorphique, courbe filmique,
+étalonnage froid (rouges préservés), PNG 8 bits tramé dans WORK_DIR/title_frames/png/.
+WORK_DIR = config.WORK_DIR (défaut /home/user/edit_escape_tmp), surchargeable par --work.
 
-Usage (chaque commande est reprenable ; --time-limit borne la durée d'un appel) :
-  python tools/render_title.py font
-  python tools/render_title.py probe --frames 1,30,45,90,150 [--scale-div 2]
-  python tools/render_title.py render --pass fog|bg|text [--frames 1-150] [--time-limit 500]
-  python tools/render_title.py post [--frames 1-150] [--time-limit 500]
-  python tools/render_title.py encode | meta | cover | all
+Usage (chaque commande est reprenable : ce qui existe déjà est sauté ; --time-limit borne la durée d'un appel,
+code de sortie 3 = interrompu, relancer la même commande) :
+  python tools/render_title.py font                         # instance statique de la police
+  python tools/render_title.py render [--frames 1-150] [--time-limit 300] [--pass fog|bg|text]
+  python tools/render_title.py post   [--frames 1-150] [--time-limit 300]
+  python tools/render_title.py encode | meta | cover | contact
+  python tools/render_title.py all                          # tout, d'un bloc (long : ~1 h 30 sur 3 threads)
+Essais rapides : render --scale 13 --samples 16 --work DIR, puis post --lookdev --work DIR, contact --work DIR.
 """
 from __future__ import annotations
 
@@ -53,7 +57,17 @@ PASSES = {
     "text": dict(scale=100, samples=6, extra=[]),
 }
 OIDN_THREADS = 2
+# Fin du plan (voiture arrêtée, seule la caméra avance lentement) : une image sur deux est rendue, les autres sont
+# synthétisées en post (moyenne des deux voisines recalées sur la boîte du titre : zoom + translation < 1 px).
+HALF_RATE_FROM = 106
+
+
 CHUNK = 15  # frames par appel Blender (chaque appel reste court : ~2-4 min)
+
+
+def is_interpolated(f: int) -> bool:
+    return HALF_RATE_FROM <= f < N_FRAMES and (f - HALF_RATE_FROM) % 2 == 1
+
 
 # Étalonnage (linéaire scène -> affichage)
 GRADE = dict(
@@ -166,7 +180,8 @@ def render_passes(args, passes: list[str], frames: list[int], t_start: float) ->
     """Rend les frames manquantes par paquets de CHUNK, toutes les passes d'un paquet à la suite (le post peut
     suivre au fil de l'eau). Renvoie False si la limite de temps (--time-limit) a interrompu : relancer."""
     wd = work_dir(args)
-    todo = [f for f in frames if any(not (wd / f"exr_{p}" / f"f_{f:04d}.exr").exists() for p in passes)]
+    todo = [f for f in frames if not is_interpolated(f)
+            and any(not (wd / f"exr_{p}" / f"f_{f:04d}.exr").exists() for p in passes)]
     for i in range(0, len(todo), CHUNK):
         chunk = todo[i:i + CHUNK]
         for p in passes:
@@ -444,6 +459,40 @@ def text_stats(img: np.ndarray, mask: np.ndarray | None) -> dict:
                 edge_grad=round(float(np.mean(grad[edge])), 4), legib=round(legib, 4))
 
 
+def layout_boxes(args) -> dict[int, list[float]]:
+    """Boîtes projetées du titre (px) pour les 150 frames, calculées par Blender (--layout), en cache."""
+    path = work_dir(args) / "layout.json"
+    if not path.exists():
+        cmd = [find_blender(), "-b", "--factory-startup", "-noaudio", "-P", str(SCRIPT), "--",
+               "--font", str(make_font()), "--frames", f"1-{N_FRAMES}", "--layout", str(path)]
+        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+    return {int(k): v[:4] for k, v in json.loads(path.read_text())["boxes"].items()}
+
+
+def interpolate_frame(args, f: int) -> tuple[np.ndarray, dict] | None:
+    """Image f synthétisée à partir de f-1 et f+1 : chaque voisine est recalée (échelle + translation) sur la
+    boîte projetée du titre à l'instant f, puis les deux sont moyennées."""
+    import cv2
+    wd = work_dir(args)
+    boxes = layout_boxes(args)
+    stats = json.loads((wd / "stats.json").read_text()) if (wd / "stats.json").exists() else {}
+    acc, sts = np.zeros((H, W, 3), np.float32), []
+    for n in (f - 1, f + 1):
+        p = wd / "png" / f"f_{n:04d}.png"
+        if not p.exists() or str(n) not in stats:
+            return None
+        im = cv2.cvtColor(cv2.imread(str(p)), cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
+        bx, bt = boxes[n], boxes[f]
+        sx, sy = (bt[2] - bt[0]) / (bx[2] - bx[0]), (bt[3] - bt[1]) / (bx[3] - bx[1])
+        M = np.float32([[sx, 0, bt[0] - sx * bx[0]], [0, sy, bt[1] - sy * bx[1]]])
+        acc += 0.5 * cv2.warpAffine(im, M, (W, H), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
+        sts.append(stats[str(n)])
+    st = {k: round((sts[0][k] + sts[1][k]) / 2, 4) for k in sts[0] if k != "box"}
+    st["box"] = [int(round((a + b) / 2)) for a, b in zip(sts[0]["box"], sts[1]["box"])]
+    st["interpolated"] = True
+    return np.clip(acc, 0, 1), st
+
+
 def post(args, frames: list[int], t_start: float) -> bool:
     import cv2
     wd = work_dir(args)
@@ -451,7 +500,9 @@ def post(args, frames: list[int], t_start: float) -> bool:
     png.mkdir(exist_ok=True)
     stats_path = wd / "stats.json"
     stats = json.loads(stats_path.read_text()) if stats_path.exists() else {}
-    for f in frames:
+    # les images rendues d'abord, les images synthétisées ensuite (elles dépendent de leurs voisines)
+    order = [f for f in frames if not is_interpolated(f)] + [f for f in frames if is_interpolated(f)]
+    for f in order:
         dst = png / f"f_{f:04d}.png"
         if dst.exists() and str(f) in stats and not args.force:
             continue
@@ -459,13 +510,24 @@ def post(args, frames: list[int], t_start: float) -> bool:
             log("limite de temps atteinte (post)")
             stats_path.write_text(json.dumps(stats, indent=0))
             return False
-        need = ("fog", "bg") if args.lookdev else ("fog", "bg", "text")
-        if not all((wd / f"exr_{p}" / f"f_{f:04d}.exr").exists() for p in need):
-            log(f"frame {f} : passes manquantes, ignorée")
-            continue
         t0 = time.time()
-        img, st = composite_frame(wd, f)
-        cv2.imwrite(str(dst), cv2.cvtColor(to_u8(img, seed=1000 + f), cv2.COLOR_RGB2BGR))
+        if is_interpolated(f):
+            stats_path.write_text(json.dumps(stats, indent=0))
+            res = interpolate_frame(args, f)
+            if res is None:
+                log(f"frame {f} : voisines pas encore prêtes, ignorée")
+                continue
+            img, st = res
+            dither = False
+        else:
+            need = ("fog", "bg") if args.lookdev else ("fog", "bg", "text")
+            if not all((wd / f"exr_{p}" / f"f_{f:04d}.exr").exists() for p in need):
+                log(f"frame {f} : passes manquantes, ignorée")
+                continue
+            img, st = composite_frame(wd, f)
+            dither = True
+        out = to_u8(img, seed=1000 + f) if dither else np.clip(np.round(img * 255.0), 0, 255).astype(np.uint8)
+        cv2.imwrite(str(dst), cv2.cvtColor(out, cv2.COLOR_RGB2BGR))
         stats[str(f)] = st
         log(f"post frame {f} en {time.time() - t0:.1f} s  {st}")
         stats_path.write_text(json.dumps(stats, indent=0))

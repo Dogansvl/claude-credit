@@ -15,7 +15,6 @@ plus que le fond, avec une légère dérive latérale.
 from __future__ import annotations
 
 import hashlib
-import math
 import os
 import sys
 import threading

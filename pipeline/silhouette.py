@@ -142,6 +142,20 @@ def _selfie(rgb: np.ndarray) -> np.ndarray:
     return np.clip(1.0 - bg, 0, 1)
 
 
+def _selfie_crop(crop: np.ndarray) -> np.ndarray:
+    """selfie_multiclass sur un recadrage complété en carré (le modèle travaille en 256x256)."""
+    h, w = crop.shape[:2]
+    S = max(h, w)
+    pad = np.empty((S, S, 3), np.uint8)
+    pad[:] = crop.reshape(-1, 3).mean(0).astype(np.uint8)
+    oy, ox = (S - h) // 2, (S - w) // 2
+    pad[oy:oy + h, ox:ox + w] = crop
+    m = _selfie(pad)
+    if m.shape[:2] != (S, S):
+        m = cv2.resize(m, (S, S), interpolation=cv2.INTER_LINEAR)
+    return m[oy:oy + h, ox:ox + w]
+
+
 # ---------------------------------------------------------------------------
 # Outils
 # ---------------------------------------------------------------------------
@@ -237,13 +251,18 @@ def _crop_box(box, W, H, pad_x=0.18, pad_y=0.08, min_aspect=0.62):
 # ---------------------------------------------------------------------------
 def dark_on_light(rgb: np.ndarray, hint=None, box=None) -> tuple[np.ndarray | None, np.ndarray | None, float]:
     """Forme sombre et haute devant un fond clair (mur éclairé par les phares).
-    Renvoie (bbox, alpha plein cadre, score) ou (None, None, 0)."""
+    Fond local = fermeture morphologique (à 1/4 de résolution, noyau plus large que la silhouette attendue) ;
+    la composante retenue est haute, à tête étroite, près de `hint` ; les rangées « sol » (largeur qui
+    explose en bas) sont retirées. Renvoie (bbox, alpha plein cadre, score) ou (None, None, 0)."""
     H, W = rgb.shape[:2]
     L = _lum(rgb.astype(np.float32) / 255.0)
-    k = max(15, int(W / 9) | 1)
-    # fermeture morphologique : efface les objets sombres plus étroits que k -> « fond » local
-    bg = cv2.morphologyEx(L, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k)))
+    q = 4
+    Ls = cv2.resize(L, (max(8, W // q), max(8, H // q)), interpolation=cv2.INTER_AREA)
+    exp_w = (box[2] - box[0]) * 1.6 if box is not None else W / 4.0
+    k = max(5, int(exp_w / q) | 1)
+    bg = cv2.morphologyEx(Ls, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (k, max(5, k // 2) | 1)))
     bg = cv2.GaussianBlur(bg, (0, 0), k / 4)
+    bg = cv2.resize(bg, (W, H), interpolation=cv2.INTER_LINEAR)
     dark = np.clip(bg - L, 0, 1)
     rel = dark / np.maximum(bg, 0.05)
     cand = (rel > 0.35) & (bg > 0.18)
@@ -254,33 +273,50 @@ def dark_on_light(rgb: np.ndarray, hint=None, box=None) -> tuple[np.ndarray | No
         cand &= lim
     cand = cv2.morphologyEx(cand.astype(np.uint8), cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
     n, lab, stats, cent = cv2.connectedComponentsWithStats(cand, 8)
-    best, bs = None, 0.0
+    best, bs, best_rows = None, 0.0, None
     for i in range(1, n):
         x, y, w, h, area = stats[i]
         if h < 0.06 * H or area < 0.0004 * W * H:
             continue
-        aspect = h / max(w, 1)
-        s_aspect = float(_smoothstep(1.2, 2.4, aspect)) * float(_smoothstep(8.0, 5.0, aspect))
-        fill = area / max(w * h, 1)
         comp = lab[y:y + h, x:x + w] == i
-        top = comp[: max(1, h // 8)].sum(0)
-        mid = comp[h // 5: h // 3 + 1].sum(0)
-        wt, wm = float((top > 0).sum()), float((mid > 0).sum())
-        s_head = float(_smoothstep(0.95, 0.75, wt / max(wm, 1.0)))   # tête plus étroite que les épaules
-        s = s_aspect * s_head * (0.5 + 0.5 * min(1.0, fill / 0.45)) * min(1.0, h / (0.25 * H) + 0.3)
+        widths = comp.sum(1).astype(np.float32)
+        med = float(np.median(widths[: max(1, int(h * 0.6))])) + 1e-3
+        # retire le « sol » / les bandes horizontales : rangées nettement plus larges que le corps,
+        # puis la composante peut se scinder : on garde le morceau le plus haut (et massif)
+        comp = comp.copy()
+        comp[widths > 2.5 * med] = False
+        n2, lab2, st2, _ = cv2.connectedComponentsWithStats(comp.astype(np.uint8), 8)
+        if n2 < 2:
+            continue
+        j = 1 + int(np.argmax(st2[1:, cv2.CC_STAT_HEIGHT] * np.sqrt(st2[1:, cv2.CC_STAT_AREA])))
+        sx, sy, w2, h2 = [int(v) for v in st2[j, :4]]
+        comp = (lab2 == j)[sy:sy + h2, sx:sx + w2]
+        if h2 < 0.06 * H:
+            continue
+        area2 = float(comp.sum())
+        aspect = h2 / max(w2, 1)
+        s_aspect = float(_smoothstep(1.2, 2.4, aspect)) * float(_smoothstep(8.0, 5.0, aspect))
+        fill = area2 / max(w2 * h2, 1)
+        top = comp[: max(1, h2 // 8)].sum(0)
+        mid = comp[h2 // 5: h2 // 3 + 1].sum(0)
+        s_head = float(_smoothstep(0.95, 0.75, (top > 0).sum() / max(float((mid > 0).sum()), 1.0)))
+        s = s_aspect * s_head * (0.5 + 0.5 * min(1.0, fill / 0.45)) * min(1.0, h2 / (0.25 * H) + 0.3)
+        gx0, gy0 = x + sx, y + sy
         if hint is not None:
             hx, hy = hint[0] * W, hint[1] * H
-            d = math.hypot(cent[i][0] - hx, cent[i][1] - hy) / (0.35 * H)
+            d = math.hypot(gx0 + w2 / 2 - hx, gy0 + h2 / 2 - hy) / (0.35 * H)
             s *= math.exp(-d * d)
         if s > bs:
-            best, bs = i, s
+            best, bs, best_rows = (comp, gx0, gy0), s, (gy0, gy0 + h2, gx0, w2)
     if best is None:
         return None, None, 0.0
-    x, y, w, h, _ = stats[best]
-    comp = (lab == best).astype(np.uint8)
+    sub, gx0, gy0 = best
+    y0_, y1_, x0_, w2 = best_rows
+    comp = np.zeros((H, W), np.uint8)
+    comp[gy0:gy0 + sub.shape[0], gx0:gx0 + sub.shape[1]] = sub
     comp = cv2.dilate(comp, np.ones((5, 5), np.uint8))
     alpha = _smoothstep(0.22, 0.55, rel) * comp
-    return np.array([x, y, x + w, y + h], np.float32), alpha.astype(np.float32), float(bs)
+    return np.array([x0_, y0_, x0_ + w2, y1_], np.float32), alpha.astype(np.float32), float(bs)
 
 
 # ---------------------------------------------------------------------------
@@ -724,13 +760,15 @@ def composite(img, sil_rgba, x, foot_y, height, opacity=0.9, blur=1.5, darkness=
 _PM_CACHE: dict[str, np.ndarray] = {}
 
 
-def person_mask(img, min_score: float = 0.3, min_height: float = 0.10, max_boxes: int = 3) -> np.ndarray:
+def person_mask(img, min_score: float = 0.3, min_height: float = 0.10, max_boxes: int = 3,
+                quality: str = "fast") -> np.ndarray:
     """Masque (H, W) float32 des personnes au premier plan : boîtes efficientdet (les `max_boxes` plus
-    grandes, hauteur ≥ min_height·H) + u2net_human_seg dans chaque boîte, bords affinés au filtre guidé ;
-    secours selfie_multiclass sur l'image entière. Cache mémoire par image."""
+    grandes, hauteur ≥ min_height·H) puis segmentation dans chaque boîte — quality="fast" (défaut, par
+    image de film : MediaPipe selfie_multiclass, ~15x plus rapide) ou "best" (u2net_human_seg, photos) —,
+    bords affinés au filtre guidé ; sans boîte : selfie_multiclass sur l'image entière. Cache mémoire."""
     rgb = _u8(img)
     H, W = rgb.shape[:2]
-    k = hashlib.sha1(cv2.resize(rgb, (64, 112), interpolation=cv2.INTER_AREA).tobytes()).hexdigest()
+    k = hashlib.sha1(cv2.resize(rgb, (64, 112), interpolation=cv2.INTER_AREA).tobytes() + quality.encode()).hexdigest()
     if k in _PM_CACHE:
         return _PM_CACHE[k].copy()
     mask = np.zeros((H, W), np.float32)
@@ -741,7 +779,7 @@ def person_mask(img, min_score: float = 0.3, min_height: float = 0.10, max_boxes
         if X1 - X0 < 8 or Y1 - Y0 < 8:
             continue
         crop = rgb[Y0:Y1, X0:X1]
-        m = _u2net(crop)
+        m = _u2net(crop) if quality == "best" else _smoothstep(0.25, 0.85, _selfie_crop(crop))
         # limite au voisinage de la boîte (bords doux)
         yy = np.arange(Y0, Y1, dtype=np.float32)[:, None]
         xx = np.arange(X0, X1, dtype=np.float32)[None, :]

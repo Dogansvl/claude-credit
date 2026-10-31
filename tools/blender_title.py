@@ -7,19 +7,22 @@ Rendu en PASSES séparées (budget CPU : le brouillard volumétrique pleine déf
   --pass surf : surfaces seules (sans volume). EXR multicouche : groupes de lumière (head / red / amb),
                 Denoising Albedo/Normal (débruitage OIDN en post), Depth (guide du suréchantillonnage), IndexOB.
   --pass text : comme surf, mais seulement dans un cadre autour du titre (render border) : bords nets en pleine déf.
-  --pass fog  : brouillard seul, basse définition. Toutes les surfaces deviennent des occultants émissifs blancs
-                d'intensité 1 : la passe Emit = transmittance caméra->surface T, les groupes de lumière = diffusion
-                du volume S par source (phares / feux rouges), avec les ombres volumétriques des lettres.
+  --pass fog  : brouillard seul, basse définition. Chaque surface reçoit en plus une émission blanche d'intensité 1 :
+                la passe Emit = transmittance caméra->surface T ; les lampes n'éclairent plus les surfaces, donc les
+                groupes de lumière = diffusion du volume S par source (phares / feux rouges / ambiance), avec les
+                ombres volumétriques des lettres et le brouillard reflété par l'asphalte mouillé et le métal.
+  --pass beauty : tout en une passe (référence de contrôle, ~10x plus lent).
 Recomposition (render_title.py) : image = Σ surf_g·T + Σ S_g + (1−T)·brume.
 
 Scène (mètres, Z vers le haut, la caméra regarde vers +Y) :
   - titre extrudé + biseau (Bodoni Moda Black), métal vieilli / charbon, posé sur le sol à y=0 ;
   - asphalte mouillé (rugosité variable, sans flaques à bord dur), lignes de places, mur de béton au fond, poteaux ;
   - brouillard Principled Volume (anisotropie 0,6), plus dense au sol, volutes qui dérivent ;
-  - une voiture hors champ à l'avant-gauche tourne à droite : ses phares balaient la face du titre de gauche à
-    droite (révélation), passent devant l'objectif puis s'éloignent ; ses feux arrière rouges restent ensuite
-    allumés au fond à droite, derrière le titre, dans le brouillard ;
-  - lent travelling avant de la caméra avec un léger arc latéral (parallaxe).
+  - une voiture (on ne voit que ses feux) fait demi-tour au fond, derrière le titre : ses phares balaient la scène
+    de gauche à droite, traversent les lettres vers l'objectif (éblouissement, titre en silhouette, révélation
+    ~1,1 s), puis elle s'arrête dos à nous : ses feux arrière rouges restent allumés derrière le titre ;
+  - lune voilée en contre-jour et lampadaire lointain froid (ambiance faible) ;
+  - caméra basse (0,55 m), lent travelling avant avec un léger arc latéral (parallaxe).
 --mode cover : image fixe (titre haut, bien éclairé ; phares de face au fond = contre-jour pour la silhouette).
 --layout OUT.json : aucun rendu ; écrit la boîte projetée du titre pour les frames demandées.
 """

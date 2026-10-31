@@ -51,6 +51,7 @@ MAX_FLASHES_PER_S = 3
 FACE_FX = ("black_eyes", "stretch_smile", "melt", "widen_eyes", "demon_face", "head_tic", "portrait_eyes")
 SUB_FADE_S = 0.12
 DEFAULT_JOBS = 2
+OCC_STEP = {"preview": 4, "final": 2}  # pas de recalcul du masque d'occlusion des personnes (images)
 
 
 # ---------------------------------------------------------------------------
@@ -956,14 +957,18 @@ class ShotRenderer:
         S = silhouette_mod()
         occ = None
         if sl.get("occlude_persons"):
+            # plaque fixe : masque des personnes calculé une seule fois ; plan animé : recalculé toutes les
+            # OCC_STEP images (segmentation coûteuse, ~1 s/image ; les personnes bougent peu en 0,1 s)
             static = self.shot.get("kind") in ("photo", "freeze") or slot is not None
-            key = (id(slot), img.shape) if static else None
-            occ = self.__dict__.setdefault("_occ", {}).get(key) if static else None
+            key = (id(slot), img.shape) if static else ("dyn", (fi - self.fbase) // OCC_STEP[self.q], img.shape)
+            cache = self.__dict__.setdefault("_occ", {})
+            occ = cache.get(key)
             if occ is None:
                 try:
                     occ = S.person_mask(img)
-                    if static:  # plaque fixe : masque des personnes calculé une seule fois
-                        self._occ[key] = occ
+                    if not static:
+                        cache.clear()
+                    cache[key] = occ
                 except Exception as e:
                     self.warn(f"person_mask a échoué ({e})")
         return self.safe("silhouette.composite", S.composite, img, rgba,
@@ -1607,6 +1612,18 @@ def _worker_init():
         pass
 
 
+def _close_models():
+    """Ferme les modèles MediaPipe/ONNX chargés (sortie propre des processus de travail)."""
+    for name in ("silhouette", "facefx"):
+        m = _MODS.get(name)
+        fn = getattr(m, "close_models", None)
+        if callable(fn):
+            try:
+                fn()
+            except Exception:
+                pass
+
+
 def _render_shot_job(job: dict) -> dict:
     """Point d'entrée d'un processus de travail : rend une shot dans son fichier de cache."""
     t_start = time.time()
@@ -1623,6 +1640,7 @@ def _render_shot_job(job: dict) -> dict:
         if n != job["n"]:
             raise RuntimeError(f"{n} images écrites au lieu de {job['n']}")
         os.replace(tmp, out)
+        _close_models()
         return {"id": job["shot"]["id"], "ok": True, "out": str(out), "n": n, "warnings": r.warnings,
                 "stubs": sorted(STUBS_USED), "seconds": round(time.time() - t_start, 1)}
     except Exception as e:

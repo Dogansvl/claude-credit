@@ -24,7 +24,7 @@ import sys
 import threading
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Iterator, Sequence
+from typing import Iterator
 
 import cv2
 import numpy as np
@@ -940,7 +940,7 @@ def _black_eyes_one(out: np.ndarray, face: Face, amount: float, veins: float = 1
     g = _Geo(face.lm)
     H, W = out.shape[:2]
     for side in (0, 1):
-        e = _geo_eye(g, side)
+        e = g.eye(side)
         ew = e["ew"]
         if ew < 2.0:
             continue
@@ -989,10 +989,6 @@ def _black_eyes_one(out: np.ndarray, face: Face, amount: float, veins: float = 1
         black = black + spec[..., None] * np.float32([0.97, 0.98, 1.0])
         res = src * (1 - m[..., None]) + black * m[..., None]
         out[y0:y1, x0:x1] = res
-
-
-def _geo_eye(g: _Geo, side: int) -> dict:
-    return g.eye(side)
 
 
 def _catchlight(src, m_eye, e, xx, yy, local):
@@ -1459,7 +1455,6 @@ def head_tic(img, face, frame_idx: int, amount: float = 1.0):
     fs = [_fit_face(f, img) for f in _faces(face)]
     if not fs:
         # toute l'image : rotation + décalage, léger zoom pour ne pas montrer de bord
-        s = max(W, H)
         A = math.radians(ang * 0.35 * k)
         tx, ty = mx * k * 0.5 * W, my * k * 0.5 * H
         zoom = 1.0 + 1.2 * (abs(mx) + abs(my)) * k + abs(A) * 0.6
