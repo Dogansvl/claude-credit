@@ -3,7 +3,7 @@
   "fps": 30,
   "w": 1080,
   "h": 1920,
-  "duration": 93.2333,
+  "duration": 93.5333,
   "target": 92.0,
   "built_with": {
    "transcripts": false,
@@ -30,12 +30,12 @@
    "kind": "clip",
    "clip": "IMG_8346",
    "src_in": 5.6,
-   "src_out": 7.9,
+   "src_out": 8.0,
    "speed": 1.0,
    "freeze_after": null,
    "start": 0.0,
-   "dur": 2.3,
-   "frames": 69,
+   "dur": 2.4,
+   "frames": 72,
    "camera": {
     "zoom": [
      1.0,
@@ -68,9 +68,9 @@
    "kind": "freeze",
    "freeze_src": {
     "clip": "IMG_8346",
-    "t": 7.8667
+    "t": 7.9667
    },
-   "start": 2.3,
+   "start": 2.4,
    "dur": 0.9333,
    "frames": 28,
    "camera": {
@@ -117,7 +117,7 @@
    "section": 1,
    "label": "noir",
    "kind": "black",
-   "start": 3.2333,
+   "start": 3.3333,
    "dur": 0.4667,
    "frames": 14,
    "fx": [],
@@ -137,7 +137,7 @@
    "section": 2,
    "label": "carton faits réels",
    "kind": "card",
-   "start": 3.7,
+   "start": 3.8,
    "dur": 2.3,
    "frames": 69,
    "fx": [],
@@ -170,7 +170,7 @@
    "src_out": 3.6,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 6.0,
+   "start": 6.1,
    "dur": 2.6,
    "frames": 78,
    "camera": {
@@ -229,7 +229,7 @@
    "src_out": 3.4,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 8.6,
+   "start": 8.7,
    "dur": 2.4,
    "frames": 72,
    "camera": {
@@ -276,7 +276,7 @@
    "src_out": 3.4,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 11.0,
+   "start": 11.1,
    "dur": 2.4,
    "frames": 72,
    "camera": {
@@ -322,7 +322,7 @@
    "src_out": 2.9,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 13.4,
+   "start": 13.5,
    "dur": 1.9,
    "frames": 57,
    "camera": {
@@ -368,7 +368,7 @@
    "src_out": 1.999,
    "speed": 1.0,
    "freeze_after": 0.2,
-   "start": 15.3,
+   "start": 15.4,
    "dur": 0.9,
    "frames": 27,
    "camera": {
@@ -412,7 +412,7 @@
    "src_out": 4.799,
    "speed": 1.0,
    "freeze_after": 0.2,
-   "start": 16.2,
+   "start": 16.3,
    "dur": 0.9,
    "frames": 27,
    "camera": {
@@ -455,7 +455,7 @@
     "clip": "IMG_8338",
     "t": 0.4
    },
-   "start": 17.1,
+   "start": 17.2,
    "dur": 0.9,
    "frames": 27,
    "camera": {
@@ -499,7 +499,7 @@
    "src_out": 1.6,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 18.0,
+   "start": 18.1,
    "dur": 1.2,
    "frames": 36,
    "camera": {
@@ -534,7 +534,7 @@
    "src_out": 3.7667,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 19.2,
+   "start": 19.3,
    "dur": 1.4667,
    "frames": 44,
    "camera": {
@@ -569,7 +569,7 @@
    "src_out": 5.5,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 20.6667,
+   "start": 20.7667,
    "dur": 0.9,
    "frames": 27,
    "camera": {
@@ -612,7 +612,7 @@
    "section": 2,
    "label": "noir",
    "kind": "black",
-   "start": 21.5667,
+   "start": 21.6667,
    "dur": 0.3333,
    "frames": 10,
    "fx": [],
@@ -637,7 +637,7 @@
    "src_out": 12.3,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 21.9,
+   "start": 22.0,
    "dur": 12.3,
    "frames": 369,
    "camera": {
@@ -682,7 +682,7 @@
     "clip": "IMG_8346",
     "t": 12.6
    },
-   "start": 34.2,
+   "start": 34.3,
    "dur": 2.0,
    "frames": 60,
    "camera": {
@@ -729,7 +729,7 @@
    "section": 3,
    "label": "noir — lui ne les a plus quittés",
    "kind": "black",
-   "start": 36.2,
+   "start": 36.3,
    "dur": 2.7,
    "frames": 81,
    "fx": [
@@ -762,7 +762,7 @@
    "src_out": 7.9,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 38.9,
+   "start": 39.0,
    "dur": 4.5,
    "frames": 135,
    "camera": {
@@ -818,7 +818,7 @@
     "clip": "IMG_8347",
     "t": 7.8667
    },
-   "start": 43.4,
+   "start": 43.5,
    "dur": 1.5333,
    "frames": 46,
    "camera": {
@@ -881,7 +881,7 @@
    "src_out": 11.4,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 44.9333,
+   "start": 45.0333,
    "dur": 0.7,
    "frames": 21,
    "camera": {
@@ -928,7 +928,7 @@
    "src_out": 9.0,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 45.6333,
+   "start": 45.7333,
    "dur": 2.2,
    "frames": 66,
    "camera": {
@@ -975,7 +975,7 @@
    "src_out": 6.0,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 47.8333,
+   "start": 47.9333,
    "dur": 4.0,
    "frames": 120,
    "camera": {
@@ -1030,7 +1030,7 @@
    "src_out": 2.7,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 51.8333,
+   "start": 51.9333,
    "dur": 1.7,
    "frames": 51,
    "camera": {
@@ -1097,7 +1097,7 @@
    "src_out": 9.4,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 53.5333,
+   "start": 53.6333,
    "dur": 1.8,
    "frames": 54,
    "camera": {
@@ -1151,12 +1151,12 @@
    "kind": "clip",
    "clip": "IMG_8354",
    "src_in": 1.0,
-   "src_out": 5.76,
+   "src_out": 5.88,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 55.3333,
-   "dur": 5.0,
-   "frames": 150,
+   "start": 55.4333,
+   "dur": 5.2,
+   "frames": 156,
    "camera": {
     "zoom": [
      1.0,
@@ -1178,7 +1178,7 @@
     {
      "type": "black_eyes",
      "t0": 4.3,
-     "t1": 5.0,
+     "t1": 5.2,
      "amount": 1.0,
      "ramp": 0.5
     }
@@ -1189,7 +1189,7 @@
      "text": "22:12",
      "date": "30.10.2026",
      "t0": 0.0,
-     "t1": 5.0
+     "t1": 5.2
     }
    ],
    "silhouette": null,
@@ -1225,7 +1225,7 @@
    "src_out": 9.4,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 60.3333,
+   "start": 60.6333,
    "dur": 0.6,
    "frames": 18,
    "camera": {
@@ -1273,7 +1273,7 @@
    "src_out": 5.6,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 60.9333,
+   "start": 61.2333,
    "dur": 0.6,
    "frames": 18,
    "camera": {
@@ -1322,7 +1322,7 @@
    "src_out": 2.1,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 61.5333,
+   "start": 61.8333,
    "dur": 0.6,
    "frames": 18,
    "camera": {
@@ -1376,7 +1376,7 @@
    "src_out": 2.1,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 62.1333,
+   "start": 62.4333,
    "dur": 0.6,
    "frames": 18,
    "camera": {
@@ -1420,7 +1420,7 @@
    "label": "photo de groupe — regardez derrière eux",
    "kind": "photo",
    "photo": "IMG_8350",
-   "start": 62.7333,
+   "start": 63.0333,
    "dur": 5.6,
    "frames": 168,
    "camera": {
@@ -1493,7 +1493,7 @@
    "section": 4,
    "label": "montage qui accélère",
    "kind": "montage",
-   "start": 68.3333,
+   "start": 68.6333,
    "dur": 1.6667,
    "frames": 50,
    "grade": {
@@ -1602,7 +1602,7 @@
    "section": 4,
    "label": "noir sec",
    "kind": "black",
-   "start": 70.0,
+   "start": 70.3,
    "dur": 0.3333,
    "frames": 10,
    "fx": [],
@@ -1627,7 +1627,7 @@
    "src_out": 6.4,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 70.3333,
+   "start": 70.6333,
    "dur": 4.4,
    "frames": 132,
    "camera": {
@@ -1679,7 +1679,7 @@
    "src_out": 5.75,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 74.7333,
+   "start": 75.0333,
    "dur": 3.2,
    "frames": 96,
    "camera": {
@@ -1771,7 +1771,7 @@
     "clip": "IMG_8356",
     "t": 5.7317
    },
-   "start": 77.9333,
+   "start": 78.2333,
    "dur": 1.4,
    "frames": 42,
    "camera": {
@@ -1845,7 +1845,7 @@
    "section": 5,
    "label": "noir",
    "kind": "black",
-   "start": 79.3333,
+   "start": 79.6333,
    "dur": 0.3,
    "frames": 9,
    "fx": [],
@@ -1870,7 +1870,7 @@
    "src_out": 5.3,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 79.6333,
+   "start": 79.9333,
    "dur": 1.3,
    "frames": 39,
    "camera": {
@@ -1933,7 +1933,7 @@
    "src_out": 6.4,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 80.9333,
+   "start": 81.2333,
    "dur": 1.1,
    "frames": 33,
    "camera": {
@@ -1996,7 +1996,7 @@
    "src_out": 7.3,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 82.0333,
+   "start": 82.3333,
    "dur": 0.9,
    "frames": 27,
    "camera": {
@@ -2058,7 +2058,7 @@
     "clip": "IMG_8357",
     "t": 7.2667
    },
-   "start": 82.9333,
+   "start": 83.2333,
    "dur": 2.5,
    "frames": 75,
    "camera": {
@@ -2127,7 +2127,7 @@
    "src_out": 15.9333,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 85.4333,
+   "start": 85.7333,
    "dur": 0.9333,
    "frames": 28,
    "camera": {
@@ -2189,7 +2189,7 @@
    "section": 6,
    "label": "noir",
    "kind": "black",
-   "start": 86.3667,
+   "start": 86.6667,
    "dur": 0.6,
    "frames": 18,
    "fx": [],
@@ -2209,7 +2209,7 @@
    "section": 7,
    "label": "titre 3D brouillard + phares",
    "kind": "title",
-   "start": 86.9667,
+   "start": 87.2667,
    "dur": 5.0,
    "frames": 150,
    "fx": [],
@@ -2236,7 +2236,7 @@
    "section": 7,
    "label": "noir final (traîne du chuchotement)",
    "kind": "black",
-   "start": 91.9667,
+   "start": 92.2667,
    "dur": 1.2667,
    "frames": 38,
    "fx": [],
@@ -2256,8 +2256,8 @@
   {
    "id": "N01",
    "file": "assets/audio/voice/N01.wav",
-   "t_speech": 6.3,
-   "t_file": 6.239,
+   "t_speech": 6.4,
+   "t_file": 6.339,
    "dur": 5.495,
    "speech_dur": 4.884,
    "gain_db": 0.0,
@@ -2271,8 +2271,8 @@
   {
    "id": "N02",
    "file": "assets/audio/voice/N02.wav",
-   "t_speech": 11.35,
-   "t_file": 11.29,
+   "t_speech": 11.45,
+   "t_file": 11.39,
    "dur": 2.384,
    "speech_dur": 1.774,
    "gain_db": 0.0,
@@ -2286,8 +2286,8 @@
   {
    "id": "N03",
    "file": "assets/audio/voice/N03.wav",
-   "t_speech": 13.5,
-   "t_file": 13.44,
+   "t_speech": 13.6,
+   "t_file": 13.54,
    "dur": 2.189,
    "speech_dur": 1.579,
    "gain_db": 0.0,
@@ -2301,8 +2301,8 @@
   {
    "id": "N04",
    "file": "assets/audio/voice/N04.wav",
-   "t_speech": 34.4,
-   "t_file": 34.34,
+   "t_speech": 34.5,
+   "t_file": 34.44,
    "dur": 1.868,
    "speech_dur": 1.258,
    "gain_db": 0.0,
@@ -2316,8 +2316,8 @@
   {
    "id": "N05",
    "file": "assets/audio/voice/N05.wav",
-   "t_speech": 36.65,
-   "t_file": 36.591,
+   "t_speech": 36.75,
+   "t_file": 36.691,
    "dur": 2.388,
    "speech_dur": 1.779,
    "gain_db": 0.0,
@@ -2331,8 +2331,8 @@
   {
    "id": "E_IDENT",
    "file": "assets/audio/voice/E_IDENT.wav",
-   "t_speech": 43.55,
-   "t_file": 42.498,
+   "t_speech": 43.65,
+   "t_file": 42.598,
    "dur": 4.018,
    "speech_dur": 1.558,
    "gain_db": 0.0,
@@ -2346,8 +2346,8 @@
   {
    "id": "N06",
    "file": "assets/audio/voice/N06.wav",
-   "t_speech": 48.0333,
-   "t_file": 47.9753,
+   "t_speech": 48.1333,
+   "t_file": 48.0753,
    "dur": 4.213,
    "speech_dur": 3.605,
    "gain_db": 0.0,
@@ -2361,10 +2361,10 @@
   {
    "id": "N07a",
    "file": "assets/audio/voice/N07a.wav",
-   "t_speech": 55.6333,
-   "t_file": 55.5733,
-   "dur": 3.303,
-   "speech_dur": 2.693,
+   "t_speech": 55.7333,
+   "t_file": 55.6733,
+   "dur": 3.331,
+   "speech_dur": 2.721,
    "gain_db": 0.0,
    "kind": "narrator",
    "shot": "S4h",
@@ -2376,10 +2376,10 @@
   {
    "id": "N07b",
    "file": "assets/audio/voice/N07b.wav",
-   "t_speech": 58.6763,
-   "t_file": 58.6163,
-   "dur": 2.208,
-   "speech_dur": 1.598,
+   "t_speech": 58.8043,
+   "t_file": 58.7443,
+   "dur": 2.16,
+   "speech_dur": 1.55,
    "gain_db": 0.0,
    "kind": "narrator",
    "shot": "S4h",
@@ -2391,8 +2391,8 @@
   {
    "id": "E_DOGAN",
    "file": "assets/audio/voice/E_DOGAN.wav",
-   "t_speech": 60.3833,
-   "t_file": 59.7303,
+   "t_speech": 60.6833,
+   "t_file": 60.0303,
    "dur": 2.243,
    "speech_dur": 0.652,
    "gain_db": 0.0,
@@ -2406,8 +2406,8 @@
   {
    "id": "E_GABRIEL",
    "file": "assets/audio/voice/E_GABRIEL.wav",
-   "t_speech": 60.9833,
-   "t_file": 60.3313,
+   "t_speech": 61.2833,
+   "t_file": 60.6313,
    "dur": 2.471,
    "speech_dur": 0.755,
    "gain_db": 0.0,
@@ -2421,8 +2421,8 @@
   {
    "id": "E_HUGO",
    "file": "assets/audio/voice/E_HUGO.wav",
-   "t_speech": 61.5833,
-   "t_file": 60.9323,
+   "t_speech": 61.8833,
+   "t_file": 61.2323,
    "dur": 2.196,
    "speech_dur": 0.394,
    "gain_db": 0.0,
@@ -2436,8 +2436,8 @@
   {
    "id": "E_ARSENE",
    "file": "assets/audio/voice/E_ARSENE.wav",
-   "t_speech": 62.1833,
-   "t_file": 61.5303,
+   "t_speech": 62.4833,
+   "t_file": 61.8303,
    "dur": 2.369,
    "speech_dur": 0.741,
    "gain_db": 0.0,
@@ -2451,10 +2451,10 @@
   {
    "id": "N08a",
    "file": "assets/audio/voice/N08a.wav",
-   "t_speech": 63.0833,
-   "t_file": 63.0233,
-   "dur": 2.533,
-   "speech_dur": 1.922,
+   "t_speech": 63.3833,
+   "t_file": 63.3233,
+   "dur": 2.541,
+   "speech_dur": 1.93,
    "gain_db": 0.0,
    "kind": "narrator",
    "shot": "S4m",
@@ -2466,8 +2466,8 @@
   {
    "id": "N08b",
    "file": "assets/audio/voice/N08b.wav",
-   "t_speech": 65.4553,
-   "t_file": 65.3973,
+   "t_speech": 65.7633,
+   "t_file": 65.7053,
    "dur": 2.122,
    "speech_dur": 1.515,
    "gain_db": 0.0,
@@ -2481,10 +2481,10 @@
   {
    "id": "N09a",
    "file": "assets/audio/voice/N09a.wav",
-   "t_speech": 71.2333,
-   "t_file": 71.1733,
-   "dur": 2.949,
-   "speech_dur": 2.339,
+   "t_speech": 71.5333,
+   "t_file": 71.4733,
+   "dur": 2.886,
+   "speech_dur": 2.276,
    "gain_db": 0.0,
    "kind": "narrator",
    "shot": "S5a",
@@ -2496,10 +2496,10 @@
   {
    "id": "N09b",
    "file": "assets/audio/voice/N09b.wav",
-   "t_speech": 74.0223,
-   "t_file": 73.9603,
-   "dur": 1.187,
-   "speech_dur": 0.576,
+   "t_speech": 74.2593,
+   "t_file": 74.1983,
+   "dur": 1.173,
+   "speech_dur": 0.562,
    "gain_db": 0.0,
    "kind": "narrator",
    "shot": "S5a",
@@ -2511,8 +2511,8 @@
   {
    "id": "E_CQL",
    "file": "assets/audio/voice/E_CQL.wav",
-   "t_speech": 84.4333,
-   "t_file": 84.2853,
+   "t_speech": 84.7333,
+   "t_file": 84.5853,
    "dur": 1.248,
    "speech_dur": 0.766,
    "gain_db": 0.0,
@@ -2526,8 +2526,8 @@
   {
    "id": "E_IDENT",
    "file": "assets/audio/voice/E_IDENT.wav",
-   "t_speech": 90.2167,
-   "t_file": 89.1647,
+   "t_speech": 90.5167,
+   "t_file": 89.4647,
    "dur": 4.018,
    "speech_dur": 1.558,
    "gain_db": 0.0,
@@ -2548,176 +2548,176 @@
    "shot": "S1a"
   },
   {
-   "start": 6.3,
-   "end": 8.39,
+   "start": 6.4,
+   "end": 8.49,
    "text": "Le 30 octobre 2026,",
    "kind": "narrator",
    "voice": "N01"
   },
   {
-   "start": 8.43,
-   "end": 11.31,
+   "start": 8.53,
+   "end": 11.41,
    "text": "quatre amis ont pris la route\npour un escape game.",
    "kind": "narrator",
    "voice": "N01"
   },
   {
-   "start": 11.35,
-   "end": 13.424,
+   "start": 11.45,
+   "end": 13.524,
    "text": "Ils se sont filmés\ntoute la soirée.",
    "kind": "narrator",
    "voice": "N02"
   },
   {
-   "start": 13.5,
-   "end": 15.379,
+   "start": 13.6,
+   "end": 15.479,
    "text": "Voici ce qu'ils ont filmé.",
    "kind": "narrator",
    "voice": "N03"
   },
   {
-   "start": 18.1,
-   "end": 19.1,
+   "start": 18.2,
+   "end": 19.2,
    "text": "Tu sais quand il vient ?",
    "kind": "dialogue",
    "shot": "S2j"
   },
   {
-   "start": 19.25,
-   "end": 20.6667,
+   "start": 19.35,
+   "end": 20.7667,
    "text": "Il vient directement, lui.",
    "kind": "dialogue",
    "shot": "S2k"
   },
   {
-   "start": 22.2,
-   "end": 24.3,
+   "start": 22.3,
+   "end": 24.4,
    "text": "T'as entendu le bruit ?",
    "kind": "dialogue",
    "shot": "S3a"
   },
   {
-   "start": 25.1,
-   "end": 27.3,
+   "start": 25.2,
+   "end": 27.4,
    "text": "Je crois qu'il y a un gars là.",
    "kind": "dialogue",
    "shot": "S3a"
   },
   {
-   "start": 28.3,
-   "end": 29.7,
+   "start": 28.4,
+   "end": 29.8,
    "text": "C'est qui lui ?",
    "kind": "dialogue",
    "shot": "S3a"
   },
   {
-   "start": 32.5,
-   "end": 33.8,
+   "start": 32.6,
+   "end": 33.9,
    "text": "Oh putain !",
    "kind": "dialogue",
    "shot": "S3a"
   },
   {
-   "start": 34.4,
-   "end": 35.958,
+   "start": 34.5,
+   "end": 36.058,
    "text": "Ils ne l'ont jamais revu.",
    "kind": "narrator",
    "voice": "N04"
   },
   {
-   "start": 36.65,
-   "end": 38.729,
+   "start": 36.75,
+   "end": 38.829,
    "text": "Lui ne les a plus jamais quittés.",
    "kind": "narrator",
    "voice": "N05"
   },
   {
-   "start": 39.7,
-   "end": 43.1,
+   "start": 39.8,
+   "end": 43.2,
    "text": "Identification terminée.",
    "kind": "dialogue",
    "shot": "S4a"
   },
   {
-   "start": 43.55,
-   "end": 45.408,
+   "start": 43.65,
+   "end": 45.508,
    "text": "Identification terminée.",
    "kind": "entity",
    "voice": "E_IDENT"
   },
   {
-   "start": 46.4333,
-   "end": 47.6333,
+   "start": 46.5333,
+   "end": 47.7333,
    "text": "C'est quoi ça ?",
    "kind": "dialogue",
    "shot": "S4d"
   },
   {
-   "start": 48.0333,
-   "end": 51.9383,
+   "start": 48.1333,
+   "end": 52.0383,
    "text": "Les organisateurs jurent que cette\npièce ne fait pas partie du jeu.",
    "kind": "narrator",
    "voice": "N06"
   },
   {
-   "start": 55.6333,
-   "end": 58.6263,
+   "start": 55.7333,
+   "end": 58.7543,
    "text": "À 22h12, Dogan s'est mis au piano.",
    "kind": "narrator",
    "voice": "N07a"
   },
   {
-   "start": 58.6763,
-   "end": 60.5743,
+   "start": 58.8043,
+   "end": 60.6543,
    "text": "Il ne se souvient\npas d'avoir joué.",
    "kind": "narrator",
    "voice": "N07b"
   },
   {
-   "start": 60.9833,
-   "end": 62.0383,
+   "start": 61.2833,
+   "end": 62.3383,
    "text": "Gabriel…",
    "kind": "entity",
    "voice": "E_GABRIEL"
   },
   {
-   "start": 63.0833,
-   "end": 65.3053,
+   "start": 63.3833,
+   "end": 65.6133,
    "text": "Sur la photo, ils sont quatre.",
    "kind": "narrator",
    "voice": "N08a"
   },
   {
-   "start": 65.4553,
-   "end": 67.2703,
+   "start": 65.7633,
+   "end": 67.5783,
    "text": "Regardez derrière eux.",
    "kind": "narrator",
    "voice": "N08b"
   },
   {
-   "start": 71.2333,
-   "end": 73.8723,
+   "start": 71.5333,
+   "end": 74.1093,
    "text": "À 23h, tout était fini.",
    "kind": "narrator",
    "voice": "N09a"
   },
   {
-   "start": 74.0223,
-   "end": 74.8983,
+   "start": 74.2593,
+   "end": 75.1213,
    "text": "Ils riaient.",
    "kind": "narrator",
    "voice": "N09b"
   },
   {
-   "start": 84.4333,
-   "end": 85.4993,
+   "start": 84.7333,
+   "end": 85.7993,
    "text": "C'est qui lui ?",
    "kind": "entity",
    "voice": "E_CQL"
   },
   {
-   "start": 90.2167,
-   "end": 92.0747,
+   "start": 90.5167,
+   "end": 92.3747,
    "text": "Identification terminée.",
    "kind": "entity",
    "voice": "E_IDENT"
@@ -2725,15 +2725,17 @@
  ],
  "cues": [
   {
-   "t": 2.3,
+   "t": 2.4,
    "sfx": "impact_big",
    "gain_db": -1,
+   "params": {
+    "pre_silence": 0.2
+   },
    "dur": null,
-   "params": {},
    "shot": "S1b"
   },
   {
-   "t": 2.3,
+   "t": 2.4,
    "sfx": "braam",
    "gain_db": -5,
    "dur": null,
@@ -2741,7 +2743,7 @@
    "shot": "S1b"
   },
   {
-   "t": 2.3,
+   "t": 2.4,
    "sfx": "freeze_thump",
    "gain_db": -6,
    "dur": null,
@@ -2749,7 +2751,7 @@
    "shot": "S1b"
   },
   {
-   "t": 2.45,
+   "t": 2.55,
    "sfx": "tinnitus",
    "dur": 0.8,
    "gain_db": -24,
@@ -2757,7 +2759,7 @@
    "shot": "S1b"
   },
   {
-   "t": 3.2333,
+   "t": 3.3333,
    "sfx": "sub_drop",
    "gain_db": -6,
    "dur": null,
@@ -2765,7 +2767,7 @@
    "shot": "S1c"
   },
   {
-   "t": 3.7,
+   "t": 3.8,
    "sfx": "reverse_swell",
    "dur": 1.2,
    "gain_db": -18,
@@ -2773,7 +2775,7 @@
    "shot": "S2a"
   },
   {
-   "t": 15.15,
+   "t": 15.25,
    "sfx": "vhs_click",
    "gain_db": -10,
    "dur": null,
@@ -2781,7 +2783,7 @@
    "shot": "S2e"
   },
   {
-   "t": 15.3,
+   "t": 15.4,
    "sfx": "whoosh_rev",
    "dur": 0.25,
    "gain_db": -16,
@@ -2789,7 +2791,7 @@
    "shot": "S2f"
   },
   {
-   "t": 15.5,
+   "t": 15.6,
    "sfx": "freeze_thump",
    "gain_db": -8,
    "dur": null,
@@ -2797,7 +2799,7 @@
    "shot": "S2f"
   },
   {
-   "t": 16.2,
+   "t": 16.3,
    "sfx": "whoosh_rev",
    "dur": 0.25,
    "gain_db": -16,
@@ -2805,7 +2807,7 @@
    "shot": "S2g"
   },
   {
-   "t": 16.4,
+   "t": 16.5,
    "sfx": "freeze_thump",
    "gain_db": -8,
    "dur": null,
@@ -2813,7 +2815,7 @@
    "shot": "S2g"
   },
   {
-   "t": 17.1,
+   "t": 17.2,
    "sfx": "freeze_thump",
    "gain_db": -8,
    "dur": null,
@@ -2821,15 +2823,17 @@
    "shot": "S2i"
   },
   {
-   "t": 20.6667,
+   "t": 20.7667,
    "sfx": "impact_hit",
    "gain_db": -4,
+   "params": {
+    "pre_silence": 0.35
+   },
    "dur": null,
-   "params": {},
    "shot": "S2l"
   },
   {
-   "t": 20.6667,
+   "t": 20.7667,
    "sfx": "glitch_short",
    "gain_db": -14,
    "dur": null,
@@ -2840,7 +2844,7 @@
    "sfx": "reverse_swell",
    "dur": 0.9,
    "gain_db": -12,
-   "t": 27.4,
+   "t": 27.5,
    "params": {},
    "shot": "S3a"
   },
@@ -2848,14 +2852,14 @@
    "sfx": "whoosh_rev",
    "dur": 0.45,
    "gain_db": -14,
-   "t": 32.05,
+   "t": 32.15,
    "params": {},
    "shot": "S3a"
   },
   {
    "sfx": "impact_big",
    "gain_db": -2,
-   "t": 33.8,
+   "t": 33.9,
    "dur": null,
    "params": {},
    "shot": "S3a"
@@ -2863,13 +2867,13 @@
   {
    "sfx": "braam_long",
    "gain_db": -5,
-   "t": 33.8,
+   "t": 33.9,
    "dur": null,
    "params": {},
    "shot": "S3a"
   },
   {
-   "t": 38.079,
+   "t": 38.179,
    "sfx": "impact_sub",
    "gain_db": -3,
    "dur": null,
@@ -2877,7 +2881,7 @@
    "shot": "S3c"
   },
   {
-   "t": 38.079,
+   "t": 38.179,
    "sfx": "sub_drop",
    "gain_db": -8,
    "dur": null,
@@ -2885,7 +2889,7 @@
    "shot": "S3c"
   },
   {
-   "t": 39.15,
+   "t": 39.25,
    "sfx": "scan_sweep",
    "gain_db": -14,
    "dur": null,
@@ -2893,7 +2897,7 @@
    "shot": "S4a"
   },
   {
-   "t": 39.35,
+   "t": 39.45,
    "sfx": "hud_lock",
    "gain_db": -11.0,
    "dur": null,
@@ -2902,7 +2906,7 @@
    "generated": true
   },
   {
-   "t": 39.77,
+   "t": 39.87,
    "sfx": "hud_lock",
    "gain_db": -11.0,
    "dur": null,
@@ -2911,7 +2915,7 @@
    "generated": true
   },
   {
-   "t": 40.19,
+   "t": 40.29,
    "sfx": "hud_lock",
    "gain_db": -11.0,
    "dur": null,
@@ -2920,7 +2924,7 @@
    "generated": true
   },
   {
-   "t": 40.61,
+   "t": 40.71,
    "sfx": "hud_lock",
    "gain_db": -11.0,
    "dur": null,
@@ -2929,7 +2933,7 @@
    "generated": true
   },
   {
-   "t": 43.4,
+   "t": 43.5,
    "sfx": "glitch_long",
    "gain_db": -12,
    "dur": null,
@@ -2937,7 +2941,7 @@
    "shot": "S4b"
   },
   {
-   "t": 43.4,
+   "t": 43.5,
    "sfx": "impact_sub",
    "gain_db": -10,
    "dur": null,
@@ -2945,7 +2949,7 @@
    "shot": "S4b"
   },
   {
-   "t": 44.9333,
+   "t": 45.0333,
    "sfx": "impact_hit",
    "gain_db": -4,
    "dur": null,
@@ -2953,7 +2957,7 @@
    "shot": "S4c"
   },
   {
-   "t": 45.6333,
+   "t": 45.7333,
    "sfx": "drip",
    "dur": 3.0,
    "gain_db": -20,
@@ -2961,7 +2965,7 @@
    "shot": "S4d"
   },
   {
-   "t": 51.8333,
+   "t": 51.9333,
    "sfx": "whoosh_rev",
    "dur": 0.5,
    "gain_db": -16,
@@ -2969,7 +2973,7 @@
    "shot": "S4f"
   },
   {
-   "t": 52.1333,
+   "t": 52.2333,
    "sfx": "creak",
    "gain_db": -16,
    "dur": null,
@@ -2977,7 +2981,7 @@
    "shot": "S4f"
   },
   {
-   "t": 60.3333,
+   "t": 60.6333,
    "sfx": "glitch_short",
    "gain_db": -12,
    "dur": null,
@@ -2985,7 +2989,7 @@
    "shot": "S4i"
   },
   {
-   "t": 60.9333,
+   "t": 61.2333,
    "sfx": "glitch_short",
    "gain_db": -12,
    "dur": null,
@@ -2993,7 +2997,7 @@
    "shot": "S4j"
   },
   {
-   "t": 61.5333,
+   "t": 61.8333,
    "sfx": "glitch_short",
    "gain_db": -12,
    "dur": null,
@@ -3001,7 +3005,7 @@
    "shot": "S4k"
   },
   {
-   "t": 62.1333,
+   "t": 62.4333,
    "sfx": "glitch_short",
    "gain_db": -12,
    "dur": null,
@@ -3009,7 +3013,7 @@
    "shot": "S4l"
   },
   {
-   "t": 62.6333,
+   "t": 62.9333,
    "sfx": "whoosh",
    "dur": 0.4,
    "gain_db": -14,
@@ -3017,7 +3021,7 @@
    "shot": "S4l"
   },
   {
-   "t": 63.2333,
+   "t": 63.5333,
    "sfx": "marker_scribble",
    "gain_db": -14,
    "dur": null,
@@ -3025,7 +3029,7 @@
    "shot": "S4m"
   },
   {
-   "t": 63.6133,
+   "t": 63.9133,
    "sfx": "marker_scribble",
    "gain_db": -14,
    "dur": null,
@@ -3033,7 +3037,7 @@
    "shot": "S4m"
   },
   {
-   "t": 63.9933,
+   "t": 64.2933,
    "sfx": "marker_scribble",
    "gain_db": -14,
    "dur": null,
@@ -3041,7 +3045,7 @@
    "shot": "S4m"
   },
   {
-   "t": 64.3733,
+   "t": 64.6733,
    "sfx": "marker_scribble",
    "gain_db": -14,
    "dur": null,
@@ -3049,7 +3053,7 @@
    "shot": "S4m"
   },
   {
-   "t": 67.2833,
+   "t": 67.5833,
    "sfx": "braam",
    "gain_db": -4,
    "dur": null,
@@ -3057,7 +3061,7 @@
    "shot": "S4m"
   },
   {
-   "t": 67.2833,
+   "t": 67.5833,
    "sfx": "impact_sub",
    "gain_db": -8,
    "dur": null,
@@ -3065,7 +3069,7 @@
    "shot": "S4m"
   },
   {
-   "t": 67.6833,
+   "t": 67.9833,
    "sfx": "marker_scribble",
    "gain_db": -10,
    "dur": null,
@@ -3073,7 +3077,7 @@
    "shot": "S4m"
   },
   {
-   "t": 68.3333,
+   "t": 68.6333,
    "sfx": "riser",
    "dur": 1.65,
    "gain_db": -8,
@@ -3081,7 +3085,7 @@
    "shot": "S4n"
   },
   {
-   "t": 68.6333,
+   "t": 68.9333,
    "sfx": "impact_hit",
    "gain_db": -14.0,
    "dur": null,
@@ -3090,7 +3094,7 @@
    "generated": true
   },
   {
-   "t": 68.9,
+   "t": 69.2,
    "sfx": "impact_hit",
    "gain_db": -14.0,
    "dur": null,
@@ -3099,25 +3103,7 @@
    "generated": true
   },
   {
-   "t": 69.1333,
-   "sfx": "impact_hit",
-   "gain_db": -14.0,
-   "dur": null,
-   "params": {},
-   "shot": "S4n",
-   "generated": true
-  },
-  {
-   "t": 69.3333,
-   "sfx": "impact_hit",
-   "gain_db": -14.0,
-   "dur": null,
-   "params": {},
-   "shot": "S4n",
-   "generated": true
-  },
-  {
-   "t": 69.5,
+   "t": 69.4333,
    "sfx": "impact_hit",
    "gain_db": -14.0,
    "dur": null,
@@ -3135,7 +3121,7 @@
    "generated": true
   },
   {
-   "t": 69.7333,
+   "t": 69.8,
    "sfx": "impact_hit",
    "gain_db": -14.0,
    "dur": null,
@@ -3144,7 +3130,7 @@
    "generated": true
   },
   {
-   "t": 69.8333,
+   "t": 69.9333,
    "sfx": "impact_hit",
    "gain_db": -14.0,
    "dur": null,
@@ -3153,7 +3139,25 @@
    "generated": true
   },
   {
-   "t": 77.9333,
+   "t": 70.0333,
+   "sfx": "impact_hit",
+   "gain_db": -14.0,
+   "dur": null,
+   "params": {},
+   "shot": "S4n",
+   "generated": true
+  },
+  {
+   "t": 70.1333,
+   "sfx": "impact_hit",
+   "gain_db": -14.0,
+   "dur": null,
+   "params": {},
+   "shot": "S4n",
+   "generated": true
+  },
+  {
+   "t": 78.2333,
    "sfx": "reverse_swell",
    "dur": 1.4,
    "gain_db": -8,
@@ -3161,7 +3165,7 @@
    "shot": "S5c"
   },
   {
-   "t": 79.3133,
+   "t": 79.6133,
    "sfx": "sub_drop",
    "gain_db": -8,
    "dur": null,
@@ -3169,7 +3173,7 @@
    "shot": "S5c"
   },
   {
-   "t": 80.9333,
+   "t": 81.2333,
    "sfx": "tinnitus",
    "dur": 2.0,
    "gain_db": -30,
@@ -3178,7 +3182,7 @@
    "shot": "S6b"
   },
   {
-   "t": 85.4333,
+   "t": 85.7333,
    "sfx": "screamer_stack",
    "gain_db": 0.0,
    "dur": null,
@@ -3186,7 +3190,7 @@
    "shot": "S6e"
   },
   {
-   "t": 85.4333,
+   "t": 85.7333,
    "sfx": "impact_big",
    "gain_db": 0.0,
    "dur": null,
@@ -3194,7 +3198,7 @@
    "shot": "S6e"
   },
   {
-   "t": 87.3167,
+   "t": 87.6167,
    "sfx": "car_pass",
    "gain_db": -10,
    "dur": null,
@@ -3202,7 +3206,7 @@
    "shot": "S7a"
   },
   {
-   "t": 88.0667,
+   "t": 88.3667,
    "sfx": "impact_sub",
    "gain_db": -6,
    "dur": null,
@@ -3210,7 +3214,7 @@
    "shot": "S7a"
   },
   {
-   "t": 89.7167,
+   "t": 90.0167,
    "sfx": "piano_note",
    "gain_db": -6,
    "dur": null,
@@ -3222,7 +3226,7 @@
   {
    "kind": "drone_low",
    "t0": 0.0,
-   "t1": 3.6333,
+   "t1": 3.7333,
    "gain_db": -24.0,
    "fade_in": 0.4,
    "fade_out": 0.3,
@@ -3232,8 +3236,8 @@
   },
   {
    "kind": "drone_low",
-   "t0": 3.7,
-   "t1": 18.0,
+   "t0": 3.8,
+   "t1": 18.1,
    "gain_db": -17.0,
    "fade_in": 1.8,
    "fade_out": 0.4,
@@ -3245,8 +3249,8 @@
   },
   {
    "kind": "music_box_leitmotif",
-   "t0": 6.2,
-   "t1": 18.0,
+   "t0": 6.3,
+   "t1": 18.1,
    "gain_db": -27.0,
    "fade_in": 1.0,
    "fade_out": 0.3,
@@ -3256,8 +3260,8 @@
   },
   {
    "kind": "drone_low",
-   "t0": 18.0,
-   "t1": 20.1167,
+   "t0": 18.1,
+   "t1": 20.2167,
    "gain_db": -27.0,
    "fade_in": 0.0,
    "fade_out": 0.25,
@@ -3269,19 +3273,19 @@
   },
   {
    "kind": "drone_tension",
-   "t0": 21.9,
-   "t1": 34.2,
+   "t0": 22.0,
+   "t1": 34.3,
    "gain_db": -30.0,
    "fade_in": 0.0,
    "fade_out": 0.0,
    "duck": 4.0,
    "automation": [
     [
-     21.9,
+     22.0,
      -30.0
     ],
     [
-     34.2,
+     34.3,
      -13.0
     ]
    ],
@@ -3289,8 +3293,8 @@
   },
   {
    "kind": "heartbeat",
-   "t0": 23.9,
-   "t1": 33.6,
+   "t0": 24.0,
+   "t1": 33.7,
    "gain_db": -15.0,
    "fade_in": 0.0,
    "fade_out": 0.0,
@@ -3303,8 +3307,8 @@
   },
   {
    "kind": "riser",
-   "t0": 29.85,
-   "t1": 33.87,
+   "t0": 29.95,
+   "t1": 33.97,
    "gain_db": -15.0,
    "fade_in": 0.0,
    "fade_out": 0.0,
@@ -3314,8 +3318,8 @@
   },
   {
    "kind": "drone_low",
-   "t0": 33.6,
-   "t1": 38.9,
+   "t0": 33.7,
+   "t1": 39.0,
    "gain_db": -16.0,
    "fade_in": 0.0,
    "fade_out": 0.6,
@@ -3328,8 +3332,8 @@
   },
   {
    "kind": "clock_tick",
-   "t0": 38.9,
-   "t1": 55.3333,
+   "t0": 39.0,
+   "t1": 55.4333,
    "gain_db": -24.0,
    "fade_in": 0.0,
    "fade_out": 0.0,
@@ -3341,8 +3345,8 @@
   },
   {
    "kind": "drone_low",
-   "t0": 38.9,
-   "t1": 66.6333,
+   "t0": 39.0,
+   "t1": 66.9333,
    "gain_db": -18.0,
    "fade_in": 0.6,
    "fade_out": 0.05,
@@ -3354,8 +3358,8 @@
   },
   {
    "kind": "drone_tension",
-   "t0": 45.6333,
-   "t1": 55.3333,
+   "t0": 45.7333,
+   "t1": 55.4333,
    "gain_db": -24.0,
    "fade_in": 0.5,
    "fade_out": 0.4,
@@ -3365,8 +3369,8 @@
   },
   {
    "kind": "drone_tension",
-   "t0": 60.3333,
-   "t1": 62.7333,
+   "t0": 60.6333,
+   "t1": 63.0333,
    "gain_db": -17.0,
    "fade_in": 0.0,
    "fade_out": 0.0,
@@ -3378,8 +3382,8 @@
   },
   {
    "kind": "drone_low",
-   "t0": 67.2333,
-   "t1": 70.0,
+   "t0": 67.5333,
+   "t1": 70.3,
    "gain_db": -15.0,
    "fade_in": 0.0,
    "fade_out": 0.02,
@@ -3392,8 +3396,8 @@
   },
   {
    "kind": "warm_pad",
-   "t0": 70.3333,
-   "t1": 76.3333,
+   "t0": 70.6333,
+   "t1": 76.6333,
    "gain_db": -22.0,
    "fade_in": 0.6,
    "fade_out": 0.8,
@@ -3403,8 +3407,8 @@
   },
   {
    "kind": "drone_low",
-   "t0": 75.9333,
-   "t1": 79.3333,
+   "t0": 76.2333,
+   "t1": 79.6333,
    "gain_db": -18.0,
    "fade_in": 1.5,
    "fade_out": 0.02,
@@ -3417,8 +3421,8 @@
   },
   {
    "kind": "piano_reverse",
-   "t0": 75.9333,
-   "t1": 79.3333,
+   "t0": 76.2333,
+   "t1": 79.6333,
    "gain_db": -20.0,
    "fade_in": 0.8,
    "fade_out": 0.05,
@@ -3428,8 +3432,8 @@
   },
   {
    "kind": "wind",
-   "t0": 79.6333,
-   "t1": 82.9333,
+   "t0": 79.9333,
+   "t1": 83.2333,
    "gain_db": -26.0,
    "fade_in": 0.3,
    "fade_out": 0.02,
@@ -3439,8 +3443,8 @@
   },
   {
    "kind": "heartbeat",
-   "t0": 79.6333,
-   "t1": 82.9333,
+   "t0": 79.9333,
+   "t1": 83.2333,
    "gain_db": -14.0,
    "fade_in": 0.0,
    "fade_out": 0.0,
@@ -3453,8 +3457,8 @@
   },
   {
    "kind": "wind",
-   "t0": 86.9667,
-   "t1": 93.2333,
+   "t0": 87.2667,
+   "t1": 93.5333,
    "gain_db": -22.0,
    "fade_in": 0.2,
    "fade_out": 0.6,
@@ -3464,8 +3468,8 @@
   },
   {
    "kind": "drone_low",
-   "t0": 86.9667,
-   "t1": 93.2333,
+   "t0": 87.2667,
+   "t1": 93.5333,
    "gain_db": -19.0,
    "fade_in": 0.6,
    "fade_out": 0.6,
@@ -3478,17 +3482,21 @@
  ],
  "silence": [
   [
-   82.9333,
-   85.4333
+   70.3,
+   70.6333
+  ],
+  [
+   83.2333,
+   85.7333
   ]
  ],
  "src_audio": [
   {
    "clip": "IMG_8346",
    "src_in": 5.6,
-   "src_out": 7.9,
+   "src_out": 8.0,
    "t": 0.0,
-   "dur": 2.3,
+   "dur": 2.4,
    "speed": 1.0,
    "gain_db": 1.0,
    "fade_in": 0.01,
@@ -3501,7 +3509,7 @@
    "clip": "IMG_8336",
    "src_in": 1.0,
    "src_out": 3.6,
-   "t": 6.0,
+   "t": 6.1,
    "dur": 2.6,
    "speed": 1.0,
    "gain_db": -14.0,
@@ -3515,7 +3523,7 @@
    "clip": "IMG_8342",
    "src_in": 1.0,
    "src_out": 3.4,
-   "t": 8.6,
+   "t": 8.7,
    "dur": 2.4,
    "speed": 1.0,
    "gain_db": -14.0,
@@ -3529,7 +3537,7 @@
    "clip": "IMG_8343",
    "src_in": 1.0,
    "src_out": 3.4,
-   "t": 11.0,
+   "t": 11.1,
    "dur": 2.4,
    "speed": 1.0,
    "gain_db": -16.0,
@@ -3543,7 +3551,7 @@
    "clip": "IMG_8345",
    "src_in": 1.0,
    "src_out": 2.9,
-   "t": 13.4,
+   "t": 13.5,
    "dur": 1.9,
    "speed": 1.0,
    "gain_db": -16.0,
@@ -3557,7 +3565,7 @@
    "clip": "IMG_8338",
    "src_in": 0.4,
    "src_out": 1.6,
-   "t": 18.0,
+   "t": 18.1,
    "dur": 1.2,
    "speed": 1.0,
    "gain_db": 2.0,
@@ -3571,7 +3579,7 @@
    "clip": "IMG_8338",
    "src_in": 2.3,
    "src_out": 3.7667,
-   "t": 19.2,
+   "t": 19.3,
    "dur": 1.4667,
    "speed": 1.0,
    "gain_db": 2.0,
@@ -3585,7 +3593,7 @@
    "clip": "IMG_8338",
    "src_in": 4.6,
    "src_out": 5.5,
-   "t": 20.6667,
+   "t": 20.7667,
    "dur": 0.9,
    "speed": 1.0,
    "gain_db": 3.0,
@@ -3599,7 +3607,7 @@
    "clip": "IMG_8346",
    "src_in": 0.0,
    "src_out": 12.3,
-   "t": 21.9,
+   "t": 22.0,
    "dur": 12.3,
    "speed": 1.0,
    "gain_db": 1.5,
@@ -3613,7 +3621,7 @@
    "clip": "IMG_8347",
    "src_in": 3.4,
    "src_out": 7.9,
-   "t": 38.9,
+   "t": 39.0,
    "dur": 4.5,
    "speed": 1.0,
    "gain_db": 2.0,
@@ -3627,7 +3635,7 @@
    "clip": "IMG_8347",
    "src_in": 10.7,
    "src_out": 11.4,
-   "t": 44.9333,
+   "t": 45.0333,
    "dur": 0.7,
    "speed": 1.0,
    "gain_db": 2.0,
@@ -3641,7 +3649,7 @@
    "clip": "IMG_8348",
    "src_in": 6.8,
    "src_out": 9.0,
-   "t": 45.6333,
+   "t": 45.7333,
    "dur": 2.2,
    "speed": 1.0,
    "gain_db": 2.0,
@@ -3655,7 +3663,7 @@
    "clip": "IMG_8348",
    "src_in": 2.0,
    "src_out": 6.0,
-   "t": 47.8333,
+   "t": 47.9333,
    "dur": 4.0,
    "speed": 1.0,
    "gain_db": -12.0,
@@ -3669,7 +3677,7 @@
    "clip": "IMG_8349",
    "src_in": 1.0,
    "src_out": 2.7,
-   "t": 51.8333,
+   "t": 51.9333,
    "dur": 1.7,
    "speed": 1.0,
    "gain_db": -10.0,
@@ -3683,7 +3691,7 @@
    "clip": "IMG_8349",
    "src_in": 7.6,
    "src_out": 9.4,
-   "t": 53.5333,
+   "t": 53.6333,
    "dur": 1.8,
    "speed": 1.0,
    "gain_db": -6.0,
@@ -3696,9 +3704,9 @@
   {
    "clip": "IMG_8354",
    "src_in": 1.0,
-   "src_out": 5.76,
-   "t": 55.3333,
-   "dur": 5.0,
+   "src_out": 5.88,
+   "t": 55.4333,
+   "dur": 5.2,
    "speed": 1.0,
    "gain_db": 0.0,
    "fade_in": 0.01,
@@ -3724,7 +3732,7 @@
    "clip": "IMG_8355",
    "src_in": 2.0,
    "src_out": 6.4,
-   "t": 70.3333,
+   "t": 70.6333,
    "dur": 4.4,
    "speed": 1.0,
    "gain_db": -3.0,
@@ -3738,7 +3746,7 @@
    "clip": "IMG_8356",
    "src_in": 3.0,
    "src_out": 5.75,
-   "t": 74.7333,
+   "t": 75.0333,
    "dur": 3.2,
    "speed": 1.0,
    "gain_db": 0.0,
@@ -3765,7 +3773,7 @@
    "clip": "IMG_8357",
    "src_in": 4.0,
    "src_out": 5.3,
-   "t": 79.6333,
+   "t": 79.9333,
    "dur": 1.3,
    "speed": 1.0,
    "gain_db": -8.0,
@@ -3779,7 +3787,7 @@
    "clip": "IMG_8357",
    "src_in": 5.3,
    "src_out": 6.4,
-   "t": 80.9333,
+   "t": 81.2333,
    "dur": 1.1,
    "speed": 1.0,
    "gain_db": -10.0,
@@ -3793,7 +3801,7 @@
    "clip": "IMG_8357",
    "src_in": 6.4,
    "src_out": 7.3,
-   "t": 82.0333,
+   "t": 82.3333,
    "dur": 0.9,
    "speed": 1.0,
    "gain_db": -12.0,
@@ -3807,7 +3815,7 @@
    "clip": "IMG_8349",
    "src_in": 15.0,
    "src_out": 15.9333,
-   "t": 85.4333,
+   "t": 85.7333,
    "dur": 0.9333,
    "speed": 1.0,
    "gain_db": 6.0,
@@ -3824,7 +3832,7 @@
  ],
  "checks": {
   "duration_ok": true,
-  "duration": 93.2333,
+  "duration": 93.5333,
   "voice_voice": [
    [
     "E_DOGAN",

@@ -64,7 +64,7 @@ SHOTS: list[dict] = [
     # =====================================================================
     dict(id="S1a", section=1, label="accroche — silhouette dans les phares", kind="clip", clip="IMG_8346",
          src_in=A("c est qui lui", "start", -0.85, fallback=5.6),
-         src_out=A("c est qui lui", "end", 0.12, fallback=7.9),
+         src_out=A("c est qui lui", "end", 0.25, fallback=8.0),
          camera=dict(zoom=(1.0, 1.07), center="decision:silhouette_center_8346"),
          grade=dict(preset="cold"),
          audio=dict(src_gain_db=1.0),
@@ -74,7 +74,7 @@ SHOTS: list[dict] = [
          camera=dict(zoom=(1.07, 1.42), punch=0.22, center="decision:silhouette_center_8346"),
          grade=dict(preset="bleach"),
          fx=[dict(type="glitch", t0=0.0, t1=0.07, amount=1.0), dict(type="rgb_split", t0=0.0, t1=0.95, amount=0.4)],
-         cues=[dict(t=0.0, sfx="impact_big", gain_db=-1), dict(t=0.0, sfx="braam", gain_db=-5),
+         cues=[dict(t=0.0, sfx="impact_big", gain_db=-1, params=dict(pre_silence=0.2)), dict(t=0.0, sfx="braam", gain_db=-5),
                dict(t=0.0, sfx="freeze_thump", gain_db=-6), dict(t=0.15, sfx="tinnitus", dur=0.8, gain_db=-24)]),
     dict(id="S1c", section=1, label="noir", kind="black", dur=0.45,
          cues=[dict(t=0.0, sfx="sub_drop", gain_db=-6)]),
@@ -165,7 +165,7 @@ SHOTS: list[dict] = [
          grade=dict(preset="night_red"),
          audio=dict(src_gain_db=3.0, fade_out=0.05),
          fx=[dict(type="head_tic", t0=0.0, t1=0.9, amount=0.6), dict(type="glitch", t0=0.78, t1=0.9, amount=0.8)],
-         cues=[dict(t=0.0, sfx="impact_hit", gain_db=-4), dict(t=0.0, sfx="glitch_short", gain_db=-14)]),
+         cues=[dict(t=0.0, sfx="impact_hit", gain_db=-4, params=dict(pre_silence=0.35)), dict(t=0.0, sfx="glitch_short", gain_db=-14)]),
     dict(id="S2m", section=2, label="noir", kind="black", dur=0.35),
 
     # =====================================================================
@@ -268,7 +268,7 @@ SHOTS: list[dict] = [
          fx=[dict(type="head_tic", t0=0.3, t1=1.8, amount=0.5), dict(type="widen_eyes", t0=0.6, t1=None, amount=0.6, ramp=0.6)],
          overlays=[dict(type="timecode", text="21:00", date=TC_DATE)]),
     dict(id="S4h", section=4, label="piano — Dogan haut-de-forme", kind="clip", clip="IMG_8354",
-         src_in="decision:piano_8354_t", dur=5.0,
+         src_in="decision:piano_8354_t", dur=5.2,
          camera=dict(zoom=(1.0, 1.1), center="face"),
          grade=dict(preset="cold", warm_highlights=0.3),
          audio=dict(src_gain_db=0.0, src_fx=[dict(type="pitch_drift", t0=2.8, t1=5.0, semitones=-0.8),
@@ -339,7 +339,7 @@ SHOTS: list[dict] = [
          grade=dict(preset="cold"),
          audio=dict(mute_src=True),
          cues=[dict(t=0.0, sfx="riser", dur=1.65, gain_db=-8)]),  # + impact_hit léger à chaque coupe (auto)
-    dict(id="S4o", section=4, label="noir sec", kind="black", dur=0.35),
+    dict(id="S4o", section=4, label="noir sec", kind="black", dur=0.35, silence=True),
 
     # =====================================================================
     # 5. FAUX HAPPY END
