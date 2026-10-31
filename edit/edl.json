@@ -3,7 +3,7 @@
   "fps": 30,
   "w": 1080,
   "h": 1920,
-  "duration": 92.2,
+  "duration": 93.1333,
   "target": 92.0,
   "built_with": {
    "transcripts": false,
@@ -1263,12 +1263,12 @@
    "kind": "clip",
    "clip": "IMG_8340",
    "src_in": 8.8,
-   "src_out": 9.3333,
+   "src_out": 9.4,
    "speed": 1.0,
    "freeze_after": null,
    "start": 61.3667,
-   "dur": 0.5333,
-   "frames": 16,
+   "dur": 0.6,
+   "frames": 18,
    "camera": {
     "zoom": [
      1.1,
@@ -1284,13 +1284,13 @@
      "type": "black_eyes",
      "amount": 1.0,
      "t0": 0.0,
-     "t1": 0.5333
+     "t1": 0.6
     },
     {
      "type": "head_tic",
      "amount": 0.7,
      "t0": 0.0,
-     "t1": 0.5333
+     "t1": 0.6
     }
    ],
    "overlays": [],
@@ -1311,12 +1311,12 @@
    "kind": "clip",
    "clip": "IMG_8344",
    "src_in": 5.0,
-   "src_out": 5.5333,
+   "src_out": 5.6,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 61.9,
-   "dur": 0.5333,
-   "frames": 16,
+   "start": 61.9667,
+   "dur": 0.6,
+   "frames": 18,
    "camera": {
     "zoom": [
      1.1,
@@ -1333,13 +1333,13 @@
      "amount": 1.0,
      "ramp": 0.3,
      "t0": 0.0,
-     "t1": 0.5333
+     "t1": 0.6
     },
     {
      "type": "black_eyes",
      "amount": 1.0,
      "t0": 0.0,
-     "t1": 0.5333
+     "t1": 0.6
     }
    ],
    "overlays": [],
@@ -1360,12 +1360,12 @@
    "kind": "clip",
    "clip": "IMG_8339",
    "src_in": 1.5,
-   "src_out": 2.0333,
+   "src_out": 2.1,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 62.4333,
-   "dur": 0.5333,
-   "frames": 16,
+   "start": 62.5667,
+   "dur": 0.6,
+   "frames": 18,
    "camera": {
     "zoom": [
      1.1,
@@ -1382,13 +1382,13 @@
      "amount": 0.7,
      "ramp": 0.5,
      "t0": 0.0,
-     "t1": 0.5333
+     "t1": 0.6
     },
     {
      "type": "black_eyes",
      "amount": 1.0,
      "t0": 0.0,
-     "t1": 0.5333
+     "t1": 0.6
     },
     {
      "type": "negative",
@@ -1414,12 +1414,12 @@
    "kind": "clip",
    "clip": "IMG_8337",
    "src_in": 1.5,
-   "src_out": 2.0333,
+   "src_out": 2.1,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 62.9667,
-   "dur": 0.5333,
-   "frames": 16,
+   "start": 63.1667,
+   "dur": 0.6,
+   "frames": 18,
    "camera": {
     "zoom": [
      1.1,
@@ -1435,13 +1435,13 @@
      "type": "demon_face",
      "amount": 0.8,
      "t0": 0.0,
-     "t1": 0.5333
+     "t1": 0.6
     },
     {
      "type": "head_tic",
      "amount": 0.9,
      "t0": 0.0,
-     "t1": 0.5333
+     "t1": 0.6
     }
    ],
    "overlays": [],
@@ -1461,7 +1461,7 @@
    "label": "photo de groupe — regardez derrière eux",
    "kind": "photo",
    "photo": "IMG_8350",
-   "start": 63.5,
+   "start": 63.7667,
    "dur": 5.6,
    "frames": 168,
    "camera": {
@@ -1541,7 +1541,7 @@
    "section": 4,
    "label": "montage qui accélère",
    "kind": "montage",
-   "start": 69.1,
+   "start": 69.3667,
    "dur": 1.6667,
    "frames": 50,
    "grade": {
@@ -1650,7 +1650,7 @@
    "section": 4,
    "label": "noir sec",
    "kind": "black",
-   "start": 70.7667,
+   "start": 71.0333,
    "dur": 0.5,
    "frames": 15,
    "fx": [],
@@ -1675,7 +1675,7 @@
    "src_out": 5.6,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 71.2667,
+   "start": 71.5333,
    "dur": 3.6,
    "frames": 108,
    "camera": {
@@ -1727,7 +1727,7 @@
    "src_out": 5.75,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 74.8667,
+   "start": 75.1333,
    "dur": 3.2,
    "frames": 96,
    "camera": {
@@ -1819,7 +1819,7 @@
     "clip": "IMG_8356",
     "t": 5.7317
    },
-   "start": 78.0667,
+   "start": 78.3333,
    "dur": 1.4,
    "frames": 42,
    "camera": {
@@ -1879,7 +1879,7 @@
    "section": 5,
    "label": "noir",
    "kind": "black",
-   "start": 79.4667,
+   "start": 79.7333,
    "dur": 0.4,
    "frames": 12,
    "fx": [],
@@ -1904,7 +1904,7 @@
    "src_out": 5.3,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 79.8667,
+   "start": 80.1333,
    "dur": 1.3,
    "frames": 39,
    "camera": {
@@ -1967,7 +1967,7 @@
    "src_out": 6.4,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 81.1667,
+   "start": 81.4333,
    "dur": 1.1,
    "frames": 33,
    "camera": {
@@ -2030,7 +2030,7 @@
    "src_out": 7.3,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 82.2667,
+   "start": 82.5333,
    "dur": 0.9,
    "frames": 27,
    "camera": {
@@ -2092,7 +2092,7 @@
     "clip": "IMG_8357",
     "t": 7.2667
    },
-   "start": 83.1667,
+   "start": 83.4333,
    "dur": 2.0333,
    "frames": 61,
    "camera": {
@@ -2161,7 +2161,7 @@
    "src_out": 15.9333,
    "speed": 1.0,
    "freeze_after": null,
-   "start": 85.2,
+   "start": 85.4667,
    "dur": 0.9333,
    "frames": 28,
    "camera": {
@@ -2223,7 +2223,7 @@
    "section": 6,
    "label": "noir",
    "kind": "black",
-   "start": 86.1333,
+   "start": 86.4,
    "dur": 0.6,
    "frames": 18,
    "fx": [],
@@ -2243,7 +2243,7 @@
    "section": 7,
    "label": "titre 3D brouillard + phares",
    "kind": "title",
-   "start": 86.7333,
+   "start": 87.0,
    "dur": 5.0,
    "frames": 150,
    "fx": [],
@@ -2268,11 +2268,11 @@
   {
    "id": "S7b",
    "section": 7,
-   "label": "noir final",
+   "label": "noir final (traîne du chuchotement)",
    "kind": "black",
-   "start": 91.7333,
-   "dur": 0.4667,
-   "frames": 14,
+   "start": 92.0,
+   "dur": 1.1333,
+   "frames": 34,
    "fx": [],
    "overlays": [],
    "silhouette": null,
@@ -2430,8 +2430,8 @@
   {
    "id": "E_GABRIEL",
    "file": "assets/audio/voice/E_GABRIEL.wav",
-   "t_speech": 61.95,
-   "t_file": 61.296,
+   "t_speech": 62.0167,
+   "t_file": 61.3627,
    "dur": 2.255,
    "speech_dur": 0.55,
    "gain_db": 0.0,
@@ -2444,8 +2444,8 @@
   {
    "id": "E_HUGO",
    "file": "assets/audio/voice/E_HUGO.wav",
-   "t_speech": 62.4833,
-   "t_file": 61.8303,
+   "t_speech": 62.6167,
+   "t_file": 61.9637,
    "dur": 2.162,
    "speech_dur": 0.411,
    "gain_db": 0.0,
@@ -2458,8 +2458,8 @@
   {
    "id": "E_ARSENE",
    "file": "assets/audio/voice/E_ARSENE.wav",
-   "t_speech": 63.0167,
-   "t_file": 62.3637,
+   "t_speech": 63.2167,
+   "t_file": 62.5637,
    "dur": 2.409,
    "speech_dur": 0.747,
    "gain_db": 0.0,
@@ -2472,8 +2472,8 @@
   {
    "id": "N08a",
    "file": "assets/audio/voice/N08a.wav",
-   "t_speech": 63.85,
-   "t_file": 63.79,
+   "t_speech": 64.1167,
+   "t_file": 64.0567,
    "dur": 2.534,
    "speech_dur": 1.924,
    "gain_db": 0.0,
@@ -2486,8 +2486,8 @@
   {
    "id": "N08b",
    "file": "assets/audio/voice/N08b.wav",
-   "t_speech": 66.224,
-   "t_file": 66.162,
+   "t_speech": 66.4907,
+   "t_file": 66.4287,
    "dur": 2.177,
    "speech_dur": 1.565,
    "gain_db": 0.0,
@@ -2500,8 +2500,8 @@
   {
    "id": "N09a",
    "file": "assets/audio/voice/N09a.wav",
-   "t_speech": 71.5667,
-   "t_file": 71.5067,
+   "t_speech": 71.8333,
+   "t_file": 71.7733,
    "dur": 2.949,
    "speech_dur": 2.339,
    "gain_db": 0.0,
@@ -2514,8 +2514,8 @@
   {
    "id": "N09b",
    "file": "assets/audio/voice/N09b.wav",
-   "t_speech": 74.3057,
-   "t_file": 74.2457,
+   "t_speech": 74.5723,
+   "t_file": 74.5123,
    "dur": 1.222,
    "speech_dur": 0.612,
    "gain_db": 0.0,
@@ -2528,8 +2528,8 @@
   {
    "id": "E_CQL",
    "file": "assets/audio/voice/E_CQL.wav",
-   "t_speech": 84.1667,
-   "t_file": 83.6827,
+   "t_speech": 84.4333,
+   "t_file": 83.9493,
    "dur": 1.563,
    "speech_dur": 0.764,
    "gain_db": 0.0,
@@ -2542,8 +2542,8 @@
   {
    "id": "E_IDENT",
    "file": "assets/audio/voice/E_IDENT.wav",
-   "t_speech": 90.6833,
-   "t_file": 89.6313,
+   "t_speech": 90.25,
+   "t_file": 89.198,
    "dur": 3.9,
    "speech_dur": 1.408,
    "gain_db": 0.0,
@@ -2564,13 +2564,13 @@
   },
   {
    "start": 6.3,
-   "end": 7.6051,
+   "end": 8.42,
    "text": "Le 30 octobre 2026,",
    "kind": "narrator",
    "voice": "N01"
   },
   {
-   "start": 7.6451,
+   "start": 8.46,
    "end": 11.31,
    "text": "quatre amis ont pris la route\npour un escape game.",
    "kind": "narrator",
@@ -2690,70 +2690,70 @@
   },
   {
    "start": 61.4167,
-   "end": 61.91,
+   "end": 61.9767,
    "text": "Dogan…",
    "kind": "entity",
    "voice": "E_DOGAN"
   },
   {
-   "start": 61.95,
-   "end": 62.4433,
+   "start": 62.0167,
+   "end": 62.5767,
    "text": "Gabriel…",
    "kind": "entity",
    "voice": "E_GABRIEL"
   },
   {
-   "start": 62.4833,
-   "end": 62.9767,
+   "start": 62.6167,
+   "end": 63.1767,
    "text": "Hugo…",
    "kind": "entity",
    "voice": "E_HUGO"
   },
   {
-   "start": 63.0167,
-   "end": 63.81,
+   "start": 63.2167,
+   "end": 64.0767,
    "text": "Arsène…",
    "kind": "entity",
    "voice": "E_ARSENE"
   },
   {
-   "start": 63.85,
-   "end": 66.074,
+   "start": 64.1167,
+   "end": 66.3407,
    "text": "Sur la photo, ils sont quatre.",
    "kind": "narrator",
    "voice": "N08a"
   },
   {
-   "start": 66.224,
-   "end": 68.089,
+   "start": 66.4907,
+   "end": 68.3557,
    "text": "Regardez derrière eux.",
    "kind": "narrator",
    "voice": "N08b"
   },
   {
-   "start": 71.5667,
-   "end": 74.2057,
+   "start": 71.8333,
+   "end": 74.4723,
    "text": "À 23h, tout était fini.",
    "kind": "narrator",
    "voice": "N09a"
   },
   {
-   "start": 74.3057,
-   "end": 75.2177,
+   "start": 74.5723,
+   "end": 75.4843,
    "text": "Ils riaient.",
    "kind": "narrator",
    "voice": "N09b"
   },
   {
-   "start": 84.1667,
-   "end": 85.2307,
+   "start": 84.4333,
+   "end": 85.4973,
    "text": "C'est qui lui ?",
    "kind": "entity",
    "voice": "E_CQL"
   },
   {
-   "start": 90.6833,
-   "end": 92.2,
+   "start": 90.25,
+   "end": 91.958,
    "text": "Identification terminée.",
    "kind": "entity",
    "voice": "E_IDENT"
@@ -3029,7 +3029,7 @@
    "shot": "S4i"
   },
   {
-   "t": 61.9,
+   "t": 61.9667,
    "sfx": "glitch_short",
    "gain_db": -12,
    "dur": null,
@@ -3037,7 +3037,7 @@
    "shot": "S4j"
   },
   {
-   "t": 62.4333,
+   "t": 62.5667,
    "sfx": "glitch_short",
    "gain_db": -12,
    "dur": null,
@@ -3045,7 +3045,7 @@
    "shot": "S4k"
   },
   {
-   "t": 62.9667,
+   "t": 63.1667,
    "sfx": "glitch_short",
    "gain_db": -12,
    "dur": null,
@@ -3053,7 +3053,7 @@
    "shot": "S4l"
   },
   {
-   "t": 63.4667,
+   "t": 63.6667,
    "sfx": "whoosh",
    "dur": 0.4,
    "gain_db": -14,
@@ -3061,7 +3061,7 @@
    "shot": "S4l"
   },
   {
-   "t": 64.0,
+   "t": 64.2667,
    "sfx": "marker_scribble",
    "gain_db": -14,
    "dur": null,
@@ -3069,7 +3069,7 @@
    "shot": "S4m"
   },
   {
-   "t": 64.38,
+   "t": 64.6467,
    "sfx": "marker_scribble",
    "gain_db": -14,
    "dur": null,
@@ -3077,7 +3077,7 @@
    "shot": "S4m"
   },
   {
-   "t": 64.76,
+   "t": 65.0267,
    "sfx": "marker_scribble",
    "gain_db": -14,
    "dur": null,
@@ -3085,7 +3085,7 @@
    "shot": "S4m"
   },
   {
-   "t": 65.14,
+   "t": 65.4067,
    "sfx": "marker_scribble",
    "gain_db": -14,
    "dur": null,
@@ -3093,7 +3093,7 @@
    "shot": "S4m"
   },
   {
-   "t": 68.05,
+   "t": 68.3167,
    "sfx": "braam",
    "gain_db": -4,
    "dur": null,
@@ -3101,7 +3101,7 @@
    "shot": "S4m"
   },
   {
-   "t": 68.05,
+   "t": 68.3167,
    "sfx": "impact_sub",
    "gain_db": -8,
    "dur": null,
@@ -3109,7 +3109,7 @@
    "shot": "S4m"
   },
   {
-   "t": 68.45,
+   "t": 68.7167,
    "sfx": "marker_scribble",
    "gain_db": -10,
    "dur": null,
@@ -3117,21 +3117,12 @@
    "shot": "S4m"
   },
   {
-   "t": 69.1,
+   "t": 69.3667,
    "sfx": "riser",
    "dur": 1.65,
    "gain_db": -8,
    "params": {},
    "shot": "S4n"
-  },
-  {
-   "t": 69.4,
-   "sfx": "impact_hit",
-   "gain_db": -14.0,
-   "dur": null,
-   "params": {},
-   "shot": "S4n",
-   "generated": true
   },
   {
    "t": 69.6667,
@@ -3143,7 +3134,7 @@
    "generated": true
   },
   {
-   "t": 69.9,
+   "t": 69.9333,
    "sfx": "impact_hit",
    "gain_db": -14.0,
    "dur": null,
@@ -3152,7 +3143,7 @@
    "generated": true
   },
   {
-   "t": 70.1,
+   "t": 70.1667,
    "sfx": "impact_hit",
    "gain_db": -14.0,
    "dur": null,
@@ -3161,7 +3152,7 @@
    "generated": true
   },
   {
-   "t": 70.2667,
+   "t": 70.3667,
    "sfx": "impact_hit",
    "gain_db": -14.0,
    "dur": null,
@@ -3170,7 +3161,7 @@
    "generated": true
   },
   {
-   "t": 70.4,
+   "t": 70.5333,
    "sfx": "impact_hit",
    "gain_db": -14.0,
    "dur": null,
@@ -3179,7 +3170,7 @@
    "generated": true
   },
   {
-   "t": 70.5,
+   "t": 70.6667,
    "sfx": "impact_hit",
    "gain_db": -14.0,
    "dur": null,
@@ -3188,7 +3179,7 @@
    "generated": true
   },
   {
-   "t": 70.6,
+   "t": 70.7667,
    "sfx": "impact_hit",
    "gain_db": -14.0,
    "dur": null,
@@ -3197,7 +3188,16 @@
    "generated": true
   },
   {
-   "t": 78.0667,
+   "t": 70.8667,
+   "sfx": "impact_hit",
+   "gain_db": -14.0,
+   "dur": null,
+   "params": {},
+   "shot": "S4n",
+   "generated": true
+  },
+  {
+   "t": 78.3333,
    "sfx": "reverse_swell",
    "dur": 1.4,
    "gain_db": -8,
@@ -3205,7 +3205,7 @@
    "shot": "S5c"
   },
   {
-   "t": 79.4467,
+   "t": 79.7133,
    "sfx": "sub_drop",
    "gain_db": -8,
    "dur": null,
@@ -3213,7 +3213,7 @@
    "shot": "S5c"
   },
   {
-   "t": 81.1667,
+   "t": 81.4333,
    "sfx": "tinnitus",
    "dur": 2.0,
    "gain_db": -30,
@@ -3222,7 +3222,7 @@
    "shot": "S6b"
   },
   {
-   "t": 85.2,
+   "t": 85.4667,
    "sfx": "screamer_stack",
    "gain_db": 0.0,
    "dur": null,
@@ -3230,7 +3230,7 @@
    "shot": "S6e"
   },
   {
-   "t": 85.2,
+   "t": 85.4667,
    "sfx": "impact_big",
    "gain_db": 0.0,
    "dur": null,
@@ -3238,7 +3238,7 @@
    "shot": "S6e"
   },
   {
-   "t": 87.0833,
+   "t": 87.35,
    "sfx": "car_pass",
    "gain_db": -10,
    "dur": null,
@@ -3246,7 +3246,7 @@
    "shot": "S7a"
   },
   {
-   "t": 87.9333,
+   "t": 88.2,
    "sfx": "impact_sub",
    "gain_db": -6,
    "dur": null,
@@ -3254,7 +3254,7 @@
    "shot": "S7a"
   },
   {
-   "t": 90.2833,
+   "t": 89.75,
    "sfx": "piano_note",
    "gain_db": -6,
    "dur": null,
@@ -3386,7 +3386,7 @@
   {
    "kind": "drone_low",
    "t0": 39.9333,
-   "t1": 67.4,
+   "t1": 67.6667,
    "gain_db": -18.0,
    "fade_in": 0.6,
    "fade_out": 0.05,
@@ -3410,7 +3410,7 @@
   {
    "kind": "drone_tension",
    "t0": 61.3667,
-   "t1": 63.5,
+   "t1": 63.7667,
    "gain_db": -17.0,
    "fade_in": 0.0,
    "fade_out": 0.0,
@@ -3422,8 +3422,8 @@
   },
   {
    "kind": "drone_low",
-   "t0": 68.0,
-   "t1": 70.7667,
+   "t0": 68.2667,
+   "t1": 71.0334,
    "gain_db": -15.0,
    "fade_in": 0.0,
    "fade_out": 0.02,
@@ -3436,8 +3436,8 @@
   },
   {
    "kind": "warm_pad",
-   "t0": 71.2667,
-   "t1": 76.4667,
+   "t0": 71.5333,
+   "t1": 76.7333,
    "gain_db": -22.0,
    "fade_in": 0.6,
    "fade_out": 0.8,
@@ -3447,8 +3447,8 @@
   },
   {
    "kind": "drone_low",
-   "t0": 76.0667,
-   "t1": 79.4667,
+   "t0": 76.3333,
+   "t1": 79.7333,
    "gain_db": -18.0,
    "fade_in": 1.5,
    "fade_out": 0.02,
@@ -3461,8 +3461,8 @@
   },
   {
    "kind": "wind",
-   "t0": 79.8667,
-   "t1": 83.1667,
+   "t0": 80.1333,
+   "t1": 83.4333,
    "gain_db": -26.0,
    "fade_in": 0.3,
    "fade_out": 0.02,
@@ -3472,8 +3472,8 @@
   },
   {
    "kind": "heartbeat",
-   "t0": 79.8667,
-   "t1": 83.1667,
+   "t0": 80.1333,
+   "t1": 83.4333,
    "gain_db": -14.0,
    "fade_in": 0.0,
    "fade_out": 0.0,
@@ -3486,8 +3486,8 @@
   },
   {
    "kind": "wind",
-   "t0": 86.7333,
-   "t1": 92.2,
+   "t0": 87.0,
+   "t1": 93.1333,
    "gain_db": -22.0,
    "fade_in": 0.2,
    "fade_out": 0.6,
@@ -3497,8 +3497,8 @@
   },
   {
    "kind": "drone_low",
-   "t0": 86.7333,
-   "t1": 92.2,
+   "t0": 87.0,
+   "t1": 93.1333,
    "gain_db": -19.0,
    "fade_in": 0.6,
    "fade_out": 0.6,
@@ -3511,8 +3511,8 @@
  ],
  "silence": [
   [
-   83.1667,
-   85.2
+   83.4333,
+   85.4667
   ]
  ],
  "src_audio": [
@@ -3757,7 +3757,7 @@
    "clip": "IMG_8355",
    "src_in": 2.0,
    "src_out": 5.6,
-   "t": 71.2667,
+   "t": 71.5333,
    "dur": 3.6,
    "speed": 1.0,
    "gain_db": -3.0,
@@ -3771,7 +3771,7 @@
    "clip": "IMG_8356",
    "src_in": 3.0,
    "src_out": 5.75,
-   "t": 74.8667,
+   "t": 75.1333,
    "dur": 3.2,
    "speed": 1.0,
    "gain_db": 0.0,
@@ -3798,7 +3798,7 @@
    "clip": "IMG_8357",
    "src_in": 4.0,
    "src_out": 5.3,
-   "t": 79.8667,
+   "t": 80.1333,
    "dur": 1.3,
    "speed": 1.0,
    "gain_db": -8.0,
@@ -3812,7 +3812,7 @@
    "clip": "IMG_8357",
    "src_in": 5.3,
    "src_out": 6.4,
-   "t": 81.1667,
+   "t": 81.4333,
    "dur": 1.1,
    "speed": 1.0,
    "gain_db": -10.0,
@@ -3826,7 +3826,7 @@
    "clip": "IMG_8357",
    "src_in": 6.4,
    "src_out": 7.3,
-   "t": 82.2667,
+   "t": 82.5333,
    "dur": 0.9,
    "speed": 1.0,
    "gain_db": -12.0,
@@ -3840,7 +3840,7 @@
    "clip": "IMG_8349",
    "src_in": 15.0,
    "src_out": 15.9333,
-   "t": 85.2,
+   "t": 85.4667,
    "dur": 0.9333,
    "speed": 1.0,
    "gain_db": 6.0,
@@ -3857,27 +3857,11 @@
  ],
  "checks": {
   "duration_ok": true,
-  "duration": 92.2,
-  "voice_voice": [
-   [
-    "E_DOGAN",
-    "E_GABRIEL",
-    0.0157
-   ],
-   [
-    "E_GABRIEL",
-    "E_HUGO",
-    0.0167
-   ]
-  ],
+  "duration": 93.1333,
+  "voice_voice": [],
   "voice_dialogue": [],
   "voice_silence": [],
-  "voice_tail_beyond_end": [
-   [
-    "E_IDENT",
-    1.3313
-   ]
-  ],
+  "voice_tail_beyond_end": [],
   "subtitles_format": []
  },
  "warnings": [
@@ -3904,9 +3888,6 @@
   "auto face_largest:IMG_8337:0.5-4.0 indisponible (pas d'analyse) : repli 1.5",
   "auto person_peak:IMG_8346:6.0-9.5 indisponible (pas d'analyse) : repli 7.5",
   "auto audio_peak:IMG_8349:14.3-16.8:-0.10 indisponible (pas d'analyse) : repli 15.0",
-  "assets/title/title_meta.json absent : révélation du titre supposée à 1.2 s",
-  "sous-titres qui se chevauchent : « Dogan… » raccourci de 0.36 s (« Gabriel… » à 61.95 s)",
-  "sous-titres qui se chevauchent : « Gabriel… » raccourci de 0.36 s (« Hugo… » à 62.48 s)",
-  "le fichier E_IDENT dépasse la fin du film de 1.33 s (traîne coupée)"
+  "assets/title/title_meta.json absent : révélation du titre supposée à 1.2 s"
  ]
 }

@@ -38,7 +38,12 @@ SHEET_COLS = 8
 
 
 def log(msg: str) -> None:
-    print(msg, flush=True)
+    """print robuste : une console Windows en cp1252 ne doit jamais faire planter le pipeline (→, ≠, …)."""
+    try:
+        print(msg, flush=True)
+    except UnicodeEncodeError:
+        enc = getattr(sys.stdout, "encoding", None) or "ascii"
+        print(msg.encode(enc, "replace").decode(enc, "replace"), flush=True)
 
 
 # ---------------------------------------------------------------------------
@@ -1063,7 +1068,7 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     if a.report_only:
         clips = [c for c in (a.only or config.CLIPS) if config.proxy_path(c).exists()]
-        print(write_report(clips, [p for p in config.PHOTOS if config.proxy_path(p).exists()]))
+        log(str(write_report(clips, [p for p in config.PHOTOS if config.proxy_path(p).exists()])))
         return 0
     run_analysis(force=a.force, clips=a.only, jobs=a.jobs, skip=tuple(s for s in a.skip.split(",") if s))
     return 0

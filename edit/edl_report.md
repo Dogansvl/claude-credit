@@ -1,6 +1,6 @@
 # Liste de montage — C'EST QUI LUI ?
 
-Durée totale : **92.20 s** (2766 images, cible 92.0 s, fenêtre 85–95 s) — OK
+Durée totale : **93.13 s** (2794 images, cible 92.0 s, fenêtre 85–95 s) — OK
 
 Construite avec : transcriptions non (0/34 ancres trouvées), manifeste des voix oui, title_meta non, analyse non, decisions.json revu NON.
 
@@ -35,25 +35,25 @@ Construite avec : transcriptions non (0/34 ancres trouvées), manifeste des voix
 | 25 | S4f | 4 | clip | 52.87 | 54.57 | 1.70 | IMG_8349 1.00→2.70 |  | TC 21:00; silhouette room_corner_8349 |
 | 26 | S4g | 4 | clip | 54.57 | 56.37 | 1.80 | IMG_8349 7.60→9.40 |  | TC 21:00 |
 | 27 | S4h | 4 | clip | 56.37 | 61.37 | 5.00 | IMG_8354 1.00→5.76 | N07a, N07b | TC 22:12 |
-| 28 | S4i | 4 | clip | 61.37 | 61.90 | 0.53 | IMG_8340 8.80→9.33 | E_DOGAN | son source coupé |
-| 29 | S4j | 4 | clip | 61.90 | 62.43 | 0.53 | IMG_8344 5.00→5.53 | E_GABRIEL | son source coupé |
-| 30 | S4k | 4 | clip | 62.43 | 62.97 | 0.53 | IMG_8339 1.50→2.03 | E_HUGO | son source coupé |
-| 31 | S4l | 4 | clip | 62.97 | 63.50 | 0.53 | IMG_8337 1.50→2.03 | E_ARSENE | son source coupé |
-| 32 | S4m | 4 | photo | 63.50 | 69.10 | 5.60 | photo IMG_8350 | N08a, N08b | cercles (faces); cercles (silhouette); TC 22:11; silhouette group_photo_bg |
-| 33 | S4n | 4 | montage | 69.10 | 70.77 | 1.67 | IMG_8346 · IMG_8348 · IMG_8341 · IMG_8347 · IMG_8344 · IMG_8340 · IMG_8350 · IMG_8336 · IMG_8346 |  | son source coupé |
-| 34 | S4o | 4 | black | 70.77 | 71.27 | 0.50 |  |  |  |
-| 35 | S5a | 5 | clip | 71.27 | 74.87 | 3.60 | IMG_8355 2.00→5.60 | N09a, N09b | TC 23:18 |
-| 36 | S5b | 5 | clip | 74.87 | 78.07 | 3.20 | IMG_8356 3.00→5.75 |  | TC 23:24; silhouette bk_window_8356 |
-| 37 | S5c | 5 | freeze | 78.07 | 79.47 | 1.40 | gel IMG_8356 @5.73 |  |  |
-| 38 | S5d | 5 | black | 79.47 | 79.87 | 0.40 |  |  |  |
-| 39 | S6a | 6 | clip | 79.87 | 81.17 | 1.30 | IMG_8357 4.00→5.30 |  | TC 23:42; silhouette parking_8357_far |
-| 40 | S6b | 6 | clip | 81.17 | 82.27 | 1.10 | IMG_8357 5.30→6.40 |  | TC 23:42; silhouette parking_8357_mid |
-| 41 | S6c | 6 | clip | 82.27 | 83.17 | 0.90 | IMG_8357 6.40→7.30 |  | TC 23:42; silhouette parking_8357_near |
-| 42 | S6d | 6 | freeze | 83.17 | 85.20 | 2.03 | gel IMG_8357 @7.27 | E_CQL | TC 23:42; silhouette parking_8357_near |
-| 43 | S6e | 6 | clip | 85.20 | 86.13 | 0.93 | IMG_8349 15.00→15.93 |  |  |
-| 44 | S6f | 6 | black | 86.13 | 86.73 | 0.60 |  |  |  |
-| 45 | S7a | 7 | title | 86.73 | 91.73 | 5.00 |  | E_IDENT |  |
-| 46 | S7b | 7 | black | 91.73 | 92.20 | 0.47 |  |  |  |
+| 28 | S4i | 4 | clip | 61.37 | 61.97 | 0.60 | IMG_8340 8.80→9.40 | E_DOGAN | son source coupé |
+| 29 | S4j | 4 | clip | 61.97 | 62.57 | 0.60 | IMG_8344 5.00→5.60 | E_GABRIEL | son source coupé |
+| 30 | S4k | 4 | clip | 62.57 | 63.17 | 0.60 | IMG_8339 1.50→2.10 | E_HUGO | son source coupé |
+| 31 | S4l | 4 | clip | 63.17 | 63.77 | 0.60 | IMG_8337 1.50→2.10 | E_ARSENE | son source coupé |
+| 32 | S4m | 4 | photo | 63.77 | 69.37 | 5.60 | photo IMG_8350 | N08a, N08b | cercles (faces); cercles (silhouette); TC 22:11; silhouette group_photo_bg |
+| 33 | S4n | 4 | montage | 69.37 | 71.03 | 1.67 | IMG_8346 · IMG_8348 · IMG_8341 · IMG_8347 · IMG_8344 · IMG_8340 · IMG_8350 · IMG_8336 · IMG_8346 |  | son source coupé |
+| 34 | S4o | 4 | black | 71.03 | 71.53 | 0.50 |  |  |  |
+| 35 | S5a | 5 | clip | 71.53 | 75.13 | 3.60 | IMG_8355 2.00→5.60 | N09a, N09b | TC 23:18 |
+| 36 | S5b | 5 | clip | 75.13 | 78.33 | 3.20 | IMG_8356 3.00→5.75 |  | TC 23:24; silhouette bk_window_8356 |
+| 37 | S5c | 5 | freeze | 78.33 | 79.73 | 1.40 | gel IMG_8356 @5.73 |  |  |
+| 38 | S5d | 5 | black | 79.73 | 80.13 | 0.40 |  |  |  |
+| 39 | S6a | 6 | clip | 80.13 | 81.43 | 1.30 | IMG_8357 4.00→5.30 |  | TC 23:42; silhouette parking_8357_far |
+| 40 | S6b | 6 | clip | 81.43 | 82.53 | 1.10 | IMG_8357 5.30→6.40 |  | TC 23:42; silhouette parking_8357_mid |
+| 41 | S6c | 6 | clip | 82.53 | 83.43 | 0.90 | IMG_8357 6.40→7.30 |  | TC 23:42; silhouette parking_8357_near |
+| 42 | S6d | 6 | freeze | 83.43 | 85.47 | 2.03 | gel IMG_8357 @7.27 | E_CQL | TC 23:42; silhouette parking_8357_near |
+| 43 | S6e | 6 | clip | 85.47 | 86.40 | 0.93 | IMG_8349 15.00→15.93 |  |  |
+| 44 | S6f | 6 | black | 86.40 | 87.00 | 0.60 |  |  |  |
+| 45 | S7a | 7 | title | 87.00 | 92.00 | 5.00 |  | E_IDENT |  |
+| 46 | S7b | 7 | black | 92.00 | 93.13 | 1.13 |  |  |  |
 
 ## Voix off
 
@@ -69,23 +69,23 @@ Construite avec : transcriptions non (0/34 ancres trouvées), manifeste des voix
 | N07a | narrator | 56.67→59.36 | 56.61→59.91 | S4h | À 22h12, Dogan s'est mis au piano. |
 | N07b | narrator | 59.71→61.31 | 59.65→61.86 | S4h | Il ne se souvient pas d'avoir joué. |
 | E_DOGAN | entity | 61.42→61.97 | 60.76→63.06 | S4i | Dogan… |
-| E_GABRIEL | entity | 61.95→62.50 | 61.30→63.55 | S4j | Gabriel… |
-| E_HUGO | entity | 62.48→62.89 | 61.83→63.99 | S4k | Hugo… |
-| E_ARSENE | entity | 63.02→63.76 | 62.36→64.77 | S4l | Arsène… |
-| N08a | narrator | 63.85→65.77 | 63.79→66.32 | S4m | Sur la photo, ils sont quatre. |
-| N08b | narrator | 66.22→67.79 | 66.16→68.34 | S4m | Regardez derrière eux. |
-| N09a | narrator | 71.57→73.91 | 71.51→74.46 | S5a | À 23h, tout était fini. |
-| N09b | narrator | 74.31→74.92 | 74.25→75.47 | S5a | Ils riaient. |
-| E_CQL | entity | 84.17→84.93 | 83.68→85.25 | S6d | C'est qui lui ? |
-| E_IDENT | entity | 90.68→92.09 | 89.63→93.53 | S7a | Identification terminée. |
+| E_GABRIEL | entity | 62.02→62.57 | 61.36→63.62 | S4j | Gabriel… |
+| E_HUGO | entity | 62.62→63.03 | 61.96→64.13 | S4k | Hugo… |
+| E_ARSENE | entity | 63.22→63.96 | 62.56→64.97 | S4l | Arsène… |
+| N08a | narrator | 64.12→66.04 | 64.06→66.59 | S4m | Sur la photo, ils sont quatre. |
+| N08b | narrator | 66.49→68.06 | 66.43→68.61 | S4m | Regardez derrière eux. |
+| N09a | narrator | 71.83→74.17 | 71.77→74.72 | S5a | À 23h, tout était fini. |
+| N09b | narrator | 74.57→75.18 | 74.51→75.73 | S5a | Ils riaient. |
+| E_CQL | entity | 84.43→85.20 | 83.95→85.51 | S6d | C'est qui lui ? |
+| E_IDENT | entity | 90.25→91.66 | 89.20→93.10 | S7a | Identification terminée. |
 
 ## Sous-titres
 
 | début | fin | type | texte |
 |---|---|---|---|
 | 0.80 | 2.20 | dialogue | C'est qui lui ? |
-| 6.30 | 7.61 | narrator | Le 30 octobre 2026, |
-| 7.65 | 11.31 | narrator | quatre amis ont pris la route ⏎ pour un escape game. |
+| 6.30 | 8.42 | narrator | Le 30 octobre 2026, |
+| 8.46 | 11.31 | narrator | quatre amis ont pris la route ⏎ pour un escape game. |
 | 11.35 | 13.42 | narrator | Ils se sont filmés ⏎ toute la soirée. |
 | 13.50 | 15.51 | narrator | Voici ce qu'ils ont filmé. |
 | 19.00 | 20.00 | dialogue | Tu sais quand il vient ? |
@@ -102,16 +102,16 @@ Construite avec : transcriptions non (0/34 ancres trouvées), manifeste des voix
 | 49.07 | 53.26 | narrator | Les organisateurs jurent que cette ⏎ pièce ne fait pas partie du jeu. |
 | 56.67 | 59.66 | narrator | À 22h12, Dogan s'est mis au piano. |
 | 59.71 | 61.38 | narrator | Il ne se souvient ⏎ pas d'avoir joué. |
-| 61.42 | 61.91 | entity | Dogan… |
-| 61.95 | 62.44 | entity | Gabriel… |
-| 62.48 | 62.98 | entity | Hugo… |
-| 63.02 | 63.81 | entity | Arsène… |
-| 63.85 | 66.07 | narrator | Sur la photo, ils sont quatre. |
-| 66.22 | 68.09 | narrator | Regardez derrière eux. |
-| 71.57 | 74.21 | narrator | À 23h, tout était fini. |
-| 74.31 | 75.22 | narrator | Ils riaient. |
-| 84.17 | 85.23 | entity | C'est qui lui ? |
-| 90.68 | 92.20 | entity | Identification terminée. |
+| 61.42 | 61.98 | entity | Dogan… |
+| 62.02 | 62.58 | entity | Gabriel… |
+| 62.62 | 63.18 | entity | Hugo… |
+| 63.22 | 64.08 | entity | Arsène… |
+| 64.12 | 66.34 | narrator | Sur la photo, ils sont quatre. |
+| 66.49 | 68.36 | narrator | Regardez derrière eux. |
+| 71.83 | 74.47 | narrator | À 23h, tout était fini. |
+| 74.57 | 75.48 | narrator | Ils riaient. |
+| 84.43 | 85.50 | entity | C'est qui lui ? |
+| 90.25 | 91.96 | entity | Identification terminée. |
 
 ## Cues SFX (61)
 
@@ -150,34 +150,34 @@ Construite avec : transcriptions non (0/34 ancres trouvées), manifeste des voix
 | 52.87 | whoosh_rev | -16 | 0.5 | S4f |
 | 53.17 | creak | -16 |  | S4f |
 | 61.37 | glitch_short | -12 |  | S4i |
-| 61.90 | glitch_short | -12 |  | S4j |
-| 62.43 | glitch_short | -12 |  | S4k |
-| 62.97 | glitch_short | -12 |  | S4l |
-| 63.47 | whoosh | -14 | 0.4 | S4l |
-| 64.00 | marker_scribble | -14 |  | S4m |
-| 64.38 | marker_scribble | -14 |  | S4m |
-| 64.76 | marker_scribble | -14 |  | S4m |
-| 65.14 | marker_scribble | -14 |  | S4m |
-| 68.05 | braam | -4 |  | S4m |
-| 68.05 | impact_sub | -8 |  | S4m |
-| 68.45 | marker_scribble | -10 |  | S4m |
-| 69.10 | riser | -8 | 1.65 | S4n |
-| 69.40 | impact_hit (auto) | -14.0 |  | S4n |
+| 61.97 | glitch_short | -12 |  | S4j |
+| 62.57 | glitch_short | -12 |  | S4k |
+| 63.17 | glitch_short | -12 |  | S4l |
+| 63.67 | whoosh | -14 | 0.4 | S4l |
+| 64.27 | marker_scribble | -14 |  | S4m |
+| 64.65 | marker_scribble | -14 |  | S4m |
+| 65.03 | marker_scribble | -14 |  | S4m |
+| 65.41 | marker_scribble | -14 |  | S4m |
+| 68.32 | braam | -4 |  | S4m |
+| 68.32 | impact_sub | -8 |  | S4m |
+| 68.72 | marker_scribble | -10 |  | S4m |
+| 69.37 | riser | -8 | 1.65 | S4n |
 | 69.67 | impact_hit (auto) | -14.0 |  | S4n |
-| 69.90 | impact_hit (auto) | -14.0 |  | S4n |
-| 70.10 | impact_hit (auto) | -14.0 |  | S4n |
-| 70.27 | impact_hit (auto) | -14.0 |  | S4n |
-| 70.40 | impact_hit (auto) | -14.0 |  | S4n |
-| 70.50 | impact_hit (auto) | -14.0 |  | S4n |
-| 70.60 | impact_hit (auto) | -14.0 |  | S4n |
-| 78.07 | reverse_swell | -8 | 1.4 | S5c |
-| 79.45 | sub_drop | -8 |  | S5c |
-| 81.17 | tinnitus | -30 | 2.0 | S6b |
-| 85.20 | screamer_stack | 0.0 |  | S6e |
-| 85.20 | impact_big | 0.0 |  | S6e |
-| 87.08 | car_pass | -10 |  | S7a |
-| 87.93 | impact_sub | -6 |  | S7a |
-| 90.28 | piano_note | -6 |  | S7a |
+| 69.93 | impact_hit (auto) | -14.0 |  | S4n |
+| 70.17 | impact_hit (auto) | -14.0 |  | S4n |
+| 70.37 | impact_hit (auto) | -14.0 |  | S4n |
+| 70.53 | impact_hit (auto) | -14.0 |  | S4n |
+| 70.67 | impact_hit (auto) | -14.0 |  | S4n |
+| 70.77 | impact_hit (auto) | -14.0 |  | S4n |
+| 70.87 | impact_hit (auto) | -14.0 |  | S4n |
+| 78.33 | reverse_swell | -8 | 1.4 | S5c |
+| 79.71 | sub_drop | -8 |  | S5c |
+| 81.43 | tinnitus | -30 | 2.0 | S6b |
+| 85.47 | screamer_stack | 0.0 |  | S6e |
+| 85.47 | impact_big | 0.0 |  | S6e |
+| 87.35 | car_pass | -10 |  | S7a |
+| 88.20 | impact_sub | -6 |  | S7a |
+| 89.75 | piano_note | -6 |  | S7a |
 
 ## Lits musicaux
 
@@ -192,18 +192,18 @@ Construite avec : transcriptions non (0/34 ancres trouvées), manifeste des voix
 | riser | 30.63 | 34.63 | -15.0 | 0.0 |  |
 | drone_low | 34.63 | 39.93 | -16.0 | 6.0 |  |
 | clock_tick | 39.93 | 56.37 | -24.0 | 0.0 |  |
-| drone_low | 39.93 | 67.40 | -18.0 | 6.0 |  |
+| drone_low | 39.93 | 67.67 | -18.0 | 6.0 |  |
 | drone_tension | 46.67 | 56.37 | -24.0 | 5.0 |  |
-| drone_tension | 61.37 | 63.50 | -17.0 | 0.0 |  |
-| drone_low | 68.00 | 70.77 | -15.0 | 0.0 |  |
-| warm_pad | 71.27 | 76.47 | -22.0 | 4.0 |  |
-| drone_low | 76.07 | 79.47 | -18.0 | 0.0 |  |
-| wind | 79.87 | 83.17 | -26.0 | 0.0 |  |
-| heartbeat | 79.87 | 83.17 | -14.0 | 0.0 |  |
-| wind | 86.73 | 92.20 | -22.0 | 0.0 |  |
-| drone_low | 86.73 | 92.20 | -19.0 | 0.0 |  |
+| drone_tension | 61.37 | 63.77 | -17.0 | 0.0 |  |
+| drone_low | 68.27 | 71.03 | -15.0 | 0.0 |  |
+| warm_pad | 71.53 | 76.73 | -22.0 | 4.0 |  |
+| drone_low | 76.33 | 79.73 | -18.0 | 0.0 |  |
+| wind | 80.13 | 83.43 | -26.0 | 0.0 |  |
+| heartbeat | 80.13 | 83.43 | -14.0 | 0.0 |  |
+| wind | 87.00 | 93.13 | -22.0 | 0.0 |  |
+| drone_low | 87.00 | 93.13 | -19.0 | 0.0 |  |
 
-## Silences francs : [[83.1667, 85.2]]
+## Silences francs : [[83.4333, 85.4667]]
 
 ## Son source (segments pour le mixage)
 
@@ -225,20 +225,20 @@ Construite avec : transcriptions non (0/34 ancres trouvées), manifeste des voix
 | 52.87 | IMG_8349 | 1.00→2.70 | 1.70 | -10.0 |  |
 | 54.57 | IMG_8349 | 7.60→9.40 | 1.80 | -6.0 |  |
 | 56.37 | IMG_8354 | 1.00→5.76 | 5.00 | 0.0 |  |
-| 71.27 | IMG_8355 | 2.00→5.60 | 3.60 | -3.0 |  |
-| 74.87 | IMG_8356 | 3.00→5.75 | 3.20 | 0.0 |  |
-| 79.87 | IMG_8357 | 4.00→5.30 | 1.30 | -8.0 |  |
-| 81.17 | IMG_8357 | 5.30→6.40 | 1.10 | -10.0 |  |
-| 82.27 | IMG_8357 | 6.40→7.30 | 0.90 | -12.0 |  |
-| 85.20 | IMG_8349 | 15.00→15.93 | 0.93 | 6.0 |  |
+| 71.53 | IMG_8355 | 2.00→5.60 | 3.60 | -3.0 |  |
+| 75.13 | IMG_8356 | 3.00→5.75 | 3.20 | 0.0 |  |
+| 80.13 | IMG_8357 | 4.00→5.30 | 1.30 | -8.0 |  |
+| 81.43 | IMG_8357 | 5.30→6.40 | 1.10 | -10.0 |  |
+| 82.53 | IMG_8357 | 6.40→7.30 | 0.90 | -12.0 |  |
+| 85.47 | IMG_8349 | 15.00→15.93 | 0.93 | 6.0 |  |
 
 ## Contrôles
 
-- durée : 92.20 s → OK
-- chevauchements voix/voix : [['E_DOGAN', 'E_GABRIEL', 0.0157], ['E_GABRIEL', 'E_HUGO', 0.0167]]
+- durée : 93.13 s → OK
+- chevauchements voix/voix : aucun
 - chevauchements voix/répliques : aucun
 - voix dans un silence : aucune
-- fichiers voix au-delà de la fin : [['E_IDENT', 1.3313]]
+- fichiers voix au-delà de la fin : aucun
 - sous-titres hors format : aucun
 
 ## Résolution des valeurs
@@ -344,7 +344,7 @@ Construite avec : transcriptions non (0/34 ancres trouvées), manifeste des voix
 | S6e | src_in | repli | 15.0 | audio_peak:IMG_8349:14.3-16.8:-0.10 : pas d'analyse |
 | S6e | src_in | décision | 15.0 | decision:screamer_8349_t |
 
-## Avertissements (27)
+## Avertissements (24)
 
 - aucune analyse (transcriptions, visages...) : EDL construite sur les replis du brief
 - edit/decisions.json pas encore revu (_reviewed=false) : identités/instants à vérifier sur les planches contact
@@ -370,6 +370,3 @@ Construite avec : transcriptions non (0/34 ancres trouvées), manifeste des voix
 - auto person_peak:IMG_8346:6.0-9.5 indisponible (pas d'analyse) : repli 7.5
 - auto audio_peak:IMG_8349:14.3-16.8:-0.10 indisponible (pas d'analyse) : repli 15.0
 - assets/title/title_meta.json absent : révélation du titre supposée à 1.2 s
-- sous-titres qui se chevauchent : « Dogan… » raccourci de 0.36 s (« Gabriel… » à 61.95 s)
-- sous-titres qui se chevauchent : « Gabriel… » raccourci de 0.36 s (« Hugo… » à 62.48 s)
-- le fichier E_IDENT dépasse la fin du film de 1.33 s (traîne coupée)

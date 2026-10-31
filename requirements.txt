@@ -13,3 +13,4 @@ edge-tts>=6.1
 fonttools>=4.40
 # Optionnel (meilleure transcription si dispo, ex. sous Windows avec accès Hugging Face) :
 # faster-whisper>=1.0
+pillow-heif>=0.16

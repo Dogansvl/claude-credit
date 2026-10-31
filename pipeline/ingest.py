@@ -47,7 +47,12 @@ AUDIO_OK = {"aac", "alac", "pcm_s16le", "pcm_s16be", "pcm_s24le", "pcm_s24be", "
 
 
 def log(msg: str) -> None:
-    print(msg, flush=True)
+    """print robuste : une console Windows en cp1252 ne doit jamais faire planter le pipeline (→, ≠, …)."""
+    try:
+        print(msg, flush=True)
+    except UnicodeEncodeError:
+        enc = getattr(sys.stdout, "encoding", None) or "ascii"
+        print(msg.encode(enc, "replace").decode(enc, "replace"), flush=True)
 
 
 # ---------------------------------------------------------------------------

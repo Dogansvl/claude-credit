@@ -275,7 +275,7 @@ SHOTS: list[dict] = [
          voice=[dict(id="N07a", t=0.3), dict(id="N07b", t="after:N07a:0.35")]),
     # --- flashs de possession -----------------------------------------
     dict(id="S4i", section=4, label="possession 1 (8340 yeux fixes)", kind="clip", clip="decision:possess_1.clip",
-         src_in="decision:possess_1.t", dur=0.55,
+         src_in="decision:possess_1.t", dur=0.6,
          camera=dict(zoom=(1.1, 1.2), center="face"),
          grade=dict(preset="cold"),
          audio=dict(mute_src=True),
@@ -283,7 +283,7 @@ SHOTS: list[dict] = [
          voice=[dict(id="decision:possess_1.whisper", t=0.05)],
          cues=[dict(t=0.0, sfx="glitch_short", gain_db=-12)]),
     dict(id="S4j", section=4, label="possession 2 (8344 sourire Gabriel)", kind="clip", clip="decision:possess_2.clip",
-         src_in="decision:possess_2.t", dur=0.55,
+         src_in="decision:possess_2.t", dur=0.6,
          camera=dict(zoom=(1.1, 1.2), center="face"),
          grade=dict(preset="cold"),
          audio=dict(mute_src=True),
@@ -291,7 +291,7 @@ SHOTS: list[dict] = [
          voice=[dict(id="E_GABRIEL", t=0.05)],
          cues=[dict(t=0.0, sfx="glitch_short", gain_db=-12)]),
     dict(id="S4k", section=4, label="possession 3 (8339 selfie figé)", kind="clip", clip="decision:possess_3.clip",
-         src_in="decision:possess_3.t", dur=0.55,
+         src_in="decision:possess_3.t", dur=0.6,
          camera=dict(zoom=(1.1, 1.2), center="face"),
          grade=dict(preset="cold"),
          audio=dict(mute_src=True),
@@ -300,7 +300,7 @@ SHOTS: list[dict] = [
          voice=[dict(id="decision:possess_3.whisper", t=0.05)],
          cues=[dict(t=0.0, sfx="glitch_short", gain_db=-12)]),
     dict(id="S4l", section=4, label="possession 4 (8337 passager / 8341)", kind="clip", clip="decision:possess_4.clip",
-         src_in="decision:possess_4.t", dur=0.55,
+         src_in="decision:possess_4.t", dur=0.6,
          camera=dict(zoom=(1.1, 1.18), center="face"),
          grade=dict(preset="cold"),
          audio=dict(mute_src=True),
@@ -421,9 +421,9 @@ SHOTS: list[dict] = [
     dict(id="S7a", section=7, label="titre 3D brouillard + phares", kind="title", dur=5.0,
          overlays=[dict(type="title_sub", text="INSPIRÉ DE FAITS RÉELS — 30.10.2026", t0=2.6, t1=5.0)],
          cues=[dict(t=0.35, sfx="car_pass", gain_db=-10), dict(t="title:reveal", sfx="impact_sub", gain_db=-6),
-               dict(t=3.55, sfx="piano_note", gain_db=-6)],
-         voice=[dict(id="E_IDENT", t=3.95)]),
-    dict(id="S7b", section=7, label="noir final", kind="black", dur=0.45),
+               dict(t=2.75, sfx="piano_note", gain_db=-6)],
+         voice=[dict(id="E_IDENT", t=3.25)]),
+    dict(id="S7b", section=7, label="noir final (traîne du chuchotement)", kind="black", dur=1.15),
 ]
 
 # ---------------------------------------------------------------------------

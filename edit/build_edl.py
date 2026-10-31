@@ -54,6 +54,15 @@ NAMES_UP = {n.upper() for n in config.NAMES}
 _DEC = re.compile(r"^decision:([A-Za-z0-9_]+)(?:\.([A-Za-z_]+))?([+-]\d+(?:\.\d+)?)?$")
 
 
+def log(msg: str) -> None:
+    """print robuste : une console Windows en cp1252 ne doit jamais faire planter le pipeline (→, ≠, …)."""
+    try:
+        print(msg, flush=True)
+    except UnicodeEncodeError:
+        enc = getattr(sys.stdout, "encoding", None) or "ascii"
+        print(msg.encode(enc, "replace").decode(enc, "replace"), flush=True)
+
+
 def fr(t: float) -> int:
     return int(round(t * FPS))
 
@@ -1121,14 +1130,18 @@ def main(argv=None) -> int:
     ap.add_argument("--commit", action="store_true", help="copier aussi dans edit/edl.json et edit/edl_report.md")
     ap.add_argument("--no-analysis", action="store_true", help="ignorer l'analyse (replis du brief)")
     a = ap.parse_args(argv)
-    edl = build(analysis_dir="" if a.no_analysis else None, commit=a.commit)
+    try:
+        edl = build(analysis_dir="" if a.no_analysis else None, commit=a.commit)
+    except RuntimeError as e:
+        log(f"[edl] ERREUR : {e}")
+        return 3
     m = edl["meta"]
-    print(f"[edl] {len(edl['shots'])} shots, {m['duration']:.2f} s, {len(edl['voices'])} voix, "
+    log(f"[edl] {len(edl['shots'])} shots, {m['duration']:.2f} s, {len(edl['voices'])} voix, "
           f"{len(edl['subtitles'])} sous-titres, {len(edl['cues'])} cues, {len(edl['music'])} lits, "
           f"ancres {m['anchors']['found']}/{m['anchors']['total']}, {len(edl['warnings'])} avertissements")
-    print(f"[edl] → {config.WORK_DIR / 'edl.json'}" + ("  (+ edit/edl.json)" if a.commit else ""))
+    log(f"[edl] → {config.WORK_DIR / 'edl.json'}" + ("  (+ edit/edl.json)" if a.commit else ""))
     for w in edl["warnings"]:
-        print("  ! " + w)
+        log("  ! " + w)
     return 0 if edl["checks"]["duration_ok"] else 2
 
 

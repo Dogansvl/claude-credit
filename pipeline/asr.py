@@ -62,7 +62,12 @@ _models: dict = {}
 
 
 def log(msg: str) -> None:
-    print(msg, flush=True)
+    """print robuste : une console Windows en cp1252 ne doit jamais faire planter le pipeline (→, ≠, …)."""
+    try:
+        print(msg, flush=True)
+    except UnicodeEncodeError:
+        enc = getattr(sys.stdout, "encoding", None) or "ascii"
+        print(msg.encode(enc, "replace").decode(enc, "replace"), flush=True)
 
 
 # ---------------------------------------------------------------------------
@@ -604,11 +609,11 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     res = transcribe_file(a.file, backend=a.backend)
     if a.json:
-        print(json.dumps(res, ensure_ascii=False, indent=1))
+        log(json.dumps(res, ensure_ascii=False, indent=1))
     else:
-        print(f"moteur : {res['backend']}  {res.get('errors') or ''}")
+        log(f"moteur : {res['backend']}  {res.get('errors') or ''}")
         for s in res["segments"]:
-            print(f"[{s['start']:7.2f} → {s['end']:7.2f}] {s['text']}")
+            log(f"[{s['start']:7.2f} -> {s['end']:7.2f}] {s['text']}")
     return 0 if res["words"] else 1
 
 
