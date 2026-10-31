@@ -12,7 +12,7 @@ Bus :
 Extensions (intelligibilité) : son source −6 dB et traînes SFX −5 dB sous les voix off, puis
 « ducker d'intelligibilité » automatique : dans la bande parole (300 Hz–4 kHz), le fond (lits, SFX hors
 attaque, son source sous les voix off) est abaissé juste ce qu'il faut pour rester INTEL_TARGET_DB sous la
-voix (narrateur 10 dB, entité 8 dB, répliques 7 dB) ; sous 160 Hz seulement 30 % de la réduction (le poids
+voix (narrateur 11 dB, entité 9 dB, répliques 8 dB) ; sous 160 Hz seulement 30 % de la réduction (le poids
 des impacts et des sub-drops est conservé).
 Silences (`edl.silence`) : zéro absolu (rampes 5 ms) sur tous les bus, sauf voix allow_in_silence.
 Cue `params.pre_silence` (s) : trou franc (zéro absolu, hors voix off) juste AVANT la cue (« suck-out »).
@@ -57,7 +57,7 @@ MASTER_TP = -1.5               # −1 dBTP exigé ; 0,5 dB de marge pour le dép
 MAX_SECTION_CUT_DB = 9.0       # abaissement maximal cumulé d'un passage concurrent (avant master)
 SUBSONIC_HZ = 28.0
 INTEL_BAND = (300.0, 4000.0)   # bande d'intelligibilité de la parole
-INTEL_TARGET_DB = {"narrator": 10.0, "entity": 8.0, "dialogue": 7.0}
+INTEL_TARGET_DB = {"narrator": 11.0, "entity": 9.0, "dialogue": 8.0}
 INTEL_MAX_DB = 14.0
 INTEL_LOW_SHARE = 0.3          # part de la réduction appliquée sous INTEL_XOVER_HZ
 INTEL_XOVER_HZ = 160.0
@@ -367,21 +367,22 @@ def band_level_db(x: np.ndarray, band=INTEL_BAND, win: float = 0.1) -> np.ndarra
 def intel_reduction(fg: np.ndarray, bg: np.ndarray, presence: np.ndarray, target_db: float) -> np.ndarray:
     """Réduction (dB, par trame de 10 ms) à appliquer au fond pour qu'il reste `target_db` sous la voix.
 
-    Niveau de voix = crête syllabique (max sur 400 ms du niveau 100 ms) ; seulement là où la voix est
-    présente et à moins de 35 dB de son maximum (pas de pompage sur les traînes de réverbe).
+    Niveau de voix = crête de phrase (max sur 600 ms du niveau 100 ms), niveau du fond moyenné sur 300 ms :
+    la réduction suit la phrase, pas chaque syllabe (pas de pompage) ; seulement là où la voix est
+    présente et à moins de 35 dB de son maximum (rien sur les traînes de réverbe).
     """
     L_fg = band_level_db(fg)
-    L_bg = band_level_db(bg)
+    L_bg = band_level_db(bg, win=0.3)
     n = min(len(L_fg), len(L_bg))
     L_fg, L_bg = L_fg[:n], L_bg[:n]
-    held = maximum_filter1d(L_fg, 41)
+    held = maximum_filter1d(L_fg, 61)
     h = int(_FR_HOP * SR)
     pr = presence[: n * h: h][:n] if len(presence) >= n * h else np.zeros(n)
     act = (pr > 0.5) & (held > held.max() - 35)
     return np.where(act, np.clip(L_bg - (held - target_db), 0.0, INTEL_MAX_DB), 0.0)
 
 
-def _smooth_reduction(r: np.ndarray, n: int, attack: float = 0.05, release: float = 0.45, hold: float = 0.2) -> np.ndarray:
+def _smooth_reduction(r: np.ndarray, n: int, attack: float = 0.08, release: float = 0.7, hold: float = 0.3) -> np.ndarray:
     """Trames 10 ms -> courbe par échantillon : maintien, anticipation (= attaque), attaque/relâche."""
     if not np.any(r > 0):
         return np.zeros(n)
@@ -792,7 +793,7 @@ def _snap_rise_end(kind: str, t1: float, hits: list[float]) -> float:
 def _cut_summary(cut: np.ndarray) -> list[list[float]]:
     """Passages abaissés pour la marge du screamer : [début, fin, dB max]."""
     on = cut > 0.05
-    out, k = [], 0
+    out = []
     edges = np.flatnonzero(np.diff(on.astype(np.int8))) + 1
     bounds = np.concatenate([[0], edges, [len(cut)]])
     for a, b in zip(bounds[:-1], bounds[1:]):

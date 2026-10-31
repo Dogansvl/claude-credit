@@ -60,8 +60,8 @@
       "text": "À 22h12, Dogan s'est mis au piano.",
       "tts_text": "À vingt-deux heures douze, Dogane s'est mis au piano.",
       "onset_s": 0.06,
-      "speech_dur": 2.693,
-      "dur": 3.303,
+      "speech_dur": 2.721,
+      "dur": 3.331,
       "kind": "narrator"
     },
     "N07b": {
@@ -69,8 +69,8 @@
       "text": "Il ne se souvient pas d'avoir joué.",
       "tts_text": "Il ne se souvient pas d'avoir joué.",
       "onset_s": 0.06,
-      "speech_dur": 1.598,
-      "dur": 2.208,
+      "speech_dur": 1.55,
+      "dur": 2.16,
       "kind": "narrator"
     },
     "N08a": {

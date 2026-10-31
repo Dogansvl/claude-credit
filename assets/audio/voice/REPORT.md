@@ -1,6 +1,6 @@
 # Voix off — rapport de génération
 
-Généré par `python tools/make_voices.py` le 2026-10-31 18:38 — backend : **piper:tom**.
+Généré par `python tools/make_voices.py` le 2026-10-31 18:51 — backend : **piper:tom**.
 
 ## Voix choisie et pourquoi
 
@@ -79,8 +79,8 @@ proche de 0,1 s, onset ≤ 0,15 s pour que le silence de S6d reste franc) → qu
 | N04 | narrator | Ils ne l'ont jamais revu. | Ils ne l'ont jamais revu. | 0.060 | 1.26 | 1.87 | 2.10 | -20.0 | -9.73 | {'length_scale': 1.1, 'seed': 40686} | Ils ne l'ont jamais revu. | 0.0 |
 | N05 | narrator | Lui ne les a plus jamais quittés. | Lui ne les a plus jamais quittés. | 0.059 | 1.78 | 2.39 | 1.80 | -20.0 | -7.78 | {'length_scale': 1.052, 'seed': 98520} | Lui ne les a plus jamais quittés. | 0.0 |
 | N06 | narrator | Les organisateurs jurent que cette pièce ne fait pas partie du jeu. | Les organisateurs jurent que cette pièce ne fait pas partie du jeu. | 0.058 | 3.60 | 4.21 | 4.15 | -20.0 | -3.16 | {'length_scale': 1.1, 'seed': 88330} | Les organisateurs jurent que cette pièce ne fait pas partie du jeu. | 0.0 |
-| N07a | narrator | À 22h12, Dogan s'est mis au piano. | À vingt-deux heures douze, Dogane s'est mis au piano. | 0.060 | 2.69 ⚠ | 3.30 | 2.64 | -20.0 | -3.16 | {'length_scale': 0.94, 'seed': 73376, 'tempo': 1.1} | A 22h12, Dogen se met au piano. | 0.273 |
-| N07b | narrator | Il ne se souvient pas d'avoir joué. | Il ne se souvient pas d'avoir joué. | 0.060 | 1.60 ⚠ | 2.21 | 1.56 | -20.0 | -3.27 | {'length_scale': 0.94, 'seed': 20082, 'tempo': 1.1} | Il ne s'est souviens pas d'avoir joué. | 0.375 |
+| N07a | narrator | À 22h12, Dogan s'est mis au piano. | À vingt-deux heures douze, Dogane s'est mis au piano. | 0.060 | 2.72 ⚠ | 3.33 | 2.64 | -20.0 | -3.17 | {'length_scale': 0.94, 'seed': 75376, 'tempo': 1.1} | A 22h12, Dogen s'est mis au piano. | 0.0 |
+| N07b | narrator | Il ne se souvient pas d'avoir joué. | Il ne se souvient pas d'avoir joué. | 0.060 | 1.55 ⚠ | 2.16 | 1.53 | -20.0 | -4.64 | {'length_scale': 0.94, 'seed': 25082, 'tempo': 1.1} | Il ne se souvient pas d'avoir joué. | 0.0 |
 | N08a | narrator | Sur la photo, ils sont quatre. | Sur la photo, ils sont quatre. | 0.060 | 1.92 | 2.53 | 1.93 | -20.0 | -6.31 | {'length_scale': 1.057, 'seed': 78015} | sur la photo I-104. | 0.333 |
 | N08b | narrator | Regardez derrière eux. | Regardez derrière eux. | 0.058 | 1.51 | 2.12 | 1.58 | -20.0 | -6.85 | {'length_scale': 1.1, 'seed': 83573} | Regardez derrière eux. | 0.0 |
 | N09a | narrator | À 23h, tout était fini. | À vingt-trois heures, tout était fini. | 0.060 | 2.34 | 2.95 | 2.73 | -20.0 | -3.14 | {'length_scale': 1.1, 'seed': 25854} | A 23 heures, tout était fini. | 0.0 |
@@ -116,7 +116,7 @@ Fenêtre = du début de parole jusqu'à la voix suivante (ou fin de shot `silenc
 | S3c | N05 | 37.55 | 1.95 | 1.78 | +0.17 | 1.76 |  |
 | S4b | E_IDENT | 44.45 | 4.50 | 1.56 | +2.94 | 1.49 |  |
 | S4e | N06 | 48.95 | 4.30 | 3.60 | +0.69 | 3.61 |  |
-| S4h | N07a + N07b | 56.55 | 4.75 | 4.64 | +0.11 | 5.84 | 1.24 |
+| S4h | N07a + N07b | 56.55 | 4.75 | 4.62 | +0.13 | 5.84 | 1.24 |
 | S4i | E_DOGAN | 61.30 | 0.60 | 0.65 | -0.05 | 0.61 |  |
 | S4j | E_GABRIEL | 61.90 | 0.60 | 0.76 | -0.16 | 0.74 |  |
 | S4k | E_HUGO | 62.50 | 0.60 | 0.39 | +0.21 | 0.35 |  |
